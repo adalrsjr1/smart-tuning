@@ -1,0 +1,43 @@
+version: "2"
+
+services:
+  mongodb:
+    image: mongo-acmeair:latest
+    cpuset: "1"
+    networks:
+      - default
+    volumes:
+      - /Users/adalbertoibm.com/Coding/Dockerized_AcmeAir/mongo/data:/data/db
+    ports:
+      - "27017:27017"
+  acmeair:
+    image: liberty-acmeair:latest
+    cpuset: "0"
+    mem_limit: "256m"
+    # healthcheck only works on docker-compose +2.3
+    #    healthcheck:
+    #      test: curl -f http://localhost/acmeair-webapp/
+    #      interval: 10s
+    #      timeout: 10s
+    #      retries: 3
+    #      start_period: 1m
+    networks:
+      - default
+    links:
+      - "mongodb"
+    depends_on:
+      - mongodb
+    ports:
+      - "9092:80"
+      - "9093:493"
+    volumes:
+      - /Users/adalbertoibm.com/Coding/Dockerized_AcmeAir/logs:/logs
+    environment:
+      - JVM_ARGS=""-Xms128M -Xmx128M -Xtune:virtualized -XX:+UseContainerSupport""
+    env_file:
+      - ./docker-compose.env
+
+networks:
+    default:
+        external:
+            name: acmeair-network

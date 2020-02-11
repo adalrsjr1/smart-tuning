@@ -1,0 +1,44 @@
+FROM ubuntu
+
+RUN apt-get update && \
+    apt-get install software-properties-common --no-install-recommends --yes && \
+    add-apt-repository ppa:ubuntu-toolchain-r/ppa && \
+    apt-get update && apt-get install --no-install-recommends --yes \
+      python3.7
+
+RUN rm /usr/bin/python3 && ln -s python3.7 /usr/bin/python3 && \
+    rm /usr/bin/python3m && ln -s python3.7m /usr/bin/python3m
+
+RUN apt-get install --no-install-recommends --yes \
+      docker.io \
+      python3-pip \
+      python3-setuptools \
+      python3-wheel \
+      curl \
+      iputils-ping 
+
+RUN curl -L "https://github.com/docker/compose/releases/download/1.25.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
+  chmod +x /usr/local/bin/docker-compose
+
+RUN mkdir -p app/jmeter_output
+WORKDIR app
+RUN export PATH=$PATH:/app
+
+COPY opt/requirements.txt opt/requirements.txt
+RUN pip3 install --no-cache-dir -r opt/requirements.txt
+
+COPY opt/ ./opt
+RUN mv opt/run.sh . && chmod a+x run.sh
+COPY resources/ resources/
+COPY common/ ./common
+
+ENV PROMETHEUS_URL=localhost
+ENV PROMETHEUS_PORT=9090
+ENV MONGO_URL=localhost
+ENV MONGO_PORT=27017
+ENV DB_NAME=acmeair_db_experiments
+ENV DB_COLLECTION=acmeair_collection_tuning
+
+CMD ["./run.sh"]
+
+# docker run -it --rm --net=host -v /var/run/docker.sock:/var/run/docker.sock acmeair/optimization

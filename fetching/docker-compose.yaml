@@ -1,0 +1,89 @@
+version: "2"
+
+services:
+  fetcher_memory:
+     image: acmeair/metric_fetcher
+     cpuset: "1"
+     networks:
+         - default
+     environment:
+         - PROMETHEUS_URL=prometheus
+         - MONGO_URL=mongodb
+         - DB_NAME=acmeair_db_experiments
+         - DB_COLLECTION=acmeair_collection_memory
+         - METRIC_NAME=memory
+         - METRIC_QUERY=(base_memory_usedHeap_bytes/base_memory_maxHeap_bytes)
+  fetcher_cpu:
+      image: acmeair/metric_fetcher
+      cpuset: "1"
+      networks:
+          - default
+      environment:
+          - PROMETHEUS_URL=prometheus
+          - MONGO_URL=mongodb
+          - DB_NAME=acmeair_db_experiments
+          - DB_COLLECTION=acmeair_collection_cpu
+          - METRIC_NAME=cpu
+          - METRIC_QUERY=base_cpu_processCpuLoad_percent
+  fetcher_thread:
+      image: acmeair/metric_fetcher
+      cpuset: "1"
+      networks:
+          - default
+      environment:
+          - PROMETHEUS_URL=prometheus
+          - MONGO_URL=mongodb
+          - DB_NAME=acmeair_db_experiments
+          - DB_COLLECTION=acmeair_collection_thread
+          - METRIC_NAME=threads
+          - METRIC_QUERY=vendor_threadpool_size{pool="LargeThreadPool"}
+  fetcher_http:
+      image: acmeair/metric_fetcher
+      cpuset: "1"
+      networks:
+          - default
+      environment:
+          - PROMETHEUS_URL=prometheus
+          - MONGO_URL=mongodb
+          - DB_NAME=acmeair_db_experiments
+          - DB_COLLECTION=acmeair_collection_http
+          - METRIC_NAME=http
+          - METRIC_QUERY=increase(application_currentHttpConnections[15s])
+  fetcher_throughput:
+      image: acmeair/metric_fetcher
+      cpuset: "1"
+      networks:
+          - default
+      environment:
+          - PROMETHEUS_URL=prometheus
+          - MONGO_URL=mongodb
+          - DB_NAME=acmeair_db_experiments
+          - DB_COLLECTION=acmeair_collection_throughput
+          - METRIC_NAME=throughput
+          - METRIC_QUERY=rate(vendor_servlet_request_total{servlet="acmeair_webapp_com_acmeair_web_AcmeAirApp"}[15s])
+  fetcher_responsetime:
+      image: acmeair/metric_fetcher
+      cpuset: "1"
+      networks:
+          - default
+      environment:
+          - PROMETHEUS_URL=prometheus
+          - MONGO_URL=mongodb
+          - DB_NAME=acmeair_db_experiments
+          - DB_COLLECTION=acmeair_collection_responsetime
+          - METRIC_NAME=response_time
+          - METRIC_QUERY=rate(vendor_servlet_responseTime_total_seconds{servlet="acmeair_webapp_com_acmeair_web_AcmeAirApp"}[15s])/rate(vendor_servlet_request_total{servlet="acmeair_webapp_com_acmeair_web_AcmeAirApp"}[15s])
+  fetcher_histogram:
+      image: acmeair/hist_fetcher
+      cpuset: "1"
+      networks:
+          - default
+      environment:
+          - PROMETHEUS_URL=prometheus
+          - MONGO_URL=mongodb
+          - DB_NAME=acmeair_db_experiments
+          - DB_COLLECTION=acmeair_collection_histogram
+networks:
+    default:
+        external:
+            name: acmeair-network
