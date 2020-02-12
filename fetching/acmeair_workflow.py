@@ -1,4 +1,4 @@
-from common.dataaccess import MongoAccessLayer, PrometheusAccessLayer, PrometheusResponse
+from common.dataaccess import MongoAccessLayer, PrometheusAccessLayer
 from common.timeutil import time_unit, now
 
 import numpy as np
@@ -71,11 +71,7 @@ def main():
         histogram = {}
         for metric in acmeair_metrics():
             step = tunit(n)
-            # query = f'increase({metric}[{step}s])'
-            # if step < 10:
-            #     query = f'increase({metric}[{10}s])'
             data = client.increase(metric, start, end, step)
-            # data = client.query(query, start, end, step)
             if not data.is_empty():
                 histogram[metric] = data.group(np.sum)
             else:

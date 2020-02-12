@@ -48,20 +48,26 @@ class HistClassifier:
         result_set = self.mongo.find({'application': self.application, 'start': {'$gte': start}, 'end': {'$lte': end}},
                                      self.histogram_collection)
 
-        return [np.array(list(result['histogram'].values())) for result in result_set]
+        simple_histogram = {}
+        for result in result_set:
+            id = str(result['_id'])
+            simple_histogram[id] = np.array(list(result['histogram'].values()))
+
+        return simple_histogram
 
     def compare(self, histograms, threshould=0):
         from collections import defaultdict
         workflows_group = defaultdict(set)
         memory = set()
-        for i, hist1 in enumerate(histograms):
-            for j, hist2 in enumerate(histograms):
+        for i, hist1 in histograms.items():
+            for j, hist2 in histograms.items():
                 distance = wc.hellinger(hist1, hist2)
                 if distance <= threshould:
                     self._group(i, j, workflows_group, memory)
 
         return workflows_group
 
+    # TODO: optimize this in the future
     def _group(self, a, b, table, memory):
         if a not in memory and b not in memory:
             table[a].add(b)
@@ -81,14 +87,17 @@ class HistClassifier:
 
 def main():
     from common.timeutil import minute, day
-    start = now(past=minute(60))
+    start = now(past=day(2))
     end = now()
 
     classifier = HistClassifier('acmeair', 'localhost', 27017, 'acmeair_db_experiments', 'acmeair_collection_histogram',
                                 'acmeair_collection_tuning')
 
-    for hist in classifier.join_tuning_histogram(start, end):
-        print(hist)
+    histograms = classifier.fetch(start, end)
+    print(classifier.compare(histograms, 0))
+
+    #for hist in classifier.join_tuning_histogram(start, end):
+    #    print(hist)
 
     # results = classifier.fetch(start, end)
     # print(len(results))
