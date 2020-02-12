@@ -1,0 +1,43 @@
+version: "2"
+
+services:
+  fetching:
+    image: acmeair/hist_fetcher
+    cpuset: "1"
+    networks:
+      - default
+    depends_on:
+      - optimization
+    environment:
+      - PROMETHEUS_URL=prometheus
+      - PROMETHEUS_PORT=9090
+      - MONGO_URL=mongodb
+      - MONGO_PORT=27017
+      - DB_NAME=acmeair_db_experiments
+      - DB_COLLECTION=acmeair_collection_histogram
+      - FETCH_WINDOW=60
+      - DB_BUFFER_SIZE=0
+
+  optimization:
+    image: acmeair/optimization
+    cpuset: "1"
+    networks:
+      - default
+    volumes:
+      -  /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PROMETHEUS_URL=prometheus
+      - PROMETHEUS_PORT=9090
+      - MONGO_URL=mongodb
+      - MONGO_PORT=27017
+      - DB_NAME=acmeair_db_experiments
+      - DB_COLLECTION=acmeair_collection_tuning
+      - APP_URL=acmeair
+      - APP_PORT=80
+      - APP_PATH=acmeair-webapp
+      - N_ITERATIONS=3
+
+networks:
+  default:
+    external:
+      name: acmeair-network
