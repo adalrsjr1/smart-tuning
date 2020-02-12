@@ -10,7 +10,7 @@ docker-build-worker:
       --file=./Dockerfile_worker \
       --tag=acmeair/opt-worker ../
 
-docker-build: docker-build-optimization docker-build-worker
+docker-build: docker-build-optimization
 
 docker-run-optimization:
 	docker run -it --rm --net=host -v /var/run/docker.sock:/var/run/docker.sock acmeair/optimization

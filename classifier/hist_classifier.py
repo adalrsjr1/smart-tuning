@@ -9,16 +9,44 @@ from classifier import workload_comparision as wc
 
 
 class HistClassifier:
-    def __init__(self, mongo_url, mongo_port, mongo_db, mongo_collection):
+    def __init__(self, application, mongo_url, mongo_port, mongo_db, histogram_collection, tuning_collection):
+        self.application = application
         self.mongo = MongoAccessLayer(mongo_url, mongo_port, mongo_db)
-        self.collection = self.mongo.collection(mongo_collection)
+        self.histogram_collection = self.mongo.collection(histogram_collection)
+        self.tuning_collection = self.mongo.collection(tuning_collection)
 
     def close(self):
         self.mongo.close()
 
-    def fetch(self, application, start, end):
-        result_set = self.mongo.find({'application': application, 'start': {'$gte': start}, 'end': {'$lte': end}},
-                                     self.collection)
+    def tunings(self, start, end):
+        return self.mongo.find({'start': {'$gte': start}, 'end': {'$lte': end}},
+                               self.tuning_collection)
+
+    def histograms(self, start, end):
+        return self.mongo.find({'application': self.application, 'start': {'$gte': start}, 'end': {'$lte': end}},
+                               self.histogram_collection)
+
+    def join_tuning_histogram(self, start, end):
+        _tunings = self.tunings(start, end)
+        _histograms = self.histograms(start, end)
+
+        processed_tunings = []
+        for tuning in _tunings:
+            start = tuning['start']
+            end = tuning['end']
+
+            filtered_histograms = []
+            for histogram in _histograms:
+                if histogram['start'] >= start and histogram['end'] <= end:
+                    filtered_histograms.append(histogram)
+
+            tuning.update({'histograms': filtered_histograms})
+            processed_tunings.append(tuning)
+        return processed_tunings
+
+    def fetch(self, start, end):
+        result_set = self.mongo.find({'application': self.application, 'start': {'$gte': start}, 'end': {'$lte': end}},
+                                     self.histogram_collection)
 
         return [np.array(list(result['histogram'].values())) for result in result_set]
 
@@ -53,14 +81,19 @@ class HistClassifier:
 
 def main():
     from common.timeutil import minute, day
-    start = now(past=day(2))
+    start = now(past=minute(60))
     end = now()
 
-    classifier = HistClassifier('localhost', 27017, 'acmeair_db_experiments', 'acmeair_collection_histogram')
-    results = classifier.fetch('acmeair', start, end)
-    print(len(results))
-    print(results)
-    print(classifier.compare(results, threshould=0))
+    classifier = HistClassifier('acmeair', 'localhost', 27017, 'acmeair_db_experiments', 'acmeair_collection_histogram',
+                                'acmeair_collection_tuning')
+
+    for hist in classifier.join_tuning_histogram(start, end):
+        print(hist)
+
+    # results = classifier.fetch(start, end)
+    # print(len(results))
+    # print(results)
+    # print(classifier.compare(results, threshould=0))
 
 
 if __name__ == '__main__':
@@ -72,4 +105,3 @@ if __name__ == '__main__':
             sys.exit(0)
         except SystemExit:
             os._exit(0)
-

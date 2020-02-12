@@ -11,7 +11,7 @@ services:
           - MONGO_URL=mongodb
           - DB_NAME=acmeair_db_experiments
           - DB_COLLECTION=acmeair_collection_histogram
-          - FETCH_WINDOW=60
+          - FETCH_WINDOW=5
           - TIME_UNIT=seconds
           - BUFFER_SIZE=0
 

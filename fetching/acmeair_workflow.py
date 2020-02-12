@@ -44,7 +44,7 @@ def main():
     parser.add_argument('--db-name', help='Mongodb name', type=str, required=True)
     parser.add_argument('--db-collection', help='Mongodb collection name', type=str, required=True)
 
-    parser.add_argument('--db-buffer-size', help='Size buffer before store data', type=int, default=10)
+    parser.add_argument('--db-buffer-size', help='Size buffer before store data', type=int, default=0)
 
     args = parser.parse_args()
 
@@ -58,7 +58,7 @@ def main():
 
     global MONGO_CLIENT
     MONGO_CLIENT = MongoAccessLayer(murl, mport, args.db_name)
-
+    mongo_collection = MONGO_CLIENT.collection(args.db_collection)
     tunit = time_unit(args.time_unit)
     n = args.fetch_window
 
@@ -88,9 +88,9 @@ def main():
                 'histogram': histogram,
                 'start': start,
                 'end': end})
-        else:
+        if len(queries) >= args.db_buffer_size:
             print('storing query to db')
-            MONGO_CLIENT.store(queries, args.db_collection)
+            MONGO_CLIENT.store(queries, mongo_collection)
             queries = []
 
         time.sleep(tunit(n))

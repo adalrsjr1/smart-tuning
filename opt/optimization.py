@@ -1,5 +1,5 @@
 from hyperopt import plotting, Trials, fmin, tpe, hp
-
+from common.timeutil import now
 import numpy as np
 
 import dotenv
@@ -103,16 +103,17 @@ class Optimization:
         if not self.trials:
             self.trials = Trials()
 
+        result = {'start': now()}
         best = fmin(fn=self.objective.f,
                     trials=self.trials,
                     space=self.space,
                     algo=tpe.suggest,
                     max_evals=self.max_evals,
                     rstate=np.random.RandomState(self.seed))
-
+        result.update({'end': now(), 'tuning': best})
         best_loss = min(self.trials.losses())
-
-        return {'tuning': best, 'best': best_loss}
+        result.update({'best': best_loss})
+        return result
 
     def plot_vars(self):
         plotting.main_plot_vars(self.trials, colorize_best=True, arrange_by_loss=True)
@@ -128,11 +129,11 @@ class ObjectiveFunction:
 
     def f(self, params):
         [self.env_params.set_value(key, value) for key, value in params.items()]
-
+        print(params)
         metric = self.function.execute(params)
 
         if self.save:
-            with open(self.filepath, '+a') as file:
+            with open(f'{self.filepath}/debug.output','w+') as file:
                 file.write(f'{params} loss:{metric}\n')
 
         print(f'{params} loss:{metric}')

@@ -10,14 +10,14 @@ RUN chmod a+x run-workflow.sh
 COPY common ./common
 COPY fetching/acmeair_workflow.py ./
 
-ENV PROMETHEUS_URL=localhost
-ENV PROMETHEUS_PORT=9090
-ENV MONGO_URL=localhost
-ENV MONGO_PORT=27017
-ENV FETCH_WINDOW=5
-ENV TIME_UNIT=seconds
-ENV DB_NAME=acmeair_hist
-ENV DB_COLLECTION=acmeair_hist_c1
-ENV DB_BUFFER_SIZE=10
+ENV PROMETHEUS_URL=localhost \
+    PROMETHEUS_PORT=9090 \
+    MONGO_URL=localhost \
+    MONGO_PORT=27017 \
+    FETCH_WINDOW=5 \
+    TIME_UNIT=seconds \
+    DB_NAME=acmeair_hist \
+    DB_COLLECTION=acmeair_hist_c1 \
+    DB_BUFFER_SIZE=0
 
 ENTRYPOINT ["./run-workflow.sh"]

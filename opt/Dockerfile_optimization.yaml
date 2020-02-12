@@ -7,7 +7,8 @@ RUN apt-get update && \
       python3.7
 
 RUN rm /usr/bin/python3 && ln -s python3.7 /usr/bin/python3 && \
-    rm /usr/bin/python3m && ln -s python3.7m /usr/bin/python3m
+    rm /usr/bin/python3m && ln -s python3.7m /usr/bin/python3m && \
+    ln -s python3.7 /usr/bin/python
 
 RUN apt-get install --no-install-recommends --yes \
       docker.io \
@@ -32,12 +33,12 @@ RUN mv opt/run.sh . && chmod a+x run.sh
 COPY resources/ resources/
 COPY common/ ./common
 
-ENV PROMETHEUS_URL=localhost
-ENV PROMETHEUS_PORT=9090
-ENV MONGO_URL=localhost
-ENV MONGO_PORT=27017
-ENV DB_NAME=acmeair_db_experiments
-ENV DB_COLLECTION=acmeair_collection_tuning
+ENV PROMETHEUS_URL=localhost \
+    PROMETHEUS_PORT=9090 \
+    MONGO_URL=localhost \
+    MONGO_PORT=27017 \
+    DB_NAME=acmeair_db_experiments \
+    DB_COLLECTION=acmeair_collection_tuning
 
 CMD ["./run.sh"]
 
