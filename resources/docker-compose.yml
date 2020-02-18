@@ -32,6 +32,8 @@ services:
       - "9093:493"
     volumes:
       - /Users/adalbertoibm.com/Coding/Dockerized_AcmeAir/logs:/logs
+      - /Users/adalbertoibm.com/Coding/Dockerized_AcmeAir/acmeair/LibertyFiles/server.xml:/config/server.xml
+      - /Users/adalbertoibm.com/Coding/Dockerized_AcmeAir/acmeair/LibertyFiles/acmeair-webapp-2.0.0-SNAPSHOT.war:/config/apps/acmeair-webapp-2.0.0-SNAPSHOT.war
     environment:
       - JVM_ARGS=""-Xms128M -Xmx128M -Xtune:virtualized -XX:+UseContainerSupport""
     env_file:

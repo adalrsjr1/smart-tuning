@@ -66,6 +66,9 @@ class PrometheusAccessLayer:
     def avg(self, expression, start, end, step, to_round=False):
         return self.query(f'avg_over_time({expression}[{step}s])', start, end, step, to_round)
 
+    def std(self, expression, start, end, step, to_round=False):
+        return self.query(f'avg_over_time({expression}[{step}s])', start, end, step, to_round)
+
     def increase(self, expression, start, end, step, to_round=False):
         return self.query(f'increase({expression}[{step}s])', start, end, step, to_round)
 

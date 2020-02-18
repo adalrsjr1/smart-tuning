@@ -12,13 +12,16 @@ def norm(u: np.ndarray) -> np.ndarray:
     return (u - _min) / (_max - _min)
 
 
-def ztest(mean1, mean2, std1, std2) -> float:
+def ztest(mean1, mean2, std1, std2, n_data_points) -> float:
     # http://homework.uoregon.edu/pub/class/es202/ztest.html
     """ If the Z-statistic is less than 2, the two samples are the same.
         If the Z-statistic is between 2.0 and 2.5, the two samples are marginally different
         If the Z-statistic is between 2.5 and 3.0, the two samples are significantly different
         If the Z-statistic is more then 3.0, the two samples are highly signficantly different """
-    return abs((mean1 - mean2) / math.sqrt(std1 ** 2 + std2 ** 2))
+    sigma1 = std1 / math.sqrt(n_data_points)
+    sigma2 = std2 / math.sqrt(n_data_points)
+
+    return abs((mean1 - mean2) / math.sqrt(sigma1 ** 2 + sigma2 ** 2))
 
 
 def check_size(u: np.ndarray, v: np.ndarray):
@@ -119,11 +122,12 @@ if __name__ == '__main__':
     data_1 = hist_1
     data_2 = hist_2
 
-    ztest1 = ztest(np.mean(data_1), np.mean(data_2), np.std(data_1), np.std(data_2))
+    ztest1 = ztest(76.4, 102, 12.97, 4.08, 300//15)
+
     print(f'ztest: {ztest1}')
-    print(f'helli: {hellinger(data_1, data_2)}')
-    print(f'pears: {pearson(data_1, data_2)}')
-    print(f'chisq: {chisquare(data_1, data_2)}')
-    print(f'chial: {chisquare_alt(data_1, data_2)}')
-    print(f'kullb: {kullback(data_1, data_2)}')
-    print(f'inter: {intersection(data_1, data_2)}')
+    # print(f'helli: {hellinger(data_1, data_2)}')
+    # print(f'pears: {pearson(data_1, data_2)}')
+    # print(f'chisq: {chisquare(data_1, data_2)}')
+    # print(f'chial: {chisquare_alt(data_1, data_2)}')
+    # print(f'kullb: {kullback(data_1, data_2)}')
+    # print(f'inter: {intersection(data_1, data_2)}')
