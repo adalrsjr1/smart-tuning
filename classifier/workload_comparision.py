@@ -25,7 +25,7 @@ def ztest(mean1, mean2, std1, std2, n_data_points) -> float:
 
 
 def check_size(u: np.ndarray, v: np.ndarray):
-    if not len(u) == len(v):
+    if len(u) != len(v):
         raise ValueError(f'u and v must be of the same size')
 
 
@@ -38,13 +38,7 @@ def hellinger(u: np.ndarray, v: np.ndarray) -> float:
     u = norm(u)
     v = norm(v)
 
-    a = np.sum(np.sqrt(u * v))
-    b = np.sqrt(np.mean(u) * np.mean(v) * len(u) ** 2)
-    #    b = 1 / b
-    b = np.divide(1, b, out=np.zeros_like(a), where=b != 0)
-    # assert (a * b) <= 1, f'{a*b}'
-
-    return math.sqrt((1 - (round(a * b, 2))))
+    return np.sqrt(np.sum((np.sqrt(u) - np.sqrt(v)) ** 2)) / np.sqrt(2)
 
 
 def pearson(u: np.ndarray, v: np.ndarray) -> float:
@@ -112,10 +106,10 @@ def intersection(u: np.ndarray, v: np.ndarray) -> float:
 
 
 if __name__ == '__main__':
-    mu_1 = -6  # mean of the first distribution
-    mu_2 = 6  # mean of the second distribution
-    data_1 = np.random.normal(mu_1, 2.0, 1000)
-    data_2 = np.random.normal(mu_2, 2.0, 1000)
+    mu_1 = 0.5  # mean of the first distribution
+    mu_2 = 0.5  # mean of the second distribution
+    data_1 = np.random.normal(mu_1, 0., 1000)
+    data_2 = np.random.normal(mu_2, 0., 1000)
     hist_1, _ = np.histogram(data_1, bins=100, range=[-15, 15])
     hist_2, _ = np.histogram(data_2, bins=100, range=[-15, 15])
 
@@ -124,9 +118,9 @@ if __name__ == '__main__':
 
     ztest1 = ztest(76.4, 102, 12.97, 4.08, 300//15)
 
-    print(f'ztest: {ztest1}')
-    # print(f'helli: {hellinger(data_1, data_2)}')
-    # print(f'pears: {pearson(data_1, data_2)}')
+    # print(f'ztest: {ztest1}')
+    print(f'helli: {hellinger(data_1, data_2)}')
+    print(f'pears: {pearson(data_1, data_2)}')
     # print(f'chisq: {chisquare(data_1, data_2)}')
     # print(f'chial: {chisquare_alt(data_1, data_2)}')
     # print(f'kullb: {kullback(data_1, data_2)}')
