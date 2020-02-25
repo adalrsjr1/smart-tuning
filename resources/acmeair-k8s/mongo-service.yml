@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: acmeair
+  name: mongo-acmeair-service
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port:   '9216'
+spec:
+  type: NodePort
+  selector:
+    app: mongo-acmeair
+  ports:
+  - port: 27017
+    targetPort: 27017
+    nodePort: 32717
+    protocol: TCP
+    name: default
+  - port: 9216
+    protocol: TCP
+    targetPort: 9216
+    name: http

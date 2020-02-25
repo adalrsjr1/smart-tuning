@@ -1,0 +1,29 @@
+# tuning/sampling-metrics
+
+FROM python:3
+RUN mkdir app
+WORKDIR app
+
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+
+COPY common common/
+COPY sampling sampling/
+
+ENV MEAN_QUERY \
+    STD_QUERY \
+    APPLICATION \
+    METRIC \
+    PROMETHEUS_ENDPOINT \
+    PROMETHEUS_PORT \
+    QUERY_STEP \
+    MONGO_ENDPOINT \
+    MONGO_PORT \
+    MONGO_DB \
+    MONGO_COLLECTION \
+    MONGO \
+    KEEP_DATA \
+    BUFFER \
+    SCRAP_INTERVAL=5
+
+ENTRYPOINT ["python", "-u", "-m", "sampling.sampling"]

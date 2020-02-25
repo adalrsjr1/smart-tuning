@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: acmeair
+  name: acmeair-service
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port:   '80'
+    prometheus.io/scheme: 'http'
+    prometheus.io/path: '/metrics'
+spec:
+  type: NodePort
+  ports:
+  - port: 9092
+    targetPort: 80
+    nodePort: 30080
+    protocol: TCP
+    name: http
+  - port: 9093
+    targetPort: 493
+    nodePort: 30493
+    protocol: TCP
+    name: https
+  selector:
+    app: acmeair-java
