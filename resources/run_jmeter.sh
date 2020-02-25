@@ -36,6 +36,8 @@ fi
 
 if [ -z "$6" ]; then
   LIBERTYHOST='localhost'
+  echo "Set the url to 'localhost' or 'acmeair' or something else'
+  exit $E_NOARGS
 else
   LIBERTYHOST=$6
 fi
@@ -52,7 +54,7 @@ echo "
 RUN_JMETER: docker run \
 -p 9270:9270 \
 --cpuset-cpus='3' \
---rm --net=acmeair-network \
+--rm --net=host \
 -v /Users/adalbertoibm.com/Coding/Dockerized_AcmeAir/jmeter_output:/output \
 -e JTHREAD=$JCLIENTS \
 -e JDURATION=$JDURATION \
@@ -69,7 +71,7 @@ jmeter_acmeair acmeair
 docker run \
 -p 9270:9270 \
 --cpuset-cpus='3' \
---rm --net=acmeair-network \
+--rm --net=host \
 -v /Users/adalbertoibm.com/Coding/Dockerized_AcmeAir/jmeter_output:/output \
 -e JTHREAD=$JCLIENTS \
 -e JDURATION=$JDURATION \

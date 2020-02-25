@@ -1,8 +1,8 @@
-from time import time
+import time
 
 
 def now(past=0):
-    return int(time()) - past
+    return int(time.time()) - past
 
 
 def second(n):
@@ -52,3 +52,7 @@ def time_unit(label):
         return year
 
     return second
+
+
+def sleep(secs=0):
+    time.sleep(secs)

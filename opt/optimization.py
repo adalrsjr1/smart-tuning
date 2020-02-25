@@ -113,6 +113,7 @@ class Optimization:
         result.update({'end': now(), 'tuning': best})
         best_loss = min(self.trials.losses())
         result.update({'best': best_loss})
+        # save this result to mongo
         return result
 
     def plot_vars(self):

@@ -5,8 +5,8 @@ RUN export PATH=$PATH:/app
 
 COPY fetching/requirements.txt ./
 RUN pip install -r requirements.txt
-COPY fetching/run-workflow.sh ./
-RUN chmod a+x run-workflow.sh
+COPY fetching/run-sampling.sh ./
+RUN chmod a+x run-sampling.sh
 COPY common ./common
 COPY fetching/acmeair_workflow.py ./
 
@@ -20,4 +20,4 @@ ENV PROMETHEUS_URL=localhost \
     DB_COLLECTION=acmeair_hist_c1 \
     DB_BUFFER_SIZE=0
 
-ENTRYPOINT ["./run-workflow.sh"]
+ENTRYPOINT ["./run-sampling.sh"]
