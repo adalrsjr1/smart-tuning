@@ -1,0 +1,41 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper, total={7in, 10in}]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{indentfirst}
+\usepackage{cite}
+\usepackage{xspace}
+\usepackage{mathtools}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\input{annotations}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\newcommand{\fig}[1] {Figure~\ref{#1}\xspace}
+\newcommand{\eq}[1] {Equation~\ref{#1}\xspace}
+\newcommand{\name} {SmartTuning\xspace}
+
+\begin{document}
+
+\title{\name}
+%\author{}
+\date{\vspace{-5ex}}
+
+\maketitle
+
+%\begin{abstract}
+%  \input{section/abstract}
+%\end{abstract}
+
+
+\input{sections/introduction}
+\input{sections/assumptions}
+\input{sections/design_overview}
+
+
+\bibliography{paper}{}
+\bibliographystyle{plain}
+\end{document}

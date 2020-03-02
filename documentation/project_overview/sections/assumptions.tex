@@ -1,0 +1,53 @@
+\section{Assumptions}
+
+We have made some assumptions to design \name. Following a non-definitive list of them.
+
+\begin{itemize}
+
+\item An application starts with a default configuration initially computed on its test phase. We assuming that the
+optimal configuration found during the tests are good enough to give the application a better initial configuration
+than a set by engineers manually.
+
+\item An application is an harmonic-ish function. We assuming that if an application is observed long enough, some
+patterns on its behaviour and resources usage appears, so that \name can learns and use it to improve how optimal
+configurations are computed and applied on applications.
+
+\item The application is a black-box function. Despite our assumption of the application be a sort of harmonic function
+(and then differentiable), we cannot found its max and min analytically. It is impossible to know \textit{a priori} the
+frequency of the application's patterns neither the rules that define the slopes of their performance and resource
+usage along time. Therefore, we assume that best way to find an optimal configuration is using a sort of sequential
+optimization method.
+
+\item \name observes the patterns that come up from different aspects of the application, such resources consumption
+and inner behavior. We are assuming that all applications which \name observes are properly instrumented, and all
+metrics necessary are exposed by the application at tuning phase.
+
+\item We are assuming that the inner behavior of the application can be modeled as a histogram of which urls of an
+application are reached at runtime. Besides, we assuming that the inner behavior is responsible to make changes on
+resources usages and performance of the application, i.e., different shapes of the histograms result on a different
+resource consumption and application performance.
+
+\item Two equals workflow, i.e., both have same shape and intensity of all buckets, may results in different resources
+consumption and performance of the application. So, we are assuming that histograms cannot suppress the need of
+resource consumption metrics.
+
+\item Along the time, my patterns arise from the application and they can be grouped given a threshold. We are assuming
+that frequently patterns come up from the application, but they are not equals and may exists slight differences among
+them. Besides, we assuming that theses differences can be parametrized so that \name can groups these different
+patterns.
+
+\item We are assuming that when a different type of pattern comes up from the application means that it has new
+non-functional requirements. So, for each new workload type a new configuration should be set to the application to
+get its best on performance and resources consumption.
+
+\item We are assuming that the application remains that same, i.e., without new deployments, long enough so an optimal
+configuration be properly computed and the application still take advantage of the new configuration for a significant
+amount of time. These times are related to each application.
+
+\item The application can be modeled by observing a reduced scope. We are assuming that the incoming traffic of the
+application is the only input necessary to provides changes on the application performance. We also assuming that we
+can model the application behavior by measuring the only part incoming traffic, so that we can generalize the patterns
+of the application by observing the patters that arise from a single replica, for instance.
+
+\end{itemize}
+

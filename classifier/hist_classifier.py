@@ -6,7 +6,15 @@ import os
 import sys
 
 from classifier import workload_comparision as wc
-
+# data = []
+# data.append({'metric': metric, 'mean': query_mean[0], 'std': query_std[0]})
+# data = {
+#             'metrics': {'n_samples': QUERY_STEP // SCRAP_INTERVAL, 'values': data},
+#             'histogram': histogram,
+#             'start': end - QUERY_STEP,
+#             'end': end,
+#             'step': QUERY_STEP
+#         }
 
 class HistClassifier:
     def __init__(self, application, mongo_url, mongo_port, mongo_db, histogram_collection, tuning_collection):

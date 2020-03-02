@@ -1,0 +1,31 @@
+\section{Introduction}
+
+The deployment of Cloud-Native applications (CNA), relies on placing a collection of small, independent, loosely
+coupled and, ideally, self-managed services into a cluster. This architectural style brings reliability to the
+application, due to decoupled failures be isolated to avoid the crash of the whole application, and facilitates a
+decoupled evolution of theirs components. However, the high decoupling in this architectural style makes difficult the
+application management, considering the large number of distributed pieces of software that engineers should handle
+during the execution of the application.
+
+Consequently, these services are mostly bundled up with several runtime abstraction layers to facilitate the their
+execution or runtime management. Some examples of these layers are application servers (e.g., OpenLiberty), runtime
+environment (e.g., Java Virtual Machine), hardware isolation (e.g., containers and virtual machines), and cluster
+orchestrator (e.g., Kubernetes).
+
+Runtime abstractions layers are general purpose with many parameters (knobs), that the application engineer adjusts to
+better satisfy the use cases of the application. Many of these knobs are related to data structures or infrastructure
+mechanisms, so their adjustment affects the application performance. An important issue regarding these knobs is the
+colossal number of possibilities that an engineer has to consider to improve the application execution.
+
+Every layer added to an application increases exponentially the number of possible configurations that the engineer has
+available to experiment. Making matters worse, an optimal configuration for an application is mutable, it should
+changes according to the environment, such as fluctuations of number of users requests, saturation of the cluster,
+version of libraries being used, and so on. For tuning an application the engineer has to evaluate many different
+configurations to find one that extracts the most of the application performance for a given situation.
+
+To tackle this challenge, we are proposing \name, a mechanism to automatically identify and apply optimal
+configurations onto CNA regarding the environment where they are deployed. The rational of this mechanism is, based on
+changes of the application workload along the time (incoming requests and resources consumption), find out and
+continually updates, a (quasi-) optimal configuration which extracts the maximum performance of the application and,
+might, reduce its resource consumption.
+
