@@ -1,3 +1,5 @@
+Outdated description. For a updated description refers to [this](../blob/master/documentation/project_overview/paper.pdf)
+
 # Introduction
 
 The deployment of Cloud-Native applications (CNA), a.k.a. microservices-based applications, relies on placing a
