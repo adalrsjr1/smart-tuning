@@ -1,6 +1,28 @@
 \section{Design Overview}
 
-The \name operation unfolds into two main steps: to identify and group workloads of the application, and find out an
+\arsj{add a concise representation of the flow in the doc}
+
+\arsj{begin(example)}
+
+ \begin{itemize}
+   \item Stage 1a - observe workload
+     \begin{itemize}
+       \item watch incoming URLs
+       \item build a internal representation that (histogram)
+       \item watch trends over time
+     \end{itemize}
+   \item Stage 2b - trend analysis of workload
+     \begin{itemize}
+       \item use model techiniques to categorize the workload (e.g., appear there are 3 different workloads at different
+         times)
+     \end{itemize}
+ \end{itemize}
+
+\arsj{end(example)}
+
+\arsj{describes each phase: classification, tuning, prediction}
+
+The \name operation unfolds into two main steps: to identify and group workloads of the application, and to find out an
 optimal configuration to a given workload. \fig{fig:design-overview} depicts these steps.
 
 \begin{figure*}[htp]
@@ -13,31 +35,33 @@ optimal configuration to a given workload. \fig{fig:design-overview} depicts the
 
 We model an application as a black-box function $X: (c_k,\, t) \rightarrow w_t$, where $X$ maps a configuration $c_k$
 in a time interval $t$ to an workload $w_t$.  A configuration is a set of knobs which the engineer can set in the
-application's runtime layers. An workload, $w_{t} = (b_t \in B, s_t \in S, p_t \in P)$, models the behavior, the state,
-and the performance of the application along a time interval $t$.
+application's runtime layers. An workload, $w_{t} = (b_t \in B, s_t \in S, p_t \in P)$, models respectively the
+behavior, the state, and the performance of the application along a time interval $t$.
 
 $B$ are all possible behaviors of application and $b_t$ models the application's behavior through the distribution of
 urls hits against the application endpoints in the interval $t$, i.e., urls histogram. In turn, $S$ and $P$ are all
 possible states and performance of an application, and $s_t$ and $p_t$ models respectively the resource consumption,
 e.g., CPU and memory, and application performance of the application, e.g., throughput and latency in the same interval
-$t$. Therefore, \name aims to improve the application $X$, $\text{\name} = \argmax_c X(c, t)$. The improvement of $X$
-is given by a configuration $c^*$ which maximize the performance $p_t$ and might minimize the resource consumption
-$s_t$ subject to an behavior $b_t$ in a time interval $t$, \eq{eq:optimization}.
+$t$. Therefore, \name aims to improve (max) the application $X$: to find an optimal configuration $c^{*}_{k}$ which
+maximizes the performance $p_t$ and might minimize the resources consumption $s_t$ both subject to a behavior $b_t$ in
+a time interval $t$. \eq{eq:optimization}
 
 \begin{equation}
   X(c^{*}, t) = \max{X(c, t)} =
   \begin{cases}
-    \{s_t\, | \,s_t \in S \land \forall r_t \in S: s < r\} \\
-    \{p_t\, | \,p_t \in P \land \forall q_t \in P: p > q\}
+    \min(S) \\
+    \max(P)
+    %\{s_t\, | \,s_t \in S \land \forall r_t \in S: s < r\} \\
+    %\{p_t\, | \,p_t \in P \land \forall q_t \in P: p > q\}
   \end{cases},\, \text{subject to}\, b_t
   \label{eq:optimization}
 \end{equation}
 
 Initially, the module named Classifier observes the workloads of the application under analysis. It groups the
-workloads based on similarities among behavior and states, normalizing them into types, \eq{eq:classify}. As next step,
-the Classifier learns when a workload type comes up from the application, associating an workload type to time
-time-intervals while the application is running, \eq{eq:training}. Finally, it can forecast which workload type will
-come up from the application for a given time interval $t$, \eq{eq:forecast}.
+workloads based on similarities of their behavior or states, normalizing them into types, \eq{eq:classify}. As next
+step, the Classifier learns when a workload type comes up from the application, associating the workload type to time
+time-interval while the application is running, \eq{eq:training}. Finally, Classifier can forecast which workload type
+will come up from the application in a given time interval $t$, \eq{eq:forecast}.
 
 \begin{equation}
   K: w_t \rightarrow type_i
@@ -56,7 +80,7 @@ come up from the application for a given time interval $t$, \eq{eq:forecast}.
 
 After \name has learned about the workload's application, it is time of the module named Tuning figures out the best
 configuration for the application. The Tuning module uses the Classifier to forecast when and which will be the next
-workload type that will come up so it can compute a new configuration. For each workload type, Tuning computes several
+workload of the application so it can compute a new configuration. For each workload type, Tuning computes several
 configurations trying to find out the one, $c^{*}$, which best improves the application. Then, \name updates the
 learning model $L$, appending the optimal configuration of each type, \eq{eq:training-updated}.
 
@@ -70,7 +94,7 @@ performance $p$ or resource consumption $s$. Because the application is a black-
 it is differentiable, \name has to sequentially tries different configurations $c_k$ looking for one which leads the
 application to its best -- high performance or low resources consumption, \fig{fig:tuning-overview}. To do so, Tuning
 has to try different configurations for a same type of workload and maintain internally a history of the configurations
-already tested against the application.  Tuning applies a configuration $c_k$ to the application and wait $t'$ for new
+already tested against the application.  Tuning applies a configuration $c_k$ to the application and wait $t$ for new
 application's state and performance. The number of iterations to find an optimal configuration depends on the
 application and which optimization technique \name uses.
 
@@ -82,11 +106,10 @@ application and which optimization technique \name uses.
     \label{fig:tuning-overview}
 \end{figure*}
 
-After $n,\, n \geq k$ iterations for workloads of a same type, \name learns which is the best configuration for that
-type. The optimization is driven by the types of workloads, whenever a new type comes up, Tuning has to internally
-changes its context to does not mess up with the computations made previously for the other types.  To guarantee that
-each type has an optimal configuration, Tuning maintain an inner state for each type of workload under analysis.
-\fig{fig:tuning-overview} depicts its behavior. When Classifier forecasts a new workload type from the application,
-Tuning computes a new configuration and evaluates if it improves the application $X$.
-
+After $n,\, n \geq k$ iterations with a same type of workloads, \name learns which is the best configuration for that
+type. The optimization is driven by the types of workloads, whenever a new type comes up to Tuning, it has to
+internally changes its context to does not mess up with the computations made previously for the other types.  To
+guarantee that each type has an optimal configuration, Tuning maintain an inner state for each type of workload
+previously analyzed. \fig{fig:tuning-overview} depicts its behavior. When Classifier forecasts a new workload type from
+the application, Tuning computes a new configuration and evaluates if it improves the application $X$.
 

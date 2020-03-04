@@ -70,7 +70,7 @@
     \put(0.5634374,0.17358644){\color[rgb]{0,0,0}\makebox(0,0)[t]{\lineheight{0.16666731}\smash{\begin{tabular}[t]{c}next\\workload\end{tabular}}}}%
     \put(0,0){\includegraphics[width=\unitlength,page=8]{figs/design-overview.pdf}}%
     \put(0.815111,0.07773096){\color[rgb]{0,0,0}\makebox(0,0)[t]{\lineheight{0}\smash{\begin{tabular}[t]{c}best\\configuration\end{tabular}}}}%
-    \put(0.40884548,0.11580097){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{0}\smash{\begin{tabular}[t]{l}state\\and perfromance\end{tabular}}}}%
+    \put(0.3994872,0.1209293){\color[rgb]{0,0,0}\makebox(0,0)[t]{\lineheight{1.25}\smash{\begin{tabular}[t]{c}state\\and performance\end{tabular}}}}%
     \put(0.42728286,0.31507785){\color[rgb]{0,0,0}\makebox(0,0)[t]{\lineheight{1.14999998}\smash{\begin{tabular}[t]{c}state\\and behavior\end{tabular}}}}%
   \end{picture}%
 \endgroup%

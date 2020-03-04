@@ -3,13 +3,15 @@ import math
 
 
 def norm(u: np.ndarray) -> np.ndarray:
+    u = np.array(u)
     _min = u.min()
     _max = u.max()
 
-    if (_max - _min) == 0:
-        return np.zeros(len(u))
-
     return (u - _min) / (_max - _min)
+
+
+def norm_max(u: np.ndarray) -> np.ndarray:
+    return u / np.finfo(np.float).max
 
 
 def ztest(mean1, mean2, std1, std2, n_data_points) -> float:
@@ -41,6 +43,21 @@ def hellinger(u: np.ndarray, v: np.ndarray) -> float:
     return np.sqrt(np.sum((np.sqrt(u) - np.sqrt(v)) ** 2)) / np.sqrt(2)
 
 
+def hellinger2(u: np.ndarray, v: np.ndarray) -> float:
+    check_size(u, v)
+
+    u1 = norm([u, v])[0]
+    v1 = norm([u, v])[1]
+
+    print(u1)
+    print(v1)
+
+    u = u1
+    v = v1
+
+    return np.sqrt(np.sum((np.sqrt(u) - np.sqrt(v)) ** 2)) / np.sqrt(2)
+
+
 def pearson(u: np.ndarray, v: np.ndarray) -> float:
     """ If returns 1.0 matchs
         If returns 0.5 half matchs
@@ -48,8 +65,8 @@ def pearson(u: np.ndarray, v: np.ndarray) -> float:
 
     check_size(u, v)
 
-    u = norm(u)
-    v = norm(v)
+    u1 = norm([u, v])[0]
+    v1 = norm([u, v])[1]
 
     _u = np.mean(u)
     _v = np.mean(v)
@@ -62,6 +79,23 @@ def pearson(u: np.ndarray, v: np.ndarray) -> float:
     # return p - (-1) / (1 - (-1))
     return p
 
+def pearson2(u: np.ndarray, v: np.ndarray) -> float:
+    """ If returns 1.0 matchs
+        If returns 0.5 half matchs
+        if returns 0.0 mismatch"""
+
+    check_size(u, v)
+
+    u1 = norm([u,v])[0]
+    v1 = norm([u,v])[1]
+
+    _u = np.mean(u1)
+    _v = np.mean(v1)
+
+    a = np.sum((u1 - _u) * (v1 - _v))
+    b = np.sqrt(np.sum((u1 - _u) ** 2) * np.sum((v1 - _v) ** 2))
+
+    return a/b
 
 def chisquare(u: np.ndarray, v: np.ndarray) -> float:
     """ If returns 0.0 matchs
@@ -69,29 +103,16 @@ def chisquare(u: np.ndarray, v: np.ndarray) -> float:
 
     check_size(u, v)
 
-    u = norm(u)
-    v = norm(v)
-
-    return np.sum((u - v) ** 2 // u)
+    return np.sum(((u - v) ** 2) / (u + v))
 
 
-def chisquare_alt(u: np.ndarray, v: np.ndarray) -> float:
-    """ If returns 0.0 match
-        unbounded mismatch """
-
+def cosine(u: np.ndarray, v: np.ndarray) -> float:
     check_size(u, v)
 
-    u = norm(u)
-    v = norm(v)
-
-    return 2 * np.sum(((u - v) ** 2) // (u + v))
-
+    return 1 - np.sum(u * v)
 
 def kullback(u: np.ndarray, v: np.ndarray) -> float:
     check_size(u, v)
-
-    # u = norm(u)
-    # v = norm(v)
 
     return np.sum(u * np.log(u / v))
 
@@ -116,7 +137,7 @@ if __name__ == '__main__':
     data_1 = hist_1
     data_2 = hist_2
 
-    ztest1 = ztest(76.4, 102, 12.97, 4.08, 300//15)
+    ztest1 = ztest(76.4, 102, 12.97, 4.08, 300 // 15)
 
     # print(f'ztest: {ztest1}')
     print(f'helli: {hellinger(data_1, data_2)}')
