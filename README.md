@@ -1,4 +1,4 @@
-Outdated description. For a updated description refers to [this](../blob/master/documentation/project_overview/paper.pdf)
+Outdated description. For a updated description refers to [this](smart-tuning/blob/master/documentation/project_overview/paper.pdf)
 
 # Introduction
 
