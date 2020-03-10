@@ -1,0 +1,23 @@
+FROM python:3
+RUN mkdir app
+WORKDIR app
+RUN export PATH=$PATH:/app
+
+COPY fetching/requirements.txt ./
+RUN pip install -r requirements.txt
+COPY fetching/run-sampling.sh ./
+RUN chmod a+x run-sampling.sh
+COPY common ./common
+COPY fetching/acmeair_workflow.py ./
+
+ENV PROMETHEUS_URL=localhost \
+    PROMETHEUS_PORT=9090 \
+    MONGO_URL=localhost \
+    MONGO_PORT=27017 \
+    FETCH_WINDOW=5 \
+    TIME_UNIT=seconds \
+    DB_NAME=acmeair_hist \
+    DB_COLLECTION=acmeair_hist_c1 \
+    DB_BUFFER_SIZE=0
+
+ENTRYPOINT ["./run-sampling.sh"]

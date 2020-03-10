@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   sodipodi:docname="acmeair-bundle.svg"
+   inkscape:version="1.0beta2 (2b71d25, 2019-12-03)"
+   width="210mm"
+   height="75mm"
+   viewBox="0 0 210 75"
+   version="1.1"
+   id="SVGRoot">
+  <defs
+     id="defs381" />
+  <sodipodi:namedview
+     inkscape:snap-bbox-midpoints="true"
+     inkscape:bbox-nodes="true"
+     inkscape:bbox-paths="true"
+     inkscape:snap-bbox-edge-midpoints="true"
+     inkscape:snap-bbox="true"
+     inkscape:window-maximized="1"
+     inkscape:window-y="0"
+     inkscape:window-x="0"
+     inkscape:window-height="1028"
+     inkscape:window-width="1680"
+     showgrid="false"
+     inkscape:document-rotation="0"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="mm"
+     inkscape:cy="24.396999"
+     inkscape:cx="417.39928"
+     inkscape:zoom="1.5572619"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base" />
+  <metadata
+     id="metadata384">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <text
+       transform="scale(0.995662,1.0043569)"
+       id="text821"
+       y="24.105181"
+       x="73.06414"
+       style="font-style:normal;font-weight:normal;font-size:14.5142px;line-height:1.25;font-family:sans-serif;text-align:start;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.362857"
+       xml:space="preserve"><tspan
+         style="font-size:5.32191px;text-align:start;text-anchor:start;stroke-width:0.362857"
+         y="24.105181"
+         x="73.06414"
+         id="tspan819"
+         sodipodi:role="line">AcmeAir</tspan></text>
+    <text
+       transform="scale(0.995662,1.0043569)"
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:14.5142px;line-height:1.25;font-family:sans-serif;text-align:start;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.362857"
+       x="72.832863"
+       y="32.721111"
+       id="text825"><tspan
+         sodipodi:role="line"
+         id="tspan823"
+         x="72.832863"
+         y="32.721111"
+         style="font-size:5.32191px;text-align:start;text-anchor:start;stroke-width:0.362857">OpenLiberty</tspan></text>
+    <text
+       transform="scale(0.995662,1.0043569)"
+       id="text829"
+       y="42.185486"
+       x="73.017365"
+       style="font-style:normal;font-weight:normal;font-size:14.5142px;line-height:1.25;font-family:sans-serif;text-align:start;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.362857"
+       xml:space="preserve"><tspan
+         style="font-size:5.32191px;text-align:start;text-anchor:start;stroke-width:0.362857"
+         y="42.185486"
+         x="73.017365"
+         id="tspan827"
+         sodipodi:role="line">JVM</tspan></text>
+    <text
+       transform="scale(0.995662,1.0043569)"
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:14.5142px;line-height:1.25;font-family:sans-serif;text-align:start;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.362857"
+       x="72.611984"
+       y="51.302944"
+       id="text833"><tspan
+         sodipodi:role="line"
+         id="tspan831"
+         x="72.611984"
+         y="51.302944"
+         style="font-size:5.32191px;text-align:start;text-anchor:start;stroke-width:0.362857">Docker</tspan></text>
+    <text
+       transform="scale(0.995662,1.0043569)"
+       id="text837"
+       y="60.346344"
+       x="72.598991"
+       style="font-style:normal;font-weight:normal;font-size:14.5142px;line-height:1.25;font-family:sans-serif;text-align:start;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.362857"
+       xml:space="preserve"><tspan
+         style="font-size:5.32191px;text-align:start;text-anchor:start;stroke-width:0.362857"
+         y="60.346344"
+         x="72.598991"
+         id="tspan835"
+         sodipodi:role="line">Kubernetes</tspan></text>
+    <rect
+       y="18.884838"
+       x="71.309868"
+       height="6.8870201"
+       width="37.475609"
+       id="rect857"
+       style="fill:none;stroke:#000000;stroke-width:0.362857" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.362857"
+       id="rect956"
+       width="40.050987"
+       height="17.479403"
+       x="70.022179"
+       y="17.427084" />
+    <rect
+       y="15.969334"
+       x="68.785019"
+       height="29.180645"
+       width="42.525307"
+       id="rect958"
+       style="fill:none;stroke:#000000;stroke-width:0.362857" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.362857"
+       id="rect960"
+       width="45.019508"
+       height="40.413841"
+       x="67.537918"
+       y="14.511582" />
+    <rect
+       y="13.053831"
+       x="66.238663"
+       height="52.349113"
+       width="46.559685"
+       id="rect962"
+       style="fill:none;stroke:#000000;stroke-width:0.362857" />
+  </g>
+</svg>

@@ -59,7 +59,7 @@ def pick_next_pattern(given_p):
     return pattern, given_p
 
 
-def time_serie(size, mutation_probability=0.0):
+def time_series(size, mutation_probability=0.0):
     serie = []
 
     count = 0
@@ -74,6 +74,14 @@ def time_serie(size, mutation_probability=0.0):
     return serie
 
 
+def periodic_time_series(n_periods, period_lenght, mutation_probability=0.0):
+    values = []
+    for i in range(n_periods):
+        values.append(time_series(period_lenght, mutation_probability=mutation_probability))
+
+    return [item for sublist in values for item in sublist]
+
+
 def plot(x, y):
     plt.ylabel("Amplitude")
     plt.xlabel("Time [s]")
@@ -84,7 +92,7 @@ def plot(x, y):
 if __name__ == '__main__':
     np.random.seed(0)
     for i in range(10):
-        print(time_serie(10, 0.1))
+        print(time_series(10, 0.1))
         # x = pick_one_pattern(i)
         #
         # x = x if x >= 0 else 0
@@ -92,5 +100,3 @@ if __name__ == '__main__':
         # v, t = sub_sinusoidal(x, 50, mean=0, stddev=0)
         #
         # plot(t, v)
-
-
