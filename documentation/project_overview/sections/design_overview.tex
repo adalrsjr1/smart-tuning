@@ -35,7 +35,7 @@ workflow.
        \item use model techniques to categorize the workload (e.g., appear there
          are 3 different workloads at different times)
 
-       \item use forecasting techniques to learn when a workload category arises
+       \item use forecasting techniques to learn the pattern of when a workload category arises
 
      \end{itemize}
 
@@ -49,7 +49,8 @@ workflow.
         \item continually evaluates the performance of the application given a
           new configuration and a workload and drops the configuration if the
           performance reached is worst then a previously given a same context
-          (i.e., workload type)
+          (i.e., workload type) \arsj{this is a key loop that needs to be
+          broken into more steps}
 
         \item contextualize the search of a optimal configuration with a
           workload type
@@ -197,7 +198,7 @@ evaluates if it improves the application $X$.
 
 \subsubsection{Workload classification}
 
-The main objective of \name is to associate an application's optimal
+The key objective of \name is to associate an application's optimal
 configuration to a workload. To do so, first \name has to characterize the
 workloads. Along the time, several different workloads come up from the
 application. To reduce the scope and the number of configurations to be
@@ -207,10 +208,14 @@ computed, \name characterizes the workloads into groups.
 constituted with the workload's behavior ($b$), state ($s$), and performance
 ($p$) of the application in a given time interval. The application engineer
 should set in \name the length $d$ of the time interval which bounds every
-workload. Hence, periodically, \name samples all suitable data from the
+workload \arsj{this seems like something the system needs to figure out.  per
+section 2 we need to think of ops teams as unable to spend time studying each
+app}. Hence, periodically, \name samples all suitable data from the
 application within the interval $(t_i, t_{i+d})$ to characterize the workloads.
 For instance, \name samples data regarding AcmeAir from Prometheus periodically,
-in intervals of $d = 6$ hours to build up the workloads.
+in intervals of $d = 6$ hours to build up the workloads \arsj{        my guess
+would be we'd want smaller d's (eg. 15-30 min)... but that's probably something
+for our experiments to figure out}.
 \fig{fig:workload-classification} depicts the overview of workload
 classification.
 
@@ -256,6 +261,8 @@ behavior and state of workloads to calculate their proximity.
 
 \todo{should K-nearest neighbors be static (the engineer set K) or dynamic --
 \name defines how many clusters based on a given threshold set by engineer?}
+\arsj{        again this might be somehting we pick defaults for and only in
+rare situation would humans get involved in setting this}
 
 The behavior of two workloads are compared using Hellinger distance~\cite{?}, an
 statistic method to quantify the similarity, between 0 (equals) and 1
@@ -294,8 +301,8 @@ Classifier calculates the similarity of both individually for two different
 workloads,  it is necessary to bring these concepts to a same universe. Hence,
 Classifier can calculate the real similarity of two workloads.  To do so,
 Classifier assumes that the state of a workload is a vector $\hat{s}$ and
-calculates its magnitude, $||\hat{s}||_2$ and direction $\theta \hat{s}$, both
-from origin $(0,0)$.
+calculates its magnitude, $||\hat{s}||_2$ and direction $\theta \hat{s} =
+\text{tan}^{-1} \hat{s}$, both from origin $(0,0)$.
 
 The decomposition of $\hat{s}$ tells to Classifier the amount of each resource
 is being used (magnitude) and discern the semantics of each component in the
@@ -332,15 +339,116 @@ performance and resource consumption and keeps a structure for each type as foll
   ($\text{type}_k$, average of performance, list of time intervals)
 \end{quote}
 
-This structure is the core of the next phases of the \name. Tuning phase uses
-this structure to calculate the improvement on the application when it apply a
+This structure is the core of the next phases of \name. Tuning phase uses this
+structure to calculate the improvement on the application when it apply a
 configuration (it aims to minimize the resource consumption and maximize the
 application performance). The Tuning-workload prediction uses the structure to
 for modeling when a given type of workload arises in the application.
 
 \subsubsection{Application tuning}
 
-\todo{next week}
+\name continually tunes the application for different workloads. Tuning
+component asks Classifier, at every time step $t_i$ of duration $d$, what is the
+next workload $w_p$ for the application. Next, Tuning picks a configuration
+$c_k$ attempting to improve the application for this given workload.
+\fig{fig:tuning-internals} depicts how Tuning works.
+
+\begin{figure*}[htp]
+  \centering
+  \def\svcwidth{\textwidth}
+  \scalebox{1.0}{\input{figs/tuning-internals.pdf_tex}}
+  \caption{Tuning internals.}
+  \label{fig:tuning-internals}
+\end{figure*}
+
+Tuning identifies the best configuration $c^*_p$, i.e., which $c_{k,p}$ leads
+the application to its best, after $n$ iterations over a same workload $w_p$.
+For each configuration $c_{k,p}$, Tuning component measures the performance and
+resource usage of the application and if $c_{k,p}$ improves the application
+regarding $c_{k-1, p}$, $c_{k,p}$ becomes the new best configuration $c^*_p$.
+So, after $k$ iterations, Tuning resets its inner state and resumes its search
+for a new optimal configuration. New best-configurations are constantly updated
+because the requirements of the application and the environment where it is
+deployed changes along the time, making that an old best-configuration get worse
+after some time.
+
+Both Tuning and Classifier components use the same time interval to evaluate a
+configuration and to delimitate a workload respectively. For each time interval
+starting in $t_i$ of length $d$, Tuning asks Classifier what is the next
+workload that will come up to the application in $t_{i+d}$. Based on this
+information, Tuning picks a configuration for this next workload and sets it to
+the application, measuring for the next $d$ time units the application's
+performance and resource consumption.
+
+While Tuning is searching a best configuration, at least one another instance of
+the application must run in parallel: one for the default or best configuration
+found, and another that is used by Tuning to search for a new best
+configuration. \fig{fig:computing-configurations} depicts the time line of
+application tuning.
+
+\begin{figure*}[htp]
+  \centering
+  \def\svcwidth{\textwidth}
+  \scalebox{1.0}{\input{figs/computing-configurations.pdf_tex}}
+  \caption{Configurations being computed along time using two instances of an
+  application. Instance 1 runs with default $c^+$ and best configurations $c*_p$
+  while instance 2 runs with different configurations. For each workload that
+  comes up Tuning searches for new best configurations on instance 2.}
+  \label{fig:computing-configurations}
+\end{figure*}
+
+Initially, one instance of application starts with a default and general
+configuration $c^+$ previously defined by application engineers. Then, whenever
+a new workload $w_p$ comes up, Tuning apply a configuration $c_{p,i}$, and along
+the time, Tuning tracks which $c_{p,i}$, is the best for the configuration after
+$k$ iterations.
+
+Different workloads arise interleaved along the time. If the next workload is
+the same type of the current, Tuning picks another configuration and measures
+the application again, tracking which configuration has improved the
+application. Otherwise, Tuning switches its context to track what is the best
+configuration for this new workload. Every $k$ iterations, the best
+configuration $c^*$ for a given workload is updated, and whenever this workload
+type arises again, the application is set to use $c^*$.
+
+Thus, the process of searching a new configuration has small footprint in the
+overall application, since one instance runs with the best configuration while
+Tuning tries other possibilities to improve the application. \arsj{We assume
+that a small portion of the workload can individualize it from another}. Hence,
+when Tuning identify that a configuration degrades the performance of the
+application after $n$ time units, $d - n \le n$, it can set new configuration on
+the application, avoiding instances running long times with unacceptable
+performance.
+
+Finally, all process of tuning deeply relies on picking a new configuration for
+the application being observed. Tuning uses Bayesian Optimization~\cite{?}, BO,
+to find out which is the best configuration for the application. Bayesian
+Optimization is a sequential design strategy for global optimization of
+black-box functions that does not requires derivatives. This characteristics
+makes BO an ideal to find optimal configurations for an application.
+
+\todo{explain succinctly how BO works and its advantages over Random Search}
+
+\arsj{best suitable for continuous domains of less then 20 dimensions}
+
+The application engineer should set a search space where Tuning will look for a
+new configuration. For each time step $t_i$, Tuning uses the BO framework for
+picking a configuration from the search space. In the first iteration, BO picks
+values uniformly from each dimension of the search space. Next, at each
+iteration, BO update the posterior probability\footnote{Posterior probability is
+the probability an event will happen after all evidence or background
+information has been taken into account.} distribution on the function being
+optimized (application) using all available data. So, BO uses the past
+configuration found to be a maximizer of the acquisition function over next
+configuration, where the acquisition function is computed using the current
+posterior distribution. Finally, observes the performance and resource usage of
+the application for $d$ time units, and repeat all again $n$ times.
+
+After $n$ times, BO will find an, at least, quasi-optimal configuration which
+improves the application. If the application has more than 20 configurable
+parameters or most of their configurable parameters are in discrete domains, BO
+cannot uses the benefits of Bayesian Statistics~\cite{?}, and in this scenario,
+Tuning behaves like it is using a Random Search optimization~\cite{?}.
 
 \subsubsection{Tuning-workload prediction}
 

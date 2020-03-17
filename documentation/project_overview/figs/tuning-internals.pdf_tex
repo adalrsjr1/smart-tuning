@@ -1,0 +1,77 @@
+%% Creator: Inkscape 1.0beta2 (2b71d25, 2019-12-03), www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'figs/tuning-internals.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \newcommand*\fsize{\dimexpr\f@size pt\relax}%
+  \newcommand*\lineheight[1]{\fontsize{\fsize}{#1\fsize}\selectfont}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{595.27559055bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.35714286)%
+    \lineheight{1}%
+    \setlength\tabcolsep{0pt}%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{figs/tuning-internals.pdf}}%
+    \put(0.47020797,0.25974872){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}Application\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=2]{figs/tuning-internals.pdf}}%
+    \put(0.47793157,0.10818019){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}Classifier\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=3]{figs/tuning-internals.pdf}}%
+    \put(0.55116316,0.19937586){\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}current\\workflow $= w_p$\end{tabular}}}}%
+    \put(0.32360429,0.09986131){\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}next\\workflow $= w_q$\end{tabular}}}}%
+    \put(0.34727714,0.28432733){\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}metrics\end{tabular}}}}%
+    \put(0.31895999,0.22769301){\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}configuration$_k$\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=4]{figs/tuning-internals.pdf}}%
+    \put(0.20511205,0.28474091){\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}$\text{Tuning}_p$\end{tabular}}}}%
+    \put(0.18824012,0.25237845){\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}\footnotesize{$c^* = 3$}\\\footnotesize{$k = 7$}\\\footnotesize{$n = 10$}\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=5]{figs/tuning-internals.pdf}}%
+    \put(0.20511205,0.16257259){\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}$\text{Tuning}_q$\end{tabular}}}}%
+    \put(0.18824012,0.13021013){\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}\footnotesize{$c^* = 1$}\\\footnotesize{$k = 2$}\\\footnotesize{$n = 10$}\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=6]{figs/tuning-internals.pdf}}%
+    \put(0.20460667,0.04031169){\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}$\cdots$\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=7]{figs/tuning-internals.pdf}}%
+    \put(0.20264279,0.32207524){\makebox(0,0)[lt]{\lineheight{1.25}\smash{\begin{tabular}[t]{l}\textbf{Tuning}\end{tabular}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=8]{figs/tuning-internals.pdf}}%
+  \end{picture}%
+\endgroup%

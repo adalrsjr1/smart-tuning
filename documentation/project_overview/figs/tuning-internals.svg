@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   sodipodi:docname="tuning-internals.svg"
+   inkscape:version="1.0beta2 (2b71d25, 2019-12-03)"
+   width="210mm"
+   height="75mm"
+   viewBox="0 0 210 75"
+   version="1.1"
+   id="SVGRoot">
+  <defs
+     id="defs44">
+    <rect
+       id="rect4349"
+       height="6.8791667"
+       width="18.785417"
+       y="32.808333"
+       x="139.43542" />
+    <marker
+       inkscape:stockid="TriangleOutL"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="marker3489"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path3487"
+         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.8)" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker1255"
+       refX="0.0"
+       refY="0.0"
+       orient="auto"
+       inkscape:stockid="TriangleOutL">
+      <path
+         transform="scale(0.8)"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         id="path1253" />
+    </marker>
+    <marker
+       inkscape:collect="always"
+       inkscape:stockid="TriangleOutL"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="marker1219"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path1217"
+         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.8)" />
+    </marker>
+    <marker
+       inkscape:collect="always"
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker1195"
+       refX="0.0"
+       refY="0.0"
+       orient="auto"
+       inkscape:stockid="TriangleOutL">
+      <path
+         transform="scale(0.8)"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         id="path1193" />
+    </marker>
+    <marker
+       inkscape:collect="always"
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="TriangleOutL"
+       refX="0.0"
+       refY="0.0"
+       orient="auto"
+       inkscape:stockid="TriangleOutL">
+      <path
+         transform="scale(0.8)"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         id="path1059" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     showguides="false"
+     inkscape:window-maximized="1"
+     inkscape:window-y="0"
+     inkscape:window-x="0"
+     inkscape:window-height="1028"
+     inkscape:window-width="1680"
+     showgrid="false"
+     inkscape:document-rotation="0"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="mm"
+     inkscape:cy="146.87486"
+     inkscape:cx="335.84588"
+     inkscape:zoom="1"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base" />
+  <metadata
+     id="metadata47">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <g
+       transform="translate(5.044119,3.2925769)"
+       id="g83">
+      <rect
+         style="fill:none;stroke:#000000;stroke-width:0.264583"
+         id="rect57"
+         width="27.014563"
+         height="10.703883"
+         x="90.747284"
+         y="10.724424" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+         x="93.699554"
+         y="17.160192"
+         id="text61"><tspan
+           sodipodi:role="line"
+           id="tspan59"
+           x="93.699554"
+           y="17.160192"
+           style="font-size:3.88056px;stroke-width:0.264583">Application</tspan></text>
+    </g>
+    <g
+       transform="translate(5.8165564,10.995753)"
+       id="g88">
+      <rect
+         y="34.480202"
+         x="89.974846"
+         height="10.703883"
+         width="27.014563"
+         id="rect69"
+         style="fill:none;stroke:#000000;stroke-width:0.264583" />
+      <text
+         id="text73"
+         y="41.286407"
+         x="94.549072"
+         style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+         xml:space="preserve"><tspan
+           style="font-size:3.88056px;stroke-width:0.264583"
+           y="41.286407"
+           x="94.549072"
+           id="tspan71"
+           sodipodi:role="line">Classifier</tspan></text>
+    </g>
+    <path
+       sodipodi:nodetypes="cc"
+       inkscape:connector-curvature="0"
+       id="path90"
+       d="M 92.231405,17.245145 H 67.085919"
+       style="fill:none;stroke:#000000;stroke-width:0.265;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutL)" />
+    <path
+       sodipodi:nodetypes="cc"
+       inkscape:connector-curvature="0"
+       id="path92"
+       d="M 67.170869,22.172329 H 92.146455"
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker1195)" />
+    <path
+       inkscape:connector-curvature="0"
+       id="path1215"
+       d="M 109.62695,25.995145 V 42.305824"
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker1219)" />
+    <text
+       id="text1792"
+       y="33.131069"
+       x="115.74426"
+       style="font-size:3.88056px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.264583"
+         y="33.131069"
+         x="115.74426"
+         id="tspan1790"
+         sodipodi:role="line">current</tspan><tspan
+         id="tspan1794"
+         style="stroke-width:0.264583"
+         y="37.98177"
+         x="115.74426"
+         sodipodi:role="line">workflow $= w_p$</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.88056px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="67.956902"
+       y="54.029125"
+       id="text1800"><tspan
+         sodipodi:role="line"
+         id="tspan1796"
+         x="67.956902"
+         y="54.029125"
+         style="stroke-width:0.264583">next</tspan><tspan
+         sodipodi:role="line"
+         x="67.956902"
+         y="58.879826"
+         style="stroke-width:0.264583"
+         id="tspan1798">workflow $= w_q$</tspan></text>
+    <text
+       id="text1804"
+       y="15.291262"
+       x="72.9282"
+       style="font-size:3.88056px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.264583"
+         y="15.291262"
+         x="72.9282"
+         id="tspan1802"
+         sodipodi:role="line">metrics</tspan></text>
+    <text
+       id="text1808"
+       y="27.184467"
+       x="66.981598"
+       style="font-size:3.88056px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.264583"
+         y="27.184467"
+         x="66.981598"
+         id="tspan1806"
+         sodipodi:role="line">configuration$_k$</tspan></text>
+    <g
+       transform="translate(16.933338)"
+       id="g3327">
+      <g
+         id="g2203"
+         transform="translate(10.703883,-0.25675526)">
+        <rect
+           y="9.6844664"
+           x="10.024272"
+           height="25.655342"
+           width="22.766991"
+           id="rect2050"
+           style="fill:none;stroke:#000000;stroke-width:0.264999;stroke-miterlimit:4;stroke-dasharray:none" />
+        <text
+           id="text2054"
+           y="15.461164"
+           x="15.43631"
+           style="font-size:3.88056px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+           xml:space="preserve"><tspan
+             style="stroke-width:0.264583"
+             y="15.461164"
+             x="15.43631"
+             id="tspan2052"
+             sodipodi:role="line">$\text{Tuning}_p$</tspan></text>
+        <text
+           id="text2058"
+           y="22.25728"
+           x="11.893204"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+           xml:space="preserve"><tspan
+             id="tspan2190"
+             sodipodi:role="line"
+             x="11.893204"
+             y="22.25728">\footnotesize{$c^* = 3$}</tspan><tspan
+             id="tspan2192"
+             sodipodi:role="line"
+             x="11.893204"
+             y="27.107981">\footnotesize{$k = 7$}</tspan><tspan
+             id="tspan2194"
+             sodipodi:role="line"
+             x="11.893204"
+             y="31.958679">\footnotesize{$n = 10$}</tspan></text>
+      </g>
+      <g
+         transform="translate(10.703883,25.398592)"
+         id="g2219">
+        <rect
+           style="fill:none;stroke:#000000;stroke-width:0.264999;stroke-miterlimit:4;stroke-dasharray:none"
+           id="rect2205"
+           width="22.766991"
+           height="25.655342"
+           x="10.024272"
+           y="9.6844664" />
+        <text
+           xml:space="preserve"
+           style="font-size:3.88056px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+           x="15.43631"
+           y="15.461164"
+           id="text2209"><tspan
+             sodipodi:role="line"
+             id="tspan2207"
+             x="15.43631"
+             y="15.461164"
+             style="stroke-width:0.264583">$\text{Tuning}_q$</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+           x="11.893204"
+           y="22.25728"
+           id="text2217"><tspan
+             y="22.25728"
+             x="11.893204"
+             sodipodi:role="line"
+             id="tspan2211">\footnotesize{$c^* = 1$}</tspan><tspan
+             y="27.107981"
+             x="11.893204"
+             sodipodi:role="line"
+             id="tspan2213">\footnotesize{$k = 2$}</tspan><tspan
+             y="31.958679"
+             x="11.893204"
+             sodipodi:role="line"
+             id="tspan2215">\footnotesize{$n = 10$}</tspan></text>
+      </g>
+      <rect
+         style="fill:none;stroke:#000000;stroke-width:0.264999;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect2237"
+         width="22.766991"
+         height="11.043682"
+         x="20.728155"
+         y="60.7384" />
+      <text
+         xml:space="preserve"
+         style="font-size:3.88056px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+         x="26.034063"
+         y="66.534546"
+         id="text2241"><tspan
+           sodipodi:role="line"
+           id="tspan2239"
+           x="26.034063"
+           y="66.534546"
+           style="stroke-width:0.264583">$\cdots$</tspan></text>
+      <rect
+         style="fill:none;stroke:#000000;stroke-width:0.264999;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect2243"
+         width="27.35437"
+         height="70.762665"
+         x="18.434465"
+         y="3.1360836" />
+      <text
+         xml:space="preserve"
+         style="font-size:3.88056px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+         x="25.621647"
+         y="7.3641992"
+         id="text2247"><tspan
+           sodipodi:role="line"
+           id="tspan2245"
+           x="25.621647"
+           y="7.3641992"
+           style="stroke-width:0.264583">\textbf{Tuning}</tspan></text>
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.265;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker3489)"
+       d="M 92.231405,49.524332 H 67.085919"
+       id="path3485"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <text
+       style="line-height:1.25;font-family:sans-serif;font-size:3.88055555999999990px;shape-inside:url(#rect4349);white-space:pre;"
+       id="text4347"
+       xml:space="preserve" />
+  </g>
+</svg>
