@@ -1,4 +1,5 @@
-from hyperopt import fmin, tpe, hp, space_eval
+from hyperopt import fmin, tpe, hp, space_eval, Trials
+
 
 class HyperOpt:
     def __init__(self, objective, search_space):
@@ -6,16 +7,20 @@ class HyperOpt:
         self.search_space = search_space
 
     def optimize(self, max_evals):
-        best = fmin(self.objective, self.search_space, algo=tpe.suggest, max_evals=max_evals)
-        return best, space_eval(self.search_space, best)
+        trials = Trials()
+        best = fmin(self.objective, self.search_space, trials=trials, algo=tpe.suggest, max_evals=max_evals)
+        return trials.best_trial, best
 
 
 if __name__ == '__main__':
     # define an objective function
     import numpy as np
+
+
     def objective(args):
         t = args['x0'] + args['x1'] + args['x2'] + args['x3'] + args['x4']
         return np.sin(2 * np.pi * t) + 0.5 * np.sin(2 * 2.25 * 2 * np.pi * t)
+
 
     # define a search space
     space = {'x0': hp.uniform('x0', -1.0, 1.0),
@@ -25,7 +30,6 @@ if __name__ == '__main__':
              'x4': hp.uniform('x4', -0.4, 1.4)}
 
     opt = HyperOpt(objective, space)
-    best, eval = opt.optimize(1000)
+    best_trial = opt.optimize(100)
 
-    print(np.sum(np.array([item for item in best.values()])))
-    print(eval)
+    print(best_trial)
