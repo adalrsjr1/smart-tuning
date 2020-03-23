@@ -1,0 +1,114 @@
+\section{\name challenges}
+\todo{this section needs beter structure. Challenges and go through them one by
+one; bold each challenge you discuss}
+
+\todo{add devops perspective to this section}
+
+\todo{also add to the problem that ops teams now have to manage a variety of
+software components for a variety of applications.  they don't have time to
+focus on perfecting each one}
+
+In this section we explain \name using a real application example and discuss
+the main challenges of applying our approach in the real world.
+AcmeAir\urlfoot{https://github.com/blueperf/acmeair-monolithic-java} is an
+implementation of a fictitious airline developed in Java. The application was
+built with the ability to scale to billions of web API calls per day. AcmeAir is
+bundled up with several runtime layers, each one dealing with a specific aspect
+of application execution (\fig{fig:acmeair-bundle}). The inner most layer is the
+application server OpenLiberty which transparently handles connections to the
+database, components integration, and monitors of the application. Next, as a
+Java application, both AcmeAir and OpenLiberty runs in the JVM, which abstracts
+the execution of code, and the management of memory and threads. All these
+components are encapsulated into a Docker Container, which abstracts the file
+system layer and several libraries of the OS. Finally, the container is
+encapsulated into a Kubernetes Pod, which abstracts aspects regarding the
+cluster management such as scaling out and roll out new version.
+
+\begin{figure*}[htp]
+    \centering
+    \def\svgwidth{\textwidth}
+    \scalebox{1.0}{\input{figs/acmeair-bundle.pdf_tex}}
+    \caption{AcmeAir bundle.}
+    \label{fig:acmeair-bundle}
+\end{figure*}
+
+Each of these layers exposes its own configuration interface with many options
+that engineers use to set up the execution of the application. The combination
+of configurations among interfaces affects the behavior of the application. For
+example, the number of threads set in OpenLiberty's thread pool is directly
+affected with the max heap size set in JVM, the number of cores and memory
+available to the container, and the affinity set in a pod, so that Kubernetes
+deploys the application into nodes with more or less co-located pods. Therefore,
+a misconfiguration in one of these layers can drop the performance of the
+application. Notice that for the simple knobs controlling thread pool size, the
+number of possibilities may easily explode to hundreds of valid configurations,
+making it unfeasible for engineers to try all, while looking for one that
+maximizes the application's performance.
+
+An application like AcmeAir has several aspects which engineers want to tune.
+Moreover, some of these configurations have interdependencies,
+for example, the number of max connections which should remain open in
+OpenLiberty depends on the size of its thread pool. Or, the garbage collection
+policy set depends on the heap size available in the JVM, and so on. It
+increases even more the complexity to find out and try all valid configurations
+of an application.
+
+Another consideration when configuring an application is the impact of the
+environment. An application running with the same configuration and the same
+workload may have different performance due to other applications in the
+cluster. For instance, in a given time AcmeAir is deployed with very few other
+co-located applications.  However, in another time AcmeAir remains with the same
+incoming rate and number of replicas, but the number of replicas of other
+applications drastically increase.  Consequently, AcmeAir starts to suffer CPU
+contention by other replicas co-located in the cluster node dropping its
+performance.
+
+Finally, modern CNA like AcmeAir are frequently evolving, and each step in their
+evolution may require a different configuration, which adds a new level of
+complexity in finding an optimal configuration. At the end of the day, it
+becomes impossible for application engineers try all possible configurations for
+each new scenario manually. Engineers to try a configuration which suits the
+application in all possible scenarios.  However, they have no guarantee if this
+configuration will be good enough for the application at all times, and a
+careless set up eventually leads the application to a bad performance.
+
+We propose \name to automatically support the search of good configurations.
+\name identifies configurations based on analysis of the environment around the
+application and the application itself, tuning the application to reach the best
+possible performance. The concept of automatically tuning an application's
+configuration is well known and has been successfully applied in the context of
+machine learning~\cite{}, in Machine Learning domain named \emph{hyper
+parameters optimization}.  However, applying in the same strategy of machine
+learning in the context of CNAs is a naive solution.
+
+As we mentioned, CNAs change behavior many times over time.  Moreover, a CNA
+must satisfy many functional and non-functional requirements, which makes it a
+``multi-purpose'' application.  Lastly, the lifespan of a CNA is
+nondeterministic, it runs indefinitely since in most of the cases it provides a
+service.
+
+\todo{start by discussing the application of ML to your problem context --  On
+the other hand}, machine learning applications are mostly defined to satisfy a
+single functional requirement -- training a model to do the specific task --
+with very few non-functional requirements -- fast training and high model
+accuracy.  Besides, machine learning does not frequently evolve like CNAs, nor
+suffer as many impacts from the environment. Therefore, a machine learning
+configuration remains the same during all the time since it is deterministic,
+differently of CNAs.
+
+
+\todo{assumtion $\rightarrow$ next reaction?} Therefore, to apply the idea of
+automatically finding a configuration to an application (or auto-tuning), we
+assume that changes in the environment and of the application are periodic, and
+these changes are observed thought application's workloads, so that \name can
+identify patterns and associate them to configurations. Every new pattern that
+\name observes from an application or the environment, which drops application
+performance, trigger \name to figure out the best new configuration for this
+pattern. Hence, \name can handle this pattern properly in the next time it comes
+up.
+
+Therefore of using \name, it may be unfeasible to find an optimal configuration
+in a reasonable time.  \name should be used in collaboration with the
+application engineers, so that they delimit the search space boundaries for
+\name. Furthermore, we list in \crossref{sec:design.choices} other choices we
+made to make it possible to apply auto-tuning in CNAs.

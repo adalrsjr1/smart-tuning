@@ -92,7 +92,7 @@ def plot(x, y):
 if __name__ == '__main__':
     np.random.seed(0)
     for i in range(10):
-        print(time_series(15, 0.0))
+        print(time_series(24, 0.0))
         # x = pick_one_pattern(i)
         #
         # x = x if x >= 0 else 0

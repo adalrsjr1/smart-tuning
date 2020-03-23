@@ -16,7 +16,7 @@ workflow.
 
        \item watch incoming URLs
 
-       \item build a internal representation that (histogram)
+       \item build an internal representation that (histogram)
 
        \item watch resource consumption
 
@@ -48,11 +48,11 @@ workflow.
 
         \item continually evaluates the performance of the application given a
           new configuration and a workload and drops the configuration if the
-          performance reached is worst then a previously given a same context
+          performance reached is the worst then a previously given a same context
           (i.e., workload type) \arsj{this is a key loop that needs to be
           broken into more steps}
 
-        \item contextualize the search of a optimal configuration with a
+        \item contextualize the search of an optimal configuration with a
           workload type
 
         \item associates configurations and workloads types
@@ -91,11 +91,11 @@ depicts these steps.
 We model an application as a black-box function $X: (c_k,\, t) \rightarrow w_t$,
 where $X$ maps a configuration $c_k$ in a time $t$ to a workload $w_t$.  A
 configuration is a set of knobs which the engineer can set in the application's
-runtime layers. An workload, $w_{t} = (b_t \in B, s_t \in S, p_t \in P, d)$,
+runtime layers. A workload, $w_{t} = (b_t \in B, s_t \in S, p_t \in P, d)$,
 models respectively the behavior, the state, and the performance of the
 application beginning in $t$ and with a duration $d$ set by application
 engineer. The configuration $c_k$ affects the behavior and performance of the
-application, and cannot affects affects the behavior of the application which
+application, and cannot affect the behavior of the application which
 reflects the incoming URLs to the application.
 
 $B$ are all possible behaviors of application and $b_t$ models the application's
@@ -145,7 +145,7 @@ $t$, \eq{eq:forecast}.
 \end{equation}
 
 After \name has learned about the workload's application, \arsj{not clear how
-\name is learning about the workloads's application at this point -- so far in
+\name is learning about the workload's application at this point -- so far in
 the flow it's just looking at incoming workload} it is time of the module named
 Tuning figures out the best configuration for the application. The Tuning module
 uses the Classifier to forecast when and which will be the next workload of the
@@ -164,7 +164,7 @@ differences on application workload's performance $p$ or resource consumption
 $s$. Because the application is a black-box function, and thus unknown whether
 it is differentiable, \name has to sequentially tries different configurations
 $c_k$ looking for one which leads the application to its best -- high
-performance or low resources consumption, \fig{fig:tuning-overview}. To do so,
+performance or low resource consumption, \fig{fig:tuning-overview}. To do so,
 Tuning try different configurations for a same type of workload and maintain
 internally a history of the configurations already tested against the
 application.  Tuning applies a configuration $c_k$ to the application and wait
@@ -200,7 +200,7 @@ evaluates if it improves the application $X$.
 
 The key objective of \name is to associate an application's optimal
 configuration to a workload. To do so, first \name has to characterize the
-workloads. Along the time, several different workloads come up from the
+workloads. Along the time, several workloads come up from the
 application. To reduce the scope and the number of configurations to be
 computed, \name characterizes the workloads into groups.
 
@@ -261,10 +261,10 @@ behavior and state of workloads to calculate their proximity.
 
 \todo{should K-nearest neighbors be static (the engineer set K) or dynamic --
 \name defines how many clusters based on a given threshold set by engineer?}
-\arsj{        again this might be somehting we pick defaults for and only in
+\arsj{        again this might be something we pick defaults for and only in
 rare situation would humans get involved in setting this}
 
-The behavior of two workloads are compared using Hellinger distance~\cite{?}, an
+The behavior of two workloads are compared using Hellinger distance~\cite{?}, a
 statistic method to quantify the similarity, between 0 (equals) and 1
 (different), of two probabilities distributions. Since Hellinger distance works
 with probabilities distributions, the histograms should also be normalized
@@ -290,7 +290,7 @@ workload behavior.
 
 % https://people.richland.edu/james/lecture/m170/ch08-int.html
 Therefore, Classifier uses Z-Score~\cite{?} to compare the state of two
-workloads.  Given two workloads, for each their components $(a_0, a_1, \cdots,
+workloads.  Given two workloads, for their components $(a_0, a_1, \cdots,
 a_n)$, e.g., CPU, memory, and I/O, in their states $s_i$, Classifier checks if
 all means of each state component are significantly equals. For values of
 $\text{Z-Score} \leq 1.960$, we can assume they are significantly equals, and
@@ -307,12 +307,12 @@ calculates its magnitude, $||\hat{s}||_2$ and direction $\theta \hat{s} =
 The decomposition of $\hat{s}$ tells to Classifier the amount of each resource
 is being used (magnitude) and discern the semantics of each component in the
 vector (direction). For example, a resource consumption of 100 milicores and
-1000MB has a different semantics of 1000 milicores and 100 MB, and consequently
+1000 MB has a different semantics of 1000 milicores and 100 MB, and consequently
 the application may need different configurations to handle it. In both cases,
 the magnitude are equal ($\sim 1005$), and their directions are different ($\sim
 1.47\,\text{rad}$ and $\sim 0.09\,\text{rad}$ respectively).
 
-Then, Classifier can transform the vector state $\hat{s}$ in in a scalar $s'$ by
+Then, Classifier can transform the vector state $\hat{s}$ in a scalar $s'$ by
 calculating their distance on $\mathbb{R}^2$, \eq{eq:distance1}.
 
 \begin{equation}
@@ -330,7 +330,7 @@ both orthogonal concepts in a single metric $\text{distance}$,
 \end{equation}
 
 After the Classifier groups the workloads, as depicted in
-\fig{fig:workload-classification}, it also associate to each group the time of
+\fig{fig:workload-classification}, it also associates to each group the time of
 their fundamental workloads occurred. Moreover, it computes the average of application
 performance and resource consumption and keeps a structure for each type as following:
 
@@ -340,7 +340,7 @@ performance and resource consumption and keeps a structure for each type as foll
 \end{quote}
 
 This structure is the core of the next phases of \name. Tuning phase uses this
-structure to calculate the improvement on the application when it apply a
+structure to calculate the improvement on the application when it applies a
 configuration (it aims to minimize the resource consumption and maximize the
 application performance). The Tuning-workload prediction uses the structure to
 for modeling when a given type of workload arises in the application.
@@ -361,7 +361,7 @@ $c_k$ attempting to improve the application for this given workload.
   \label{fig:tuning-internals}
 \end{figure*}
 
-Tuning identifies the best configuration $c^*_p$, i.e., which $c_{k,p}$ leads
+Tuning identifies the best configuration $c^*_p$, i.e., which $c_{k, p}$ leads
 the application to its best, after $n$ iterations over a same workload $w_p$.
 For each configuration $c_{k,p}$, Tuning component measures the performance and
 resource usage of the application and if $c_{k,p}$ improves the application
@@ -380,7 +380,7 @@ information, Tuning picks a configuration for this next workload and sets it to
 the application, measuring for the next $d$ time units the application's
 performance and resource consumption.
 
-While Tuning is searching a best configuration, at least one another instance of
+While Tuning is searching the best configuration, at least one another instance of
 the application must run in parallel: one for the default or best configuration
 found, and another that is used by Tuning to search for a new best
 configuration. \fig{fig:computing-configurations} depicts the time line of
@@ -390,7 +390,7 @@ application tuning.
   \centering
   \def\svcwidth{\textwidth}
   \scalebox{1.0}{\input{figs/computing-configurations.pdf_tex}}
-  \caption{Configurations being computed along time using two instances of an
+  \caption{Configurations being computed along the time using two instances of an
   application. Instance 1 runs with default $c^+$ and best configurations $c*_p$
   while instance 2 runs with different configurations. For each workload that
   comes up Tuning searches for new best configurations on instance 2.}
@@ -415,7 +415,7 @@ Thus, the process of searching a new configuration has small footprint in the
 overall application, since one instance runs with the best configuration while
 Tuning tries other possibilities to improve the application. \arsj{We assume
 that a small portion of the workload can individualize it from another}. Hence,
-when Tuning identify that a configuration degrades the performance of the
+when Tuning identifies that a configuration degrades the performance of the
 application after $n$ time units, $d - n \le n$, it can set new configuration on
 the application, avoiding instances running long times with unacceptable
 performance.
@@ -424,18 +424,18 @@ Finally, all process of tuning deeply relies on picking a new configuration for
 the application being observed. Tuning uses Bayesian Optimization~\cite{?}, BO,
 to find out which is the best configuration for the application. Bayesian
 Optimization is a sequential design strategy for global optimization of
-black-box functions that does not requires derivatives. This characteristics
-makes BO an ideal to find optimal configurations for an application.
+black-box functions that does not require derivatives. These characteristics
+make BO an ideal to find optimal configurations for an application.
 
 \todo{explain succinctly how BO works and its advantages over Random Search}
 
-\arsj{best suitable for continuous domains of less then 20 dimensions}
+\arsj{best suitable for continuous domains of less than 20 dimensions}
 
 The application engineer should set a search space where Tuning will look for a
 new configuration. For each time step $t_i$, Tuning uses the BO framework for
 picking a configuration from the search space. In the first iteration, BO picks
 values uniformly from each dimension of the search space. Next, at each
-iteration, BO update the posterior probability\footnote{Posterior probability is
+iteration, BO updates the posterior probability\footnote{Posterior probability is
 the probability an event will happen after all evidence or background
 information has been taken into account.} distribution on the function being
 optimized (application) using all available data. So, BO uses the past
@@ -444,10 +444,10 @@ configuration, where the acquisition function is computed using the current
 posterior distribution. Finally, observes the performance and resource usage of
 the application for $d$ time units, and repeat all again $n$ times.
 
-After $n$ times, BO will find an, at least, quasi-optimal configuration which
+After $n$ times, BO will find, at least, an quasi-optimal configuration which
 improves the application. If the application has more than 20 configurable
 parameters or most of their configurable parameters are in discrete domains, BO
-cannot uses the benefits of Bayesian Statistics~\cite{?}, and in this scenario,
+cannot use the benefits of Bayesian Statistics~\cite{?}, and in this scenario,
 Tuning behaves like it is using a Random Search optimization~\cite{?}.
 
 \subsubsection{Tuning-workload prediction}
