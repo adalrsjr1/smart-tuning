@@ -199,6 +199,8 @@ def experiment_oracle(steps=12, features=4, total=364, training_size=28, layers=
                               loss=loss, output_activator=output_activator, verbose=verbose, optimizer=optimizer,
                               validation_data=testing_seq)
 
+    print(model.summary())
+
     X_train, y_train = encode_input(training_seq, features, steps)
     X_test, y_test = encode_input(testing_seq, features, steps)
 
@@ -209,13 +211,24 @@ def experiment_oracle(steps=12, features=4, total=364, training_size=28, layers=
     # to_predict = input_data.reshape(total - training_size+1, steps, features)
 
     count = 0
+    _countp = 0
+    _countn = 0
     X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], features)
+    interval = 0
     for x, _y in zip(X_test, y_test):
+        interval += 1
         yhat = model.predict(x.reshape(1, steps, features), verbose=verbose)
 
         # print(np.argmax(yhat), np.argmax(_y))
         if np.argmax(yhat) == np.argmax(_y):
+            _countp += 1
+            _countn += 1
             count += 1
+
+        if interval % steps == 0:
+            # print('>>> ', _countp/interval, _countn/interval)
+            _countn, _countp = (0, 0)
+            interval = 0
 
         # new value comes up to be evaluateed
         # new_data_points.append(np.argmax(yhat))
@@ -226,10 +239,13 @@ def experiment_oracle(steps=12, features=4, total=364, training_size=28, layers=
         #     encoded_raw_seq = to_categorical(np.append(testing_seq, new_data_points), features)
         #     X, y = split_sequence(encoded_raw_seq, steps)
         #     X = X.reshape(X.shape[0], X.shape[1], features)
-        #     # model.train_on_batch(X, y)
-        #     history = model.fit(X, y, batch_size=32, epochs=1, verbose=verbose, use_multiprocessing=True)
+        #     model.train_on_batch(X, y)
+        #     # history = model.fit(X, y, batch_size=1, epochs=1, verbose=verbose, use_multiprocessing=True)
         #     new_data_points = []
         #     # previous_data = np.array(raw_seq[-steps:])
+
+
+
 
     return count/len(y_test)
 
@@ -305,42 +321,42 @@ if __name__ == '__main__':
 
         return list[i]
 
-    accuracies = []
-    xs = []
-    # 0.001
-    for lr in [0.001, 0.01, 0.1]:
-        # 0.9
-        for b1 in [0.1, 0.9, 0.95, 0.999, 1.8]:
-            # 0.999
-            for b2 in [0.1, 0.9, 0.95, 0.999, 1.8]:
-                # _optimizer = RMSprop(learning_rate=0.001, rho=0.9)
-                _optimizer = Adam(learning_rate=lr, beta_1=b1, beta_2=b2, amsgrad=False)
-                # for _optimizer in range(2):
-                start = timer()
-                accuracy = experiment_oracle(steps=12, features=4, total=364, training_size=28, layers={20: 'tanh'},
-                                             dropout=0.01, output_activator='tanh', loss='mean_squared_error', mutation=0.3,
-                                             optimizer=_optimizer, verbose=0, seed=7)
-                end = timer()
-                accuracies.append(accuracy)
-                xs.append(f'(a:{lr}, b1:{b1}, b2:{b2})')
-                # xs.append(f'a:{lr}')
-                print(f'accuracy: {accuracy} --- Time elapsed: {end - start}s\n')
-
-    fig = plt.figure()
-    ax = plt.axes()
-    ax.set_xlabel('n_neurons')
-    ax.set_ylabel('accuracy')
-    ax.set_title('learning rate')
-
-    ax.scatter([i for i, _ in enumerate(xs)], accuracies)
-    # ax.plot(range(4, 56, 4), accuracies[0])
-    # ax.plot(range(4, 56, 4), accuracies[1], label=optimizer(1))
-    # plt.xticks([i for i, _ in enumerate(xs)])
-    ax.set_xticks([i for i, _ in enumerate(xs)])
-    ax.set_xticklabels(xs, rotation=90)
-    # plt.yticks(np.arange(0, 1.1, 0.1, ))
-    # plt.legend()
-    plt.show()
+    # accuracies = []
+    # xs = []
+    # # 0.001
+    # for lr in [0.001, 0.01, 0.1]:
+    #     # 0.9
+    #     for b1 in [0.1, 0.9, 0.95, 0.999, 1.8]:
+    #         # 0.999
+    #         for b2 in [0.1, 0.9, 0.95, 0.999, 1.8]:
+    #             # _optimizer = RMSprop(learning_rate=0.001, rho=0.9)
+    #             _optimizer = Adam(learning_rate=lr, beta_1=b1, beta_2=b2, amsgrad=False)
+    #             # for _optimizer in range(2):
+    #             start = timer()
+    #             accuracy = experiment_oracle(steps=12, features=4, total=364, training_size=28, layers={20: 'tanh'},
+    #                                          dropout=0.01, output_activator='tanh', loss='mean_squared_error', mutation=0.3,
+    #                                          optimizer=_optimizer, verbose=0, seed=7)
+    #             end = timer()
+    #             accuracies.append(accuracy)
+    #             xs.append(f'(a:{lr}, b1:{b1}, b2:{b2})')
+    #             # xs.append(f'a:{lr}')
+    #             print(f'accuracy: {accuracy} --- Time elapsed: {end - start}s\n')
+    #
+    # fig = plt.figure()
+    # ax = plt.axes()
+    # ax.set_xlabel('n_neurons')
+    # ax.set_ylabel('accuracy')
+    # ax.set_title('learning rate')
+    #
+    # ax.scatter([i for i, _ in enumerate(xs)], accuracies)
+    # # ax.plot(range(4, 56, 4), accuracies[0])
+    # # ax.plot(range(4, 56, 4), accuracies[1], label=optimizer(1))
+    # # plt.xticks([i for i, _ in enumerate(xs)])
+    # ax.set_xticks([i for i, _ in enumerate(xs)])
+    # ax.set_xticklabels(xs, rotation=90)
+    # # plt.yticks(np.arange(0, 1.1, 0.1, ))
+    # # plt.legend()
+    # plt.show()
 
     # for _layer in range(4):
     #     for _loss in range(2):
@@ -355,8 +371,8 @@ if __name__ == '__main__':
     #                 print(f'accuracy: {accuracy} --- Time elapsed: {end - start}s\n')
 
     # rmsp(lr: 0.1) = 0.63
-    # adam(lr: 0.1, b1: 0.9, b2: 0.9)
-    # adam(lr: 0.01, b1: 0.9, b2: 0.9)
+    # adam(lr: 0.001, b1: 0.9, b2: 0.95) = 0.68
+    # n_neurons = 20
     # optimizer: [rmsprop, adam]
     # experiment setup: steps(12), features(4), total(364), training_size(28), layers({50: 'tanh'}), dropout(0.01), output_activator(tanh), loss(mean_squared_error), seed(7), mutation(0.3)
     # pattern: [3 0 1 2 3 1 3 3 2 3 2 3]
@@ -387,30 +403,36 @@ if __name__ == '__main__':
     # accuracy: 0.6329365079365079 --- Time elapsed: 65.0734399869998s
 
 
-    # mutation = 0
-    # mutation_list = []
-    # accuracy_list = []
-    #
-    # # while mutation <= 1.05:
-    # mutation = 0.3
-    # start = timer()
-    # accuracy = experiment_oracle(steps=12, features=4, total=364, training_size=28, layers={50: 'tanh'}, dropout=0.01,
-    #                              output_activator='tanh', loss='mean_squared_error', mutation=mutation, verbose=0,
-    #                              seed=7)
-    # end = timer()
-    # print(f'mutation: {mutation} accuracy: {accuracy} --- Time elapsed: {end - start}s\n')
-    # mutation_list.append(mutation)
-    # accuracy_list.append(accuracy)
-    # mutation += 0.05
-    #
-    # fig = plt.figure()
-    # ax = plt.axes()
-    # ax.set_xlabel('mutation rate per workload')
-    # ax.set_ylabel('model accuracy')
-    # ax.set_title('accuracy per mutation')
-    #
-    # ax.plot(mutation_list, accuracy_list)
-    #
-    # plt.show()
+    mutation = 0
+    mutation_list = []
+    accuracy_list = []
+
+    seeds = []
+    steps = 1
+    # for i in range(10):
+    #     seed = np.random.randint(1000)
+    # while mutation <= 1.05:
+    _optimizer = Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.95, amsgrad=False)
+
+    start = timer()
+    accuracy = experiment_oracle(steps=12, features=4, total=364, training_size=28, layers={20: 'tanh'},
+                                 dropout=0.01, output_activator='tanh', loss='mean_squared_error', mutation=0.3,
+                                 optimizer=_optimizer, verbose=0, seed=7)
+    # accuracy = seed * mutation
+    end = timer()
+    print(f'mutation: {mutation} accuracy: {accuracy} --- Time elapsed: {end - start}s\n')
+    accuracy_list.append(accuracy)
+
+    fig = plt.figure()
+    ax = plt.axes()
+    plt.xticks(range(1, 13))
+    ax.set_xlabel('steps')
+    ax.set_ylabel('model accuracy')
+    ax.set_title('accuracy per #steps')
+
+    ax.plot(accuracy_list)
+
+    plt.legend()
+    plt.show()
 
 
