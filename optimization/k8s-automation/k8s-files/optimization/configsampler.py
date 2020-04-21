@@ -25,28 +25,6 @@ class ConfigMap:
 
         return api_instance.patch_namespaced_config_map(name, namespace, body, pretty=pretty)
 
-class Deployment:
-    # update deployment
-    # DEPLOYMENT_NAME=tuning-deployment
-    # curl -sSk \
-    #   -X PATCH \
-    #   -d @- \
-    #   -H "Authorization: Bearer $KUBE_TOKEN" \
-    #   -H 'Accept: application/json' \
-    #   -H 'Content-Type: application/strategic-merge-patch+json' \
-    #   https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/apis/apps/v1/namespaces/$NAMESPACE/deployments/$DEPLOYMENT_NAME <<'EOF'
-    # {
-    #   "kind": "Deployment",
-    #   "apiVersion": "v1",
-    #   "metadata": {
-    #     "labels": {
-    # 		"config": "2"
-    # 	}
-    #   }
-    # }
-    # EOF
-    pass
-
 class SearchSpace:
     def __init__(self, domain=None):
         if not domain:
