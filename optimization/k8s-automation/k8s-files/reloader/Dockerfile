@@ -6,6 +6,6 @@ WORKDIR /usr/src/app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY configsampler.py app.py
+COPY reloader.py app.py
 
 ENTRYPOINT ["python", "app.py"]

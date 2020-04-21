@@ -39,11 +39,6 @@ rules:
       - configmaps
       - deployments
     verbs: ["get","list","watch","create","update","patch","delete"]
-#  - apiGroups: ["apps"]
-#    resources:
-#      - configmaps
-#      - deployments
-#    verbs: ["get","list","watch","create","update","patch","delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -83,7 +78,7 @@ spec:
             - name: NAMESPACE
               value: 'default'
             - name: WAIT_TIME # seconds
-              value: '10'
+              value: '30'
             - name: CONFIGMAP_PATH
               value: /etc/smart-tuning
             - name: CONFIGMAP_SEARCHSPACE

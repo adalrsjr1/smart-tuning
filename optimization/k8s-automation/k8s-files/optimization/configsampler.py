@@ -56,7 +56,7 @@ class SearchSpace:
 
     def add_to_domain(self, key, type=None, lower=None, upper=None, options=None):
         """
-        type: str, int, float
+        type: str, int, float, bool
         """
         t = self.convert_type_from_str(type)
         if self.check_arguments(t, lower, upper, options):
@@ -100,9 +100,6 @@ class SearchSpace:
             raise TypeError(f"cannot handle type={type}")
 
         return True
-
-    def rem_from_domain(self, key):
-        del self.domain[key]
 
     def dimension(self, key):
         lower = self.domain[key][0]
@@ -158,6 +155,7 @@ def main():
     config_path = os.environ['CONFIGMAP_PATH']
     searchspace_path = os.environ['CONFIGMAP_SEARCHSPACE']
     wait_time = int(os.environ['WAIT_TIME'])
+    print(wait_time)
 
     while True:
         envvar = {}
