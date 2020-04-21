@@ -1,0 +1,112 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tuning-config
+data:
+  TUNING: "TRUE"
+  TEST: "TESTING"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tuning-search-space
+data:
+  search-space.json: |
+    [
+      {
+          "key": "TUNING",
+          "type": "int",
+          "lower": 4,
+          "upper": 20,
+          "options": null
+      },
+      {
+          "key": "TEST",
+          "type": "bool",
+          "lower": null,
+          "upper": null,
+          "options": null
+      }
+    ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tuning
+rules:
+  - apiGroups: ["*"]
+    resources:
+      - configmaps
+      - deployments
+    verbs: ["get","list","watch","create","update","patch","delete"]
+#  - apiGroups: ["apps"]
+#    resources:
+#      - configmaps
+#      - deployments
+#    verbs: ["get","list","watch","create","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tuning
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tuning
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tuning-deployment
+  labels:
+    app: tuning-deployment
+    config: "0"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: tuning-deployment
+      labels:
+        app: tuning-deployment
+    spec:
+      containers:
+        - name: configsampler
+          image: configsampler
+          imagePullPolicy: Never
+          env:
+            - name: CONFIGMAP_NAME
+              value: 'tuning-config'
+            - name: NAMESPACE
+              value: 'default'
+            - name: WAIT_TIME # seconds
+              value: '10'
+            - name: CONFIGMAP_PATH
+              value: /etc/smart-tuning
+            - name: CONFIGMAP_SEARCHSPACE
+              value: /etc/tuning-search-space/search-space.json
+          envFrom:
+            - configMapRef:
+                name: tuning-config
+          volumeMounts:
+            - mountPath: /etc/smart-tuning
+              name: smart-tuning-config
+            - mountPath: /etc/tuning-search-space/search-space.json
+              name: tuning-search-space
+              subPath: search-space.json
+      terminationGracePeriodSeconds: 1
+      restartPolicy: Always
+      volumes:
+        - name: smart-tuning-config
+          configMap:
+            name: tuning-config
+        - name: tuning-search-space
+          configMap:
+            name: tuning-search-space
+  selector:
+    matchLabels:
+      app: tuning-deployment
+

@@ -1,0 +1,37 @@
+[
+  {
+      "key": "TEST1",
+      "type": "int",
+      "lower": 4,
+      "upper": 20,
+      "options": null
+  },
+  {
+      "key": "TEST2",
+      "type": "bool",
+      "lower": null,
+      "upper": null,
+      "options": null
+  },
+  {
+      "key": "TEST3",
+      "type": "str",
+      "lower": null,
+      "upper": null,
+      "options": ["phi", "e", "pi"]
+  },
+  {
+      "key": "TEST4",
+      "type": "int",
+      "lower": 4,
+      "upper": 20,
+      "options": null
+  },
+  {
+      "key": "TEST5",
+      "type": "float",
+      "lower": 0.0,
+      "upper": 1.0,
+      "options": null
+  }
+]

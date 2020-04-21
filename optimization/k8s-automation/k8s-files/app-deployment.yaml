@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  labels:
+    app: app
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: app
+      labels:
+        app: app
+    spec:
+      containers:
+        - name: app
+          image: alpine-curl
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: tuning-config
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+          command:
+            - sh
+            - "-c"
+            - |
+              /bin/sh <<'EOF'
+
+              while :; do
+                echo $POD_NAME:$POD_IP $POD_NAMESPACE $POD_SERVICE_ACCOUNT
+                echo -e "\n\n"
+                sleep 1
+              done
+
+              EOF
+        - name: sidecar
+          image: alpine-curl
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: tuning-config
+          # update "spec/template/metadata" forces rolling update 
+          command:
+            - sh
+            - "-c"
+            - |
+
+              for i in $(seq 1 10); do
+                echo $i
+                sleep 1
+              done
+              KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              DEPLOYMENT_NAME=app
+              NAMESPACE=default
+              curl -sSk \
+                -X PATCH \
+                -d "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"`date +'%s'`\"}}}}}" \
+                -H "Authorization: Bearer $KUBE_TOKEN" \
+                -H 'Accept: application/json' \
+                -H 'Content-Type: application/strategic-merge-patch+json' \
+                https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/apis/apps/v1/namespaces/$NAMESPACE/deployments/$DEPLOYMENT_NAME
+      terminationGracePeriodSeconds: 1
+      restartPolicy: Always
+      volumes:
+        - name: smart-tuning-config
+          configMap:
+            name: tuning-config
+  selector:
+    matchLabels:
+      app: app
