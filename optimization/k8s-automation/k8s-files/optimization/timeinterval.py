@@ -32,7 +32,7 @@ def year(n):
     return month(n * 12)
 
 
-def time_unit(label:str):
+def time_unit(label: str):
     label = label[0]
 
     if label.lower() == 's':
@@ -52,12 +52,6 @@ def time_unit(label:str):
 
     return second
 
-
-def interval(step:str):
-    number = step[:-1]
-    label = step[-1]
-
-    return time_unit(label)(number)
 
 def sleep(secs=0):
     time.sleep(secs)

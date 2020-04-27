@@ -53,39 +53,47 @@ subjects:
     name: default
     namespace: default
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smarttuning-config
+data:
+  MONGO_ADDR: 'mongo-workload-service.default.svc.cluster.local'
+  MONGO_PORT: '27017'
+  MONGO_DB: 'smarttuning'
+  PROMETHEUS_ADDR: 'localhost'
+  PROMETHEUS_PORT: '9090'
+  NAMESPACE: 'default'
+  WAITING_TIME: '2'
+  CONFIG_PATH: '/etc/smart-tuning'
+  SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
+  CONFIGMAP_NAME: 'tuning-config'
+  MOCK: 'True'
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tuning-deployment
+  name: smarttuning
   labels:
-    app: tuning-deployment
+    app: smarttuning
     config: "0"
 spec:
   replicas: 1
   template:
     metadata:
-      name: tuning-deployment
+      name: smarttuning
       labels:
-        app: tuning-deployment
+        app: smarttuning
     spec:
       containers:
-        - name: configsampler
-          image: configsampler
+        - name: smarttuning
+          image: smarttuning
           imagePullPolicy: Never
-          env:
-            - name: CONFIGMAP_NAME
-              value: 'tuning-config'
-            - name: NAMESPACE
-              value: 'default'
-            - name: WAIT_TIME # seconds
-              value: '30'
-            - name: CONFIGMAP_PATH
-              value: /etc/smart-tuning
-            - name: CONFIGMAP_SEARCHSPACE
-              value: /etc/tuning-search-space/search-space.json
           envFrom:
             - configMapRef:
                 name: tuning-config
+            - configMapRef:
+                name: smarttuning-config
           volumeMounts:
             - mountPath: /etc/smart-tuning
               name: smart-tuning-config
@@ -103,5 +111,5 @@ spec:
             name: tuning-search-space
   selector:
     matchLabels:
-      app: tuning-deployment
+      app: smarttuning
 

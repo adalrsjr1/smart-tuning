@@ -1,10 +1,7 @@
 import hyperopt.hp
 import hyperopt.pyll.stochastic
-import sys
-import os
 import kubernetes as k8s
 import json
-import time
 
 class ConfigMap:
     def __init__(self):
@@ -128,49 +125,3 @@ class SearchSpace:
                 str_sample[key] = value
 
         return str_sample
-
-def main():
-    config_path = os.environ['CONFIGMAP_PATH']
-    searchspace_path = os.environ['CONFIGMAP_SEARCHSPACE']
-    wait_time = int(os.environ['WAIT_TIME'])
-    print(wait_time)
-
-    while True:
-        envvar = {}
-        files = [f for f in os.listdir(config_path) if os.path.isfile(os.path.join(config_path, f))]
-
-        for f in files:
-            envvar[f] = os.environ.get(f,'')
-
-        search_space = SearchSpace({})
-        config_map = ConfigMap()
-
-
-        with open(searchspace_path) as json_file:
-            data = json.load(json_file)
-            for item in data:
-                search_space.add_to_domain(
-                    key=item.get('key', None),
-                    lower=item.get('lower', None),
-                    upper=item.get('upper', None),
-                    options=item.get('options', None),
-                    type=item.get('type', None)
-                )
-
-        sample, length = search_space.sampling('test')
-        sample = search_space.sample_values_to_str(sample)
-        print('new config >>> ', sample)
-
-        response = config_map.patch(os.environ['CONFIGMAP_NAME'], os.environ['NAMESPACE'], sample)
-
-        time.sleep(wait_time)
-
-if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        print('Interrupted')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
