@@ -1,7 +1,10 @@
 import os
 
+from concurrent.futures import ThreadPoolExecutor, wait as ThreadWait, ALL_COMPLETED as FUTURE_ALL_COMPLETED
+executor = ThreadPoolExecutor(3)
+
 MOCK = bool(os.environ.get('MOCK', True))
-MONGO_ADDR = os.environ.get('MONGO_ADDR', 'localhost')
+MONGO_ADDR = os.environ.get('MONGO_ADDR', '127.0.0.1')
 MONGO_PORT = int(os.environ.get('MONGO_PORT', '30027'))
 MONGO_DB = os.environ.get('MONGO_DB', 'smarttuning')
 K = int(os.environ.get('K', '3'))
@@ -15,3 +18,6 @@ PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', 'localhost')
 PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', '30090')
 DISTANCE_METHOD = 'hellinger'
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', '3'))
+REGISTER_SERVER_PORT = int(os.environ.get('REGISTER_SERVER_PORT', '5000'))
+REGISTER_SERVER_ADDR = os.environ.get('REGISTER_SERVER_ADDR', '0.0.0.0')
+REGISTER_DB = os.environ.get('REGISTER_DB', 'smarttuning-register')

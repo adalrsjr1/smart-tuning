@@ -9,6 +9,7 @@ import app_config
 from seqkmeans import Container
 import configsampler as cs
 import workloadhandler as wh
+import register
 
 def update_config()->dict:
     print('loading config file')
@@ -75,7 +76,7 @@ def best_tuning(type=None)->Container:
     return best_item['classification'], best_item['configuration']
 
 if __name__ == "__main__":
-    print(best_tuning('3a3e442c-88d4-11ea-b07f-784f4359206d'))
+    register.start()
     while True:
 
         # configuration = update_config()

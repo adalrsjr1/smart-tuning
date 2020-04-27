@@ -110,13 +110,12 @@ def __group__(u, v, table, memory):
     memory.add(u)
     memory.add(v)
 
-from concurrent.futures import ThreadPoolExecutor, wait as ThreadWait, ALL_COMPLETED as FUTURE_ALL_COMPLETED
-executor = ThreadPoolExecutor(2)
+
 def workload_and_metric(namespace, interval, mock=False) -> seqkmeans.Container:
-    with ThreadPoolExecutor(2) as executor:
+    with app_config.ThreadPoolExecutor(2) as executor:
         future_workload = executor.submit(workload, app_config.NAMESPACE, app_config.WAITING_TIME, mock)
         future_throughput = executor.submit(throughput, app_config.NAMESPACE, app_config.WAITING_TIME, mock)
-        done = ThreadWait([future_workload, future_throughput], timeout=None, return_when=FUTURE_ALL_COMPLETED)
+        done = app_config.ThreadWait([future_workload, future_throughput], timeout=None, return_when=app_config.FUTURE_ALL_COMPLETED)
 
         future_throughput = done[0].pop().result()
         future_workload = done[0].pop().result()
