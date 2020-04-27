@@ -82,6 +82,7 @@ class Container:
         container_dict = self.__dict__
         container_dict['content'] = list(self.content)
         container_dict['classification'] = self.classification.id
+        container_dict['classification_mean']
         return container_dict
 
     def distance(self, other:Container):
@@ -133,6 +134,13 @@ class KmeansContext:
         self.clusters = []
         self.k = k
         self.cluster_type = cluster_type
+
+    def cluster_by_id(self, id):
+        for cluster in self.clusters:
+            if id == cluster.id:
+                return cluster
+        # return self.clusters[np.random.randint(0, len(self.clusters))]
+        return None
 
     def cluster(self, sample:Container):
 

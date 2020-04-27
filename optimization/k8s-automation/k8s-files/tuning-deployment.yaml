@@ -69,6 +69,7 @@ data:
   SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
   CONFIGMAP_NAME: 'tuning-config'
   MOCK: 'True'
+  NUMBER_ITERATIONS: '3'
 ---
 apiVersion: apps/v1
 kind: Deployment

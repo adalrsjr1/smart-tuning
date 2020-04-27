@@ -2,6 +2,7 @@ import os
 import time
 import json
 
+import pymongo
 from pymongo import MongoClient
 
 import app_config
@@ -64,20 +65,32 @@ def save(workload:Container)->str:
     collection = db.tunning_collection
     return collection.insert_one(workload.serialize())
 
-def best_tuning(id)->Container:
-    pass
+from bson.son import SON
+def best_tuning(type=None)->Container:
+    db = client[app_config.MONGO_DB]
+    collection = db.tunning_collection
+
+    best_item = next(collection.find({'classification':type}).sort("metric", pymongo.DESCENDING).limit(1))
+
+    return best_item['classification'], best_item['configuration']
 
 if __name__ == "__main__":
+    print(best_tuning('3a3e442c-88d4-11ea-b07f-784f4359206d'))
     while True:
 
-        configuration = update_config()
+        # configuration = update_config()
+        configuration = {}
         start = int(time.time())
         print(f'waiting {app_config.WAITING_TIME}s for a new workload')
         time.sleep(app_config.WAITING_TIME)
 
         hits, workload = classify_workload(configuration)
 
+        # save current workload
         save(workload)
-
-        # sync
-        # cluster_id, #hits
+        # fetch best configuration
+        best_id, best_config = best_tuning(workload.classification)
+        print('>>> ', hits, best_id, best_config)
+        wh.classificationCtx.cluster_by_id(best_id)
+        if hits >= app_config.NUMBER_ITERATIONS:
+            print('do sync')

@@ -1,6 +1,6 @@
 import os
 
-MOCK = bool(os.environ.get('MOCK', False))
+MOCK = bool(os.environ.get('MOCK', True))
 MONGO_ADDR = os.environ.get('MONGO_ADDR', 'localhost')
 MONGO_PORT = int(os.environ.get('MONGO_PORT', '30027'))
 MONGO_DB = os.environ.get('MONGO_DB', 'smarttuning')
@@ -14,3 +14,4 @@ DISTANCE_METHOD = os.environ.get('DISTANCE_METHOD', 'hellinger')
 PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', 'localhost')
 PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', '30090')
 DISTANCE_METHOD = 'hellinger'
+NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', '3'))
