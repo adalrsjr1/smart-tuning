@@ -95,3 +95,8 @@ if __name__ == "__main__":
         wh.classificationCtx.cluster_by_id(best_id)
         if hits >= app_config.NUMBER_ITERATIONS:
             print('do sync')
+            pods_registered = register.list()
+            for pod in pods_registered:
+                name = pod['_id']
+                ## implements this
+                sync(name, best_config)
