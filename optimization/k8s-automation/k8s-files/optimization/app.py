@@ -3,7 +3,6 @@ import time
 import json
 
 import pymongo
-from pymongo import MongoClient
 
 import app_config
 from seqkmeans import Container
@@ -60,15 +59,14 @@ def classify_workload(configuration:dict)->(int, Container):
 
     return hits, workload
 
-client = MongoClient(app_config.MONGO_ADDR, app_config.MONGO_PORT)
 def save(workload:Container)->str:
-    db = client[app_config.MONGO_DB]
+    db = app_config.client[app_config.MONGO_DB]
     collection = db.tunning_collection
     return collection.insert_one(workload.serialize())
 
 from bson.son import SON
 def best_tuning(type=None)->Container:
-    db = client[app_config.MONGO_DB]
+    db = app_config.client[app_config.MONGO_DB]
     collection = db.tunning_collection
 
     best_item = next(collection.find({'classification':type}).sort("metric", pymongo.DESCENDING).limit(1))
@@ -78,9 +76,11 @@ def best_tuning(type=None)->Container:
 if __name__ == "__main__":
     register.start()
     while True:
+        if app_config.MOCK:
+            configuration = {}
+        else:
+            configuration = update_config()
 
-        # configuration = update_config()
-        configuration = {}
         start = int(time.time())
         print(f'waiting {app_config.WAITING_TIME}s for a new workload')
         time.sleep(app_config.WAITING_TIME)

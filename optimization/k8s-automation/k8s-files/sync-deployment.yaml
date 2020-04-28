@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sync
+  labels:
+    app: sync
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: sync
+      labels:
+        app: sync
+    spec:
+      containers:
+        - name: alpine-curl
+          image: alpine-curl
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "echo 'registering' > /usr/share/pre-start && curl -i $REGISTER_ADDR:$REGISTER_PORT/register?name=$POD_IP"]
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "echo 'unregistering' > /usr/share/pre-stop && curl -i $REGISTER_ADDR:$REGISTER_PORT/unregister?name=$POD_IP"]
+          command:
+            - sh
+            - "-c"
+            - |
+              /bin/sh <<'EOF'
+              sleep 30
+              EOF
+
+          imagePullPolicy: Never
+          env:
+            - name: REGISTER_ADDR
+              value: 'smarttuning-service.default.svc.cluster.local'
+            - name: REGISTER_PORT
+              value: '5000'
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+#            - name: NAMESPACE
+#              valueFrom:
+#                fieldRef:
+#                  fieldPath: metadata.namespace
+#          envFrom:
+#            - configMapRef:
+#                name: tuning-config
+      restartPolicy: Always
+      volumes:
+        - name: smart-tuning-config
+          configMap:
+            name: tuning-config
+  selector:
+    matchLabels:
+      app: sync

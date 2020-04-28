@@ -82,7 +82,6 @@ class Container:
         container_dict = self.__dict__
         container_dict['content'] = list(self.content)
         container_dict['classification'] = self.classification.id
-        container_dict['classification_mean']
         return container_dict
 
     def distance(self, other:Container):

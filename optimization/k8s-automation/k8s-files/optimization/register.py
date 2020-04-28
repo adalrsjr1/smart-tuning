@@ -45,28 +45,31 @@ class SimpleServer(BaseHTTPRequestHandler):
         else:
             return ''.encode('utf8'), 404
 
-client = MongoClient(app_config.MONGO_ADDR, app_config.MONGO_PORT)
 print(f'mongo: {app_config.MONGO_ADDR}:{app_config.MONGO_PORT}')
-db = client[app_config.REGISTER_DB]
+db = app_config.client[app_config.REGISTER_DB]
 collection = db.register_collection
 from bson.objectid import ObjectId
 def do_register(path:str, record:dict)->str:
     try:
-        return f'{{"registered": {True}, "id":{collection.insert_one(record).inserted_id}}}'.encode('utf8')
+        return f'"{collection.insert_one(record).inserted_id}"'.encode('utf8')
     except Exception as e:
         return f'{{"registered": {False}, "error":"{str(e)}"}}'.encode('utf8')
 
 def do_unregister(path:str, record:dict)->str:
     try:
-        return f'{{"unregistered": {True}, "response":{collection.delete_one({"_id": ObjectId(record["_id"][0])}).raw_result}}}'.encode('utf8')
+        return f'{{"unregistered": {True}, "response":{collection.delete_many({"name": record["name"][0]}).raw_result["n"]}}}'.encode('utf8')
     except Exception as e:
         return f'{{"unregistered": {False}, "error":"{str(e)}"}}'.encode('utf8')
 
-def do_health():
+def do_health(path, record):
     return f'{{"up": {True}}}'.encode('utf8')
 
 def list():
-    return [item for item in collection.find()]
+    pipeline = [
+        {"$unwind": "$name"},
+        {"$group": {"_id": "$name", "count": {"$sum": 1}}}
+    ]
+    return [item for item in collection.aggregate(pipeline)]
 
 
 httpd = None

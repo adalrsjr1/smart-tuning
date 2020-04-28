@@ -1,5 +1,5 @@
 import os
-
+from pymongo import MongoClient
 from concurrent.futures import ThreadPoolExecutor, wait as ThreadWait, ALL_COMPLETED as FUTURE_ALL_COMPLETED
 executor = ThreadPoolExecutor(3)
 
@@ -7,6 +7,9 @@ MOCK = bool(os.environ.get('MOCK', True))
 MONGO_ADDR = os.environ.get('MONGO_ADDR', '127.0.0.1')
 MONGO_PORT = int(os.environ.get('MONGO_PORT', '30027'))
 MONGO_DB = os.environ.get('MONGO_DB', 'smarttuning')
+client = MongoClient(MONGO_ADDR, MONGO_PORT)
+
+
 K = int(os.environ.get('K', '3'))
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/etc')
 SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH','')
