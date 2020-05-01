@@ -68,7 +68,7 @@ data:
   CONFIG_PATH: '/etc/smart-tuning'
   SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
   CONFIGMAP_NAME: 'tuning-config'
-  MOCK: 'True'
+  MOCK: 'False'
   NUMBER_ITERATIONS: '3'
   REGISTER_SERVER_PORT: '5000'
 ---

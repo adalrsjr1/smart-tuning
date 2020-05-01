@@ -55,15 +55,6 @@ spec:
 #            - sh
 #            - "-c"
 #            - |
-#              /bin/sh <<'EOF'
-#
-#              while :; do
-#                echo $POD_NAME:$POD_IP $POD_NAMESPACE $POD_SERVICE_ACCOUNT $TUNING $TEST
-#                echo -e "\n\n"
-#                sleep 1
-#              done
-#
-#              EOF
 #        - name: sidecar
 #          image: alpine-curl
 #          imagePullPolicy: Never

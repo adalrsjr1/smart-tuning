@@ -1,7 +1,7 @@
 import os
 from pymongo import MongoClient
 from concurrent.futures import ThreadPoolExecutor, wait as ThreadWait, ALL_COMPLETED as FUTURE_ALL_COMPLETED
-executor = ThreadPoolExecutor(3)
+executor = ThreadPoolExecutor(4)
 
 MOCK = bool(os.environ.get('MOCK', True))
 MONGO_ADDR = os.environ.get('MONGO_ADDR', '127.0.0.1')
@@ -21,6 +21,7 @@ PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', 'localhost')
 PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', '30090')
 DISTANCE_METHOD = 'hellinger'
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', '3'))
+METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', '0.2'))
 REGISTER_SERVER_PORT = int(os.environ.get('REGISTER_SERVER_PORT', '5000'))
 REGISTER_SERVER_ADDR = os.environ.get('REGISTER_SERVER_ADDR', '0.0.0.0')
-REGISTER_DB = os.environ.get('REGISTER_DB', 'smarttuning-register')
+SYNC_PORT = int(os.environ.get('SYNC_PORT', '5000'))

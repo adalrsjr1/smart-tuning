@@ -1,5 +1,6 @@
 import kubernetes as k8s
 import time
+import os
 
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +28,7 @@ class Deployment:
                       f'data:{event["object"].data}')
                 response = api_instance.patch_namespaced_deployment(self.deployment, self.namespace, body, pretty=pretty)
                 print(response)
+                return response
 
     def watch_config(self):
         api_instance = k8s.client.CoreV1Api(k8s.client.ApiClient())
@@ -46,21 +48,22 @@ class Deployment:
         if self.watch:
             self.watch.stop()
 
+deployment_name = os.environ.get('DEPLOYMENT_NAME', 'default')
+configmap_name = os.environ.get('CONFIGMAP_NAME', '')
+namespace = os.environ.get('NAMESPACE', 'default')
+
+executor = ThreadPoolExecutor()
+
 def main():
-    deployment_name = os.environ.get('DEPLOYMENT_NAME', '')
-    configmap_name = os.environ.get('CONFIGMAP_NAME', '')
-    namespace = os.environ.get('NAMESPACE', '')
-
     deployment = Deployment(namespace, configmap_name, deployment_name)
-    with ThreadPoolExecutor(2) as executor:
-        try:
-            executor.submit(deployment.watch_config)
-            executor.submit(deployment.patch)
+    try:
+        executor.submit(deployment.watch_config)
+        executor.submit(deployment.patch)
 
-        except Exception as e:
-            print(e)
-            deployment.close_watch()
-            executor.shutdown()
+    except Exception as e:
+        print(e)
+        deployment.close_watch()
+        executor.shutdown()
 
 import sys, os
 if __name__ == '__main__':
