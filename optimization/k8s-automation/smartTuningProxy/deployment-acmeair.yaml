@@ -14,7 +14,7 @@ spec:
     spec:
       initContainers:
         - name: init-networking
-          image: smarttuning-init:latest
+          image: smarttuning-init
           imagePullPolicy: Never
           securityContext:
             capabilities:
@@ -28,7 +28,7 @@ spec:
               value: "80"
       containers:
         - name: service
-          image: liberty-acmeair-k8s:latest
+          image: liberty-acmeair-k8s
           imagePullPolicy: Never
           ports:
             - containerPort: 80
@@ -108,7 +108,7 @@ spec:
             - name: EXECUTOR_REJECTED_WORK_POLICY
               value: "CALLER_RUNS"
         - name: proxy
-          image: smarttuning-proxy:latest
+          image: smarttuning-proxy
           imagePullPolicy: Never
           env:
             - name: RESOURCE_USAGE
@@ -207,7 +207,7 @@ spec:
         service: acmeair-db
     spec:
       containers:
-      - image: mongo-acmeair:latest
+      - image: mongo
         name: acmeair-db
         imagePullPolicy: Never
         ports:

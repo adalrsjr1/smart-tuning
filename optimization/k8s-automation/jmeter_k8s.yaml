@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jmeter-config
+data:
+  JLOAD_BOOKINGS: 'false'
+  LIBERTYHOST: 'acmeair.default.svc.cluster.local'
+  JTHREAD: '10'
+  JDURATION: '60'
+  JURL: 'acmeair-webapp'
+  JPORT: '8888'
+  JMIN_SESSION_DURATION: '0'
+  JMAX_SESSION_DURATION: '60'
+  JMIN_THINK: '100'
+  JMAX_THINK: '300'
+  JREPEAT: '1'
+  JRAMPUP: '0'
+  THREAD_GROUP: 'workload-runtime'
+  TEST_PLAN: 'tuning-workloads.jmx'
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jmeter
+  labels:
+    app: jmeter
+spec:
+  containers:
+    - name: jmeter
+      image: jmeter_acmeair
+v#      lifecycle:
+#        postStart:
+#          exec:
+#            command:
+#              - "sh"
+#              - "-c"
+#              - |
+#                aldkf
+#        preStop:
+#          exec:
+#            command:
+#              - "sh"
+#              - "-c"
+#              - |
+#                asd
+      imagePullPolicy: Never
+      envFrom:
+        - configMapRef:
+            name: jmeter-config
+      volumeMounts:
+        - mountPath: /etc/jmeter
+          name: jmeter-config
+        - mountPath: /output
+          name: jmeter-output
+  volumes:
+    - name: jmeter-config
+      configMap:
+        name: jmeter-config
+    - name: jmeter-output
+      hostPath:
+        path: /shared-volume
+  restartPolicy: Never
