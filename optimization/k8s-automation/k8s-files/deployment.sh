@@ -1,5 +1,5 @@
 #!/bin/bash
-
+kubectl apply -f prometheus/
 kubectl apply -f acmeair-config.yaml
 kubectl apply -f acmeair-service.yaml
 kubectl apply -f mongo-deployment.yaml

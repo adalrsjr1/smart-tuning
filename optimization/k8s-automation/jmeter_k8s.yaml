@@ -58,5 +58,5 @@ v#      lifecycle:
         name: jmeter-config
     - name: jmeter-output
       hostPath:
-        path: /shared-volume
+        path: /Users/adalbertoibm.com/Coding/Dockerized_AcmeAir/smart-tuning/optimization/k8s-automation/jmeter-output
   restartPolicy: Never

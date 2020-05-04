@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus-deployment
@@ -35,6 +35,9 @@ spec:
             name: prometheus-server-conf
         - name: prometheus-storage-volume
           emptyDir: {}
+  selector:
+    matchLabels:
+      app: prometheus-server
 ---
 apiVersion: v1
 kind: Service
