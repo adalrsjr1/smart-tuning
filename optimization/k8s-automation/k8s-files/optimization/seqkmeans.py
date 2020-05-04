@@ -25,9 +25,7 @@ def mock_sampling():
 generator = mock_sampling()
 
 def __distance__(u:Container, v:Container) -> float:
-    u = u.content
-    v = v.content
-    u, v = __resize__(u, u.content_labels, v, v.content_labels)
+    u, v = __resize__(u.content, u.content_labels, v.content, v.content_labels)
     SQRT2 = np.sqrt(2)
 
     _distance = {

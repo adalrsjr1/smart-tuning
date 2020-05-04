@@ -28,7 +28,7 @@ spec:
   containers:
     - name: jmeter
       image: jmeter_acmeair
-v#      lifecycle:
+#      lifecycle:
 #        postStart:
 #          exec:
 #            command:
