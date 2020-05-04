@@ -7,7 +7,7 @@ build:
 	docker build -t smarttuning -f optimization/Dockerfile optimization/
 
 deploy:
-	kubectl apply -f mongo-deployment.yaml -f tuning-deployment.yaml -f reload-deploymnet.yaml -f sync-deployment
+	kubectl apply -f mongo-deployment.yaml -f tuning-deployment.yaml -f reload-deploymnet.yaml -f sync-deployment.yaml
 
 delete:
-	kubectl delete -f mongo-deployment.yaml -f tuning-deployment.yaml -f reload-deploymnet.yaml -f sync-deployment
+	kubectl delete -f mongo-deployment.yaml -f tuning-deployment.yaml -f reload-deploymnet.yaml -f sync-deployment.yaml

@@ -1,31 +1,36 @@
-import os
-import time
 import json
+import os
+import sys
+import time
+import random
 
 import pymongo
-
-import app_config
-from seqkmeans import Container
-import configsampler as cs
-import workloadhandler as wh
-import register
 import requests
 
-def update_config()->dict:
-    print('loading config file')
-    envvar = {}
-    files = [f for f in os.listdir(app_config.CONFIG_PATH) if os.path.isfile(os.path.join(app_config.CONFIG_PATH, f))]
+import config
+import configsampler as cs
+import register
+import workloadhandler as wh
+from seqkmeans import Container
 
+
+def update_config()->dict:
+    envvar = {}
+    files = [f for f in os.listdir(config.CONFIG_PATH) if os.path.isfile(os.path.join(config.CONFIG_PATH, f))]
+
+    print('\n params to observe')
     for f in files:
+        print('\t', f)
         envvar[f] = os.environ.get(f, '')
 
     search_space = cs.SearchSpace({})
     config_map = cs.ConfigMap()
 
-    print('loading search space')
-    with open(app_config.SEARCHSPACE_PATH) as json_file:
+    print('\nloading search space')
+    with open(config.SEARCHSPACE_PATH) as json_file:
         data = json.load(json_file)
         for item in data:
+            print('\t', item)
             search_space.add_to_domain(
                 key=item.get('key', None),
                 lower=item.get('lower', None),
@@ -40,8 +45,7 @@ def update_config()->dict:
     print('new config >>> ', configuration)
 
     print('patching new config')
-    config_map.patch(app_config.CONFIGMAP_NAME, app_config.NAMESPACE, configuration)
-
+    patch_result = config_map.patch(config.CONFIGMAP_NAME, config.NAMESPACE, configuration)
     return configuration
 
 def classify_workload(configuration:dict)->(int, Container):
@@ -51,56 +55,59 @@ def classify_workload(configuration:dict)->(int, Container):
     """
     start = int(time.time())
     print('sampling workload')
-    workload = wh.workload_and_metric(app_config.NAMESPACE, app_config.WAITING_TIME, app_config.MOCK)
-    print('setting new configuration to the workload')
+    workload = wh.workload_and_metric(config.NAMESPACE, config.WAITING_TIME, config.MOCK)
+    print('set new configuration to the workload')
     workload.configuration = configuration
     workload.start = start
-    workload.end = start + app_config.WAITING_TIME
-    print('classifying the workload')
+    workload.end = start + config.WAITING_TIME
     workload.classification, hits = wh.classify(workload)
 
     return hits, workload
 
 def save(workload:Container)->str:
-    db = app_config.client[app_config.MONGO_DB]
+    db = config.client[config.MONGO_DB]
     collection = db.tuning_collection
     return collection.insert_one(workload.serialize())
 
-from bson.son import SON
-def best_tuning(type=None)->Container:
-    db = app_config.client[app_config.MONGO_DB]
-    collection = db.tuning_collection
 
+def best_tuning(type=None)->Container:
+    db = config.client[config.MONGO_DB]
+    collection = db.tuning_collection
+    print('finding best tuning')
     best_item = next(collection.find({'classification':type}).sort("metric", pymongo.DESCENDING).limit(1))
 
     return best_item['classification'], best_item['configuration'], best_item['metric']
 
 def suitable_config(new_id, new_config, new_metric, old_id, old_config, old_metric, hits, convergence=10, metric_threshold=0.2):
-
+    print('checking if tuning can be applied')
     if hits < convergence:
+        print('\tconfiguration does not converged yet')
         return old_config
 
     if old_metric is None or new_metric > old_metric * (1 + metric_threshold):
+        print('\trelevant improvement')
         if new_id != old_id:
+            print('\tnew config is different configuration from actual')
             return new_config
+    print('\tmaintaining current configuration')
     return old_config
 
 def sync(config, endpoints):
     for endpoint in endpoints.values():
-        requests.post(f'{endpoint}:{app_config.SYNC_PORT}/reload', data=config)
+        print(f'syncing config at {endpoint}')
+        requests.post(f'{endpoint}:{config.SYNC_PORT}/reload', data=config)
 
-if __name__ == "__main__":
+def main():
     register.start()
     last_config, last_metric, last_type = None, None, None
     while True:
-        if app_config.MOCK:
+        if config.MOCK:
             configuration = {}
         else:
             configuration = update_config()
 
-
-        print(f'waiting {app_config.WAITING_TIME}s for a new workload')
-        time.sleep(app_config.WAITING_TIME)
+        print(f'waiting {config.WAITING_TIME}s for a new workload')
+        time.sleep(config.WAITING_TIME)
 
         hits, workload = classify_workload(configuration)
 
@@ -110,11 +117,26 @@ if __name__ == "__main__":
 
         best_type, best_config, best_metric = best_tuning(workload.classification)
         config_to_apply = suitable_config(best_type, best_config, best_metric, last_type, last_config, last_metric, hits,
-                                          convergence=app_config.NUMBER_ITERATIONS, metric_threshold=app_config.METRIC_THRESHOLD)
+                                          convergence=config.NUMBER_ITERATIONS, metric_threshold=config.METRIC_THRESHOLD)
+        last_type = best_type
+        last_config = config_to_apply
+        last_metric = best_metric
 
-        print('>>> ', hits, best_type, best_config)
-        sync(config_to_apply)
-
-        if hits >= app_config.NUMBER_ITERATIONS:
+        print(f'>>> hits:{hits}, best_type:{best_type}, best_config:{config_to_apply}')
+        if config_to_apply:
             print('do sync')
             sync(best_config, register.list())
+
+
+#
+if __name__ == '__main__':
+    main()
+    # try:
+    #     main()
+    # except Exception as e:
+    #     print('Interrupted: ', e)
+    #     config.shutdown()
+    #     try:
+    #         sys.exit(0)
+    #     except SystemExit:
+    #         os._exit(0)

@@ -111,17 +111,27 @@ class SearchSpace:
 
         return sample, len(self.history[label])
 
+    def cast_value(self, key, value):
+        # 0: lower bound
+        # 1: upper bound
+        # 2: options
+        # 3: type
+        type = self.convert_type_from_str(self.domain[key][3])
+        if type == int:
+            return int(value)
+        elif type == float:
+            return float(value)
+        elif type == bool:
+            return bool(value)
+        else:
+            return str(value)
+
     def sample_values_to_str(self, sample):
         str_sample = {}
 
         for key, value in sample.items():
-            if isinstance(value, int):
-                str_sample[key] = str(value)
-            elif isinstance(value, float):
-                str_sample[key] = str(value)
-            elif isinstance(value, bool):
-                str_sample[key] = str(value).upper()
-            else:
-                str_sample[key] = value
+            value = self.cast_value(key, value)
+            str_sample[key] = str(value)
+
 
         return str_sample

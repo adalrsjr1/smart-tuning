@@ -5,7 +5,7 @@ import sys
 import uuid
 import os
 
-import app_config
+import config
 # implementation note
 # https://www.cs.princeton.edu/courses/archive/fall08/cos436/Duda/C/sk_means.htm
 #
@@ -20,7 +20,6 @@ def mock_sampling():
             _max = max(v)
             v = np.array(v)
             v = (v - _min) / (_max - _min)
-            # content = { key:value for key, value in enumerate(v)}
             yield Container(line[0], list(range(len(v))), np.array(v), 0)
         yield None
 generator = mock_sampling()
@@ -37,7 +36,7 @@ def __distance__(u:Container, v:Container) -> float:
         'euclidean': lambda a, b: np.linalg.norm(a-b)
     }
 
-    return _distance[app_config.DISTANCE_METHOD.lower()](u, v)
+    return _distance[config.DISTANCE_METHOD.lower()](u, v) or 0
 
     # hellinger
     # return np.sqrt(np.sum((np.sqrt(u) - np.sqrt(v)) ** 2)) / np.sqrt(2)
@@ -49,8 +48,8 @@ def __distance__(u:Container, v:Container) -> float:
 def __resize__(u:np.array, v:np.array) -> (np.array, np.array):
     max_lenght = max(len(u), len(v))
 
-    np.append(u, [0] * (max_lenght - len(u)))
-    np.append(v, [0] * (max_lenght - len(v)))
+    u = np.append(u, [0] * (max_lenght - len(u)))
+    v = np.append(v, [0] * (max_lenght - len(v)))
 
     return u, v
 
@@ -69,14 +68,17 @@ class Container:
         return f'label:{self.label}, classification:{self.classification.id}, config:{self.configuration}'
 
     def __add__(self, other):
-        return Container('', [], self.content + other.content, 0)
+        u, v = __resize__(self.content, other.content)
+        return Container('', [], u + v, 0)
 
     def __sub__(self, other):
-        return Container('', [], self.content - other.content, 0)
+        u, v = __resize__(self.content, other.content)
+        return Container('', [], u - v, 0)
 
     def __mul__(self, other):
         if isinstance(other, float) or isinstance(other, int):
-            return Container(self.label, self.content_labels, self.content * other, self.metric * other)
+            u, v = __resize__(self.content, other.content)
+            return Container(self.label, self.content_labels, u * v, self.metric * other)
 
     def serialize(self):
         container_dict = self.__dict__
@@ -146,8 +148,8 @@ class KmeansContext:
         if len(self.clusters) < self.k:
             self.clusters.append(self.cluster_type(sample))
 
-        self.closest_cluster = None
-        self.most_common_cluster = None
+        self.closest_cluster = self.clusters[0]
+        self.most_common_cluster = self.clusters[0]
         self.most_common = 0
         self.min_distance = float('inf')
 
@@ -183,14 +185,3 @@ def main(k=26):
         for cluster in ctx.clusters:
             if cluster.most_common()[0][0] == label:
                 print(cluster)
-
-
-if __name__ == '__main__':
-    try:
-        main(26)
-    except KeyboardInterrupt:
-        print('Interrupted')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)

@@ -1,9 +1,10 @@
-import seqkmeans
 import numpy as np
 
+import config
+import seqkmeans
 import timeinterval
-import app_config
 from util import PrometheusAccessLayer
+
 
 def mock_sampling():
     with open('letter-recognition.data') as f:
@@ -26,12 +27,16 @@ def throughput(namespace, interval, mock=False) -> float:
     :param interval: query for throughput in the past interval (uses module 'timeinterval')
     :return: throughput (req/s)
     """
+    print('sampling throughput')
     if mock:
         return np.random.randint(10, 101)
 
-    prometheus = PrometheusAccessLayer(app_config.PROMETHEUS_ADDR, app_config.PROMETHEUS_PORT)
+    prometheus = PrometheusAccessLayer(config.PROMETHEUS_ADDR, config.PROMETHEUS_PORT)
     result = prometheus.query(f'sum(rate(remap_http_requests_total{{namespace="{namespace}"}}[{timeinterval.second(interval)}s]))')
-    return float(result.value()[0][1])
+    print('\tthroughput: ', result)
+    if result.value():
+        return float(result.value()[0][1])
+    return float('NaN')
 
 def workload(namespace, interval, mock=False) -> seqkmeans.Container:
     """
@@ -49,25 +54,27 @@ def workload(namespace, interval, mock=False) -> seqkmeans.Container:
     are grouped into /my/url/using/path-parameter/uid153@email.com
 
     """
+    print('sampling urls')
     if mock:
         return next(generator)
 
-    prometheus = PrometheusAccessLayer(app_config.PROMETHEUS_ADDR, app_config.PROMETHEUS_PORT)
+    prometheus = PrometheusAccessLayer(config.PROMETHEUS_ADDR, config.PROMETHEUS_PORT)
     result = prometheus.query(f'sum by (path)(rate(remap_http_requests_total{{namespace="{namespace}"}}[{timeinterval.second(interval)}s])) / ignoring '
                               f'(path) group_left sum(rate(remap_http_requests_total{{namespace="{namespace}"}}[{timeinterval.second(interval)}s]))')
 
     urls = [u['path'] for u in result.metric()]
     values = [float(u[1]) for u in result.value()]
 
-    urls, values = zip(*sorted(zip(urls, values)))
+    if urls and values:
+        urls, values = zip(*sorted(zip(urls, values)))
 
     group = __compare__(urls, 0.98)
 
     match = {}
     for key, items in group.items():
         match.update({urls[key] : sum([values[k] for k in items])})
-
-    return seqkmeans.Container(label=str(timeinterval.now()), content_labels=list(match.keys()), content=list(match.values()), metric=0)
+    print('\turls: ', match)
+    return seqkmeans.Container(label=str(timeinterval.now()), content_labels=list(match.keys()), content=np.array(list(match.values())), metric=0)
 
 def __distance__(u, v):
     len_u = len(u)
@@ -112,10 +119,11 @@ def __group__(u, v, table, memory):
 
 
 def workload_and_metric(namespace, interval, mock=False) -> seqkmeans.Container:
-    with app_config.ThreadPoolExecutor(2) as executor:
-        future_workload = executor.submit(workload, app_config.NAMESPACE, app_config.WAITING_TIME, mock)
-        future_throughput = executor.submit(throughput, app_config.NAMESPACE, app_config.WAITING_TIME, mock)
-        done = app_config.ThreadWait([future_workload, future_throughput], timeout=None, return_when=app_config.FUTURE_ALL_COMPLETED)
+    print('merging urls and throughput')
+    with config.ThreadPoolExecutor(2) as executor:
+        future_workload = executor.submit(workload, config.NAMESPACE, config.WAITING_TIME, mock)
+        future_throughput = executor.submit(throughput, config.NAMESPACE, config.WAITING_TIME, mock)
+        done = config.ThreadWait([future_workload, future_throughput], timeout=None, return_when=config.FUTURE_ALL_COMPLETED)
 
         future_throughput = done[0].pop().result()
         future_workload = done[0].pop().result()
@@ -127,6 +135,9 @@ def workload_and_metric(namespace, interval, mock=False) -> seqkmeans.Container:
 
     return _workload
 
-classificationCtx = seqkmeans.KmeansContext(app_config.K)
-def classify(workload) -> seqkmeans.Cluster:
-    return classificationCtx.cluster(workload)
+classificationCtx = seqkmeans.KmeansContext(config.K)
+def classify(workload:seqkmeans.Container) -> seqkmeans.Cluster:
+    print('classifying workload ', workload.label)
+    type, hits = classificationCtx.cluster(workload)
+    print(f'workload {workload.label} classified as {type.id} -- {hits}th hit')
+    return type, hits

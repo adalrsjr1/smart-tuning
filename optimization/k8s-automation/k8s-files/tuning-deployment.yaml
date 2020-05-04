@@ -1,73 +1,18 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tuning-config
-data:
-  TUNING: "TRUE"
-  TEST: "TESTING"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tuning-search-space
-data:
-  search-space.json: |
-    [
-      {
-          "key": "TUNING",
-          "type": "int",
-          "lower": 4,
-          "upper": 20,
-          "options": null
-      },
-      {
-          "key": "TEST",
-          "type": "bool",
-          "lower": null,
-          "upper": null,
-          "options": null
-      }
-    ]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: tuning
-rules:
-  - apiGroups: ["*"]
-    resources:
-      - configmaps
-      - deployments
-    verbs: ["get","list","watch","create","update","patch","delete"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: tuning
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: tuning
-subjects:
-  - kind: ServiceAccount
-    name: default
-    namespace: default
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: smarttuning-config
 data:
   MONGO_ADDR: 'mongo-workload-service.default.svc.cluster.local'
   MONGO_PORT: '27017'
   MONGO_DB: 'smarttuning'
-  PROMETHEUS_ADDR: 'localhost'
+  PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
   NAMESPACE: 'default'
-  WAITING_TIME: '2'
+  WAITING_TIME: '120'
   CONFIG_PATH: '/etc/smart-tuning'
   SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
-  CONFIGMAP_NAME: 'tuning-config'
+  CONFIGMAP_NAME: 'acmeair-config'
   MOCK: 'False'
   NUMBER_ITERATIONS: '3'
   REGISTER_SERVER_PORT: '5000'
@@ -95,7 +40,7 @@ spec:
             - containerPort: 5000
           envFrom:
             - configMapRef:
-                name: tuning-config
+                name: acmeair-config
             - configMapRef:
                 name: smarttuning-config
           volumeMounts:
@@ -104,12 +49,10 @@ spec:
             - mountPath: /etc/tuning-search-space/search-space.json
               name: tuning-search-space
               subPath: search-space.json
-      terminationGracePeriodSeconds: 1
-      restartPolicy: Always
       volumes:
         - name: smart-tuning-config
           configMap:
-            name: tuning-config
+            name: acmeair-config
         - name: tuning-search-space
           configMap:
             name: tuning-search-space
@@ -131,3 +74,4 @@ spec:
       protocol: TCP
       name: register
   type: NodePort
+

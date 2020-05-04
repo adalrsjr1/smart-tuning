@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: acmeair-sync
+  labels:
+    app: "acmeair"
+    tuning: "false"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: acmeair
+      labels:
+        app: "acmeair"
+        tuning: "false"
+    spec:
+      initContainers:
+        - name: init-networking
+          image: smarttuning-init:latest
+          imagePullPolicy: Never
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+            privileged: true
+          env:
+            - name: PROXY_PORT
+              value: "8888"
+            - name: SERVICE_PORT
+              value: "80"
+      containers:
+        - name: sync
+          image: sync
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh", "-c", "echo 'registering' > /usr/share/pre-start && curl -i \"$REGISTER_ADDR:$REGISTER_PORT/register?name=$POD_NAME&ip=$POD_IP\""]
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "echo 'unregistering' > /usr/share/pre-stop && curl -i \"$REGISTER_ADDR:$REGISTER_PORT/unregister?name=$POD_NAME&ip=$POD_IP\""]
+          ports:
+            - containerPort: 5000
+              name: sync
+          imagePullPolicy: Never
+          env:
+            - name: REGISTER_ADDR
+              value: 'smarttuning-service.default.svc.cluster.local'
+            - name: REGISTER_PORT
+              value: '5000'
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CONFIGMAP_NAME
+              value: 'acmeair-config-prod'
+            - name: DEPLOYMENT_NAME
+              value: 'acmeair-sync'
+        - name: service
+          image: liberty-acmeair-k8s:latest
+          resources:
+            requests:
+              memory: "1Gi"
+            limits:
+              memory: "1Gi"
+          imagePullPolicy: Never
+          readinessProbe:
+            httpGet:
+              port: 80
+              path: /acmeair-webapp/
+            initialDelaySeconds: 30
+            failureThreshold: 3
+            periodSeconds: 10
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: acmeair-config
+          volumeMounts:
+            - mountPath: /etc/acmeair-config
+              name: acmeair-config
+            - mountPath: /config/jvm.options
+              subPath: jvm.options
+              name: jvm-config
+        - name: proxy
+          image: smarttuning-proxy:latest
+          imagePullPolicy: Never
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          env:
+            - name: RESOURCE_USAGE
+              value: "FALSE"
+            - name: PROXY_PORT
+              value: "8888"
+            - name: SERVICE_PORT
+              value: "80"
+            - name: METRICS_PORT
+              value: "9090"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+          ports:
+            - containerPort: 8888
+            - containerPort: 9090
+      volumes:
+        - name: acmeair-config
+          configMap:
+            name: acmeair-config-prod
+        - name: jvm-config
+          configMap:
+            name: jvm-config
+  selector:
+    matchLabels:
+      app: "acmeair"
+      tuning: "false"

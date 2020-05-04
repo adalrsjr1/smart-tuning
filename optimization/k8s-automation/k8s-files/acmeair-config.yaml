@@ -1,0 +1,150 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jvm-config
+data:
+  jvm.options: |-
+    -Xtune:virtualized
+    -XX:+UseContainerSupport
+    -XX:MaxRAMPercentage=90
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: acmeair-config
+data:
+  MONGO_HOST: acmeair-db.default.svc.cluster.local
+  MONGO_PORT: "27017"
+  MONGO_DBNAME: acmeair
+  OVERHEAD_ACTIVATE: "false"
+  OVERHEAD_CHANCE: "0.3"
+  CPU_LOAD: "0.1"
+  MEMORY_LOAD: "131072"
+  SERVER_PORT: "80"
+  USE_FLIGHT_DATA_RELATED_CACHING: "false"
+  LOG_DIR: "/logs"
+  WLP_LOGGING_CONSOLE_FORMAT: "basic"
+  WLP_LOGGING_CONSOLE_LOGLEVEL: "info"
+  # default max connectionPoolSize MONGO_MAX_CONNECTIONS=100
+  MONGO_MAX_CONNECTIONS: "100"
+  # default 10
+  MONGO_MIN_CONNECTIONS: "10"
+  # default 10
+  MONGO_CONNECTION_TIMEOUT: "10"
+  # Openliberty specific
+  # default 100
+  HTTP_MAX_KEEP_ALIVE_REQUESTS: "100"
+  # default 30
+  HTTP_PERSIST_TIMEOUT: "30"
+  # default 60
+  HTTP_READ_TIMEOUT: "60"
+  # default 60
+  HTTP_WRITE_TIMEOUT: "60"
+  # default -1
+  EXECUTOR_CORE_THREADS: "4"
+  # default -1
+  EXECUTOR_MAX_THREADS: "4"
+  # default 60
+  EXECUTOR_KEEP_ALIVE: "60"
+  # default LOCAL, other STRIC NEVER
+  EXECUTOR_STEEL_POLICY: "LOCAL"
+  # default ABORT, other CALLER_RUNS
+  EXECUTOR_REJECTED_WORK_POLICY: "CALLER_RUNS"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: acmeair-config-prod
+data:
+  MONGO_HOST: acmeair-db.default.svc.cluster.local
+  MONGO_PORT: "27017"
+  MONGO_DBNAME: acmeair
+  OVERHEAD_ACTIVATE: "false"
+  OVERHEAD_CHANCE: "0.3"
+  CPU_LOAD: "0.1"
+  MEMORY_LOAD: "131072"
+  SERVER_PORT: "80"
+  USE_FLIGHT_DATA_RELATED_CACHING: "false"
+  LOG_DIR: "/logs"
+  WLP_LOGGING_CONSOLE_FORMAT: "basic"
+  WLP_LOGGING_CONSOLE_LOGLEVEL: "info"
+  # default max connectionPoolSize MONGO_MAX_CONNECTIONS=100
+  MONGO_MAX_CONNECTIONS: "100"
+  # default 10
+  MONGO_MIN_CONNECTIONS: "10"
+  # default 10
+  MONGO_CONNECTION_TIMEOUT: "10"
+  # Openliberty specific
+  # default 100
+  HTTP_MAX_KEEP_ALIVE_REQUESTS: "100"
+  # default 30
+  HTTP_PERSIST_TIMEOUT: "30"
+  # default 60
+  HTTP_READ_TIMEOUT: "60"
+  # default 60
+  HTTP_WRITE_TIMEOUT: "60"
+  # default -1
+  EXECUTOR_CORE_THREADS: "4"
+  # default -1
+  EXECUTOR_MAX_THREADS: "4"
+  # default 60
+  EXECUTOR_KEEP_ALIVE: "60"
+  # default LOCAL, other STRIC NEVER
+  EXECUTOR_STEEL_POLICY: "LOCAL"
+  # default ABORT, other CALLER_RUNS
+  EXECUTOR_REJECTED_WORK_POLICY: "CALLER_RUNS"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tuning-search-space
+data:
+  search-space.json: |
+    [
+      {
+          "key": "EXECUTOR_MAX_THREADS",
+          "type": "int",
+          "lower": 4,
+          "upper": 100,
+          "options": null
+      },
+      {
+          "key": "HTTP_MAX_KEEP_ALIVE_REQUESTS",
+          "type": "int",
+          "lower": 4,
+          "upper": 100,
+          "options": null
+      },
+      {
+          "key": "HTTP_PERSIST_TIMEOUT",
+          "type": "int",
+          "lower": 1,
+          "upper": 60,
+          "options": null
+      }
+    ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tuning
+rules:
+  - apiGroups: ["*"]
+    resources:
+      - configmaps
+      - deployments
+    verbs: ["get","list","watch","create","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tuning
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tuning
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+---
