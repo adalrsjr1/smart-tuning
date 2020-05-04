@@ -1,0 +1,219 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: acmeair
+spec:
+  selector:
+    matchLabels:
+      app: acmeair
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: acmeair
+    spec:
+      initContainers:
+        - name: init-networking
+          image: smarttuning-init:latest
+          imagePullPolicy: Never
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+            privileged: true
+          env:
+            - name: PROXY_PORT
+              value: "8888"
+            - name: SERVICE_PORT
+              value: "80"
+      containers:
+        - name: service
+          image: liberty-acmeair-k8s:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: "http"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          env:
+          # Mongo specific
+            - name: MONGO_HOST
+              value: acmeair-db.default.svc.cluster.local
+            - name: MONGO_PORT
+              value: "27017"
+            - name: MONGO_DBNAME
+              value: acmeair
+            # default max cnnectionPoolSize MONGO_MAX_CONNECTIONS=100
+            - name: MONGO_MAX_CONNECTIONS
+              value: "100"
+            # default 10
+            - name: MONGO_MIN_CONNECTIONS
+              value: "10"
+            # default 10
+            - name: MONGO_CONNECTION_TIMEOUT
+              value: "10"
+            # Application specific
+            - name: OVERHEAD_ACTIVATE
+              value: "false"
+            - name: OVERHEAD_CHANCE
+              value: "0.3"
+            - name: CPU_LOAD
+              value: "0.1"
+            - name: MEMORY_LOAD
+              value: "131072"
+            - name: SERVER_PORT
+              value: "80"
+            - name: USE_FLIGHT_DATA_RELATED_CACHING
+              value: "false"
+            - name: LOG_DIR
+              value: "/logs"
+            - name: WLP_LOGGING_CONSOLE_FORMAT
+              value: "basic"
+            - name: WLP_LOGGING_CONSOLE_LOGLEVEL
+              value: "info"
+            # JVM specific
+            #JVM_ARGS=""-Xms256M -Xmx256M""
+            #JVM_ARGS=""-Xtune:virtualized -XX:+UseContainerSupport -XX:MaxRAMPercentage=90 -Xgcpolicy:nogc""
+            #- name: JVM_ARGS
+            #  value: ""-Xtune:virtualized -XX:+UseContainerSupport -XX:MaxRAMPercentage=90""
+            # Openliberty specific
+            # default 100
+            - name: HTTP_MAX_KEEP_ALIVE_REQUESTS
+              value: "100"
+            # default 30
+            - name: HTTP_PERSIST_TIMEOUT
+              value: "30"
+            # default 60
+            - name: HTTP_READ_TIMEOUT
+              value: "60"
+            # default 60
+            - name: HTTP_WRITE_TIMEOUT
+              value: "60"
+            # default -1
+            - name: EXECUTOR_CORE_THREADS
+              value: "4"
+            # default -1
+            - name: EXECUTOR_MAX_THREADS
+              value: "4"
+            # default 60
+            - name: EXECUTOR_KEEP_ALIVE
+              value: "60"
+            # default LOCAL, other STRIC NEVER
+            - name: EXECUTOR_STEEL_POLICY
+              value: "LOCAL"
+            # default ABORT, other CALLER_RUNS
+            - name: EXECUTOR_REJECTED_WORK_POLICY
+              value: "CALLER_RUNS"
+        - name: proxy
+          image: smarttuning-proxy:latest
+          imagePullPolicy: Never
+          env:
+            - name: RESOURCE_USAGE
+              value: "FALSE"
+            - name: PROXY_PORT
+              value: "8888"
+            - name: SERVICE_PORT
+              value: "80"
+            - name: METRICS_PORT
+              value: "9090"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+          ports:
+            - containerPort: 8888
+            - containerPort: 9090
+
+---
+# make it reacheable by prometheus
+apiVersion: v1
+kind: Service
+metadata:
+  name: acmeair
+  labels:
+    app: acmeair
+spec:
+  type: NodePort
+  ports:
+    - nodePort: 30099
+      port: 9090
+      targetPort: 9090
+      name: remap
+      protocol: TCP
+    - port: 9093
+      targetPort: 493
+      name: https
+      protocol: TCP
+    - nodePort: 30080
+      port: 8888
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: acmeair
+  # export KUBE_TOKEN=$(</var/run/secrets/kubernetes.io/serviceaccount/token)
+  # curl -sSk -H "Authorization: Bearer $(</var/run/secrets/kubernetes.io/serviceaccount/token)" https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/apis/metrics.k8s.io/v1beta1/namespaces/default/pods/
+---
+#### Acmeair Database  #####
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    service: acmeair-db
+  name: acmeair-db
+spec:
+  ports:
+  - name: "27017"
+    port: 27017
+    protocol: TCP
+    targetPort: 27017
+  selector:
+    service: acmeair-db
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: acmeair-db
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        service: acmeair-db
+    spec:
+      containers:
+      - image: mongo-acmeair:latest
+        name: acmeair-db
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 27017
+          protocol: TCP
+        resources: {}
+      restartPolicy: Always
+status: {}
+
