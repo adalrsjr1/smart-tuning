@@ -87,8 +87,8 @@ def __distance__(u, v):
     # euclidean distance
     # return np.linalg.norm(u-v)
 
+from collections import defaultdict
 def __compare__(histograms, threshould=0):
-    from collections import defaultdict
     workflows_group = defaultdict(set)
     memory = set()
     for i, hist1 in enumerate(histograms):

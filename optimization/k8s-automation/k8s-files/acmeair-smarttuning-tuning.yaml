@@ -16,7 +16,7 @@ spec:
     spec:
       initContainers:
         - name: init-networking
-          image: smarttuning-init:latest
+          image: smarttuning-init
           imagePullPolicy: Never
           securityContext:
             capabilities:
@@ -45,7 +45,7 @@ spec:
             - configMapRef:
                 name: acmeair-config
         - name: proxy
-          image: smarttuning-proxy:latest
+          image: smarttuning-proxy
           imagePullPolicy: Never
           resources:
             requests:

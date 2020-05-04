@@ -10,7 +10,7 @@ def print_config():
             print(item)
 
 print('\n *** loading config ***\n')
-MOCK = eval(os.environ.get('MOCK', default=True))
+MOCK = eval(os.environ.get('MOCK', default='True'))
 MONGO_ADDR = os.environ.get('MONGO_ADDR', default='127.0.0.1')
 MONGO_PORT = int(os.environ.get('MONGO_PORT', default='30027'))
 MONGO_DB = os.environ.get('MONGO_DB', default='smarttuning')

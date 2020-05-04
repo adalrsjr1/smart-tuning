@@ -27,7 +27,7 @@ generator = mock_sampling()
 def __distance__(u:Container, v:Container) -> float:
     u = u.content
     v = v.content
-    u, v = __resize__(u, v)
+    u, v = __resize__(u, u.content_labels, v, v.content_labels)
     SQRT2 = np.sqrt(2)
 
     _distance = {
@@ -45,13 +45,30 @@ def __distance__(u:Container, v:Container) -> float:
     # euclidean distance
     # return np.linalg.norm(u-v)
 
-def __resize__(u:np.array, v:np.array) -> (np.array, np.array):
-    max_lenght = max(len(u), len(v))
+def __resize__(u:np.array, ulabels, v:np.array, vlabels) -> (np.array, np.array):
+    union = sorted(set(ulabels) | set(vlabels))
+    _u, _v = [], []
 
-    u = np.append(u, [0] * (max_lenght - len(u)))
-    v = np.append(v, [0] * (max_lenght - len(v)))
+    for item in union:
+        if item in ulabels:
+            index = ulabels.index(item)
+            _u.append(u[index])
+        else:
+            _u.append(0)
 
-    return u, v
+        if item in vlabels:
+            index = vlabels.index(item)
+            _v.append(v[index])
+        else:
+            _v.append(0)
+    u, v = _u, _v
+    # assert len(u) == len(v), f'{len(u)} != {len(v)}'
+    # max_lenght = max(len(u), len(v))
+    #
+    # u = np.append(u, [0] * (max_lenght - len(u)))
+    # v = np.append(v, [0] * (max_lenght - len(v)))
+
+    return np.array(u), np.array(v)
 
 class Container:
     def __init__(self, label, content_labels, content, metric=0):
@@ -77,8 +94,7 @@ class Container:
 
     def __mul__(self, other):
         if isinstance(other, float) or isinstance(other, int):
-            u, v = __resize__(self.content, other.content)
-            return Container(self.label, self.content_labels, u * v, self.metric * other)
+            return Container(self.label, self.content_labels, self.content * other.content, self.metric * other)
 
     def serialize(self):
         container_dict = self.__dict__
