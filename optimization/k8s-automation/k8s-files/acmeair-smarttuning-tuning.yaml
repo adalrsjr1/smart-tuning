@@ -87,7 +87,7 @@ spec:
             - containerPort: 8888
             - containerPort: 9090
         - name: service
-          image: liberty-acmeair-k8s:latest
+          image: liberty-acmeair-k8s
           resources:
             requests:
               memory: "1Gi"

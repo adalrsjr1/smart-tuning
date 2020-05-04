@@ -16,7 +16,7 @@ spec:
     spec:
       initContainers:
         - name: init-networking
-          image: smarttuning-init:latest
+          image: smarttuning-init
           imagePullPolicy: Never
           securityContext:
             capabilities:
@@ -64,7 +64,7 @@ spec:
             - name: DEPLOYMENT_NAME
               value: 'acmeair-sync'
         - name: service
-          image: liberty-acmeair-k8s:latest
+          image: liberty-acmeair-k8s
           resources:
             requests:
               memory: "1Gi"
@@ -90,7 +90,7 @@ spec:
               subPath: jvm.options
               name: jvm-config
         - name: proxy
-          image: smarttuning-proxy:latest
+          image: smarttuning-proxy
           imagePullPolicy: Never
           resources:
             requests:
