@@ -56,7 +56,6 @@ def classify_workload(configuration:dict)->(int, Container):
     start = int(time.time())
     print('sampling workload')
     workload = wh.workload_and_metric(config.POD_REGEX, config.WAITING_TIME, config.MOCK)
-    wh.throughput()
     print('set new configuration to the workload')
     workload.configuration = configuration
     workload.start = start
