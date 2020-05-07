@@ -67,9 +67,11 @@ spec:
           image: liberty-acmeair-k8s
           resources:
             requests:
-              memory: "1Gi"
+              cpu: "1"
+              memory: "256Mi"
             limits:
-              memory: "1Gi"
+              cpu: "1"
+              memory: "256Mi"
           imagePullPolicy: Never
           readinessProbe:
             httpGet:
@@ -92,13 +94,6 @@ spec:
         - name: proxy
           image: smarttuning-proxy
           imagePullPolicy: Never
-          resources:
-            requests:
-              cpu: "1"
-              memory: "1Gi"
-            limits:
-              cpu: "1"
-              memory: "1Gi"
           env:
             - name: RESOURCE_USAGE
               value: "FALSE"

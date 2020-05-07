@@ -55,7 +55,8 @@ def classify_workload(configuration:dict)->(int, Container):
     """
     start = int(time.time())
     print('sampling workload')
-    workload = wh.workload_and_metric(config.NAMESPACE, config.WAITING_TIME, config.MOCK)
+    workload = wh.workload_and_metric(config.POD_REGEX, config.WAITING_TIME, config.MOCK)
+    wh.throughput()
     print('set new configuration to the workload')
     workload.configuration = configuration
     workload.start = start
@@ -92,14 +93,14 @@ def suitable_config(new_id, new_config, new_metric, old_id, old_config, old_metr
     print('\tmaintaining current configuration')
     return old_config
 
-def sync(config, endpoints):
+def sync(tuning_config, endpoints):
     for endpoint in endpoints.values():
         print(f'syncing config at {endpoint}')
-        requests.post(f'{endpoint}:{config.SYNC_PORT}/reload', data=config)
+        requests.post(f'http://{endpoint}:{config.SYNC_PORT}/reload', data=tuning_config)
 
 def main():
     register.start()
-    last_config, last_metric, last_type = None, None, None
+    last_config, last_type = None, None
     while True:
         if config.MOCK:
             configuration = {}
@@ -110,7 +111,8 @@ def main():
         time.sleep(config.WAITING_TIME)
 
         hits, workload = classify_workload(configuration)
-
+        last_metric = workload.metric
+        workload.hits = hits
         # save current workload
         save(workload)
         # fetch best configuration
@@ -118,17 +120,18 @@ def main():
         best_type, best_config, best_metric = best_tuning(workload.classification)
         config_to_apply = suitable_config(best_type, best_config, best_metric, last_type, last_config, last_metric, hits,
                                           convergence=config.NUMBER_ITERATIONS, metric_threshold=config.METRIC_THRESHOLD)
-        last_type = best_type
-        last_config = config_to_apply
-        last_metric = best_metric
+
 
         print(f'>>> hits:{hits}, best_type:{best_type}, best_config:{config_to_apply}')
-        if config_to_apply:
+        if config_to_apply != last_config:
             print('do sync')
-            sync(best_config, register.list())
+            sync(config_to_apply, register.list())
+            last_config = config_to_apply
+            last_type = best_type
 
+        else:
+            print('do nothing: last config is the best config')
 
-#
 if __name__ == '__main__':
     main()
     # try:

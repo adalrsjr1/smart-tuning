@@ -20,10 +20,10 @@ def mock_sampling():
             yield seqkmeans.Container(label=line[0], content_labels=[*range(len(v))], content=v, metric=0)
 generator = mock_sampling()
 
-def throughput(namespace, interval, mock=False) -> float:
+def throughput(pod_regex, interval, mock=False) -> float:
     """
     query throughput of the applicatoion in a given interval
-    :param namespace: application namespace
+    :param pod_regex: application namespace
     :param interval: query for throughput in the past interval (uses module 'timeinterval')
     :return: throughput (req/s)
     """
@@ -32,16 +32,16 @@ def throughput(namespace, interval, mock=False) -> float:
         return np.random.randint(10, 101)
 
     prometheus = PrometheusAccessLayer(config.PROMETHEUS_ADDR, config.PROMETHEUS_PORT)
-    result = prometheus.query(f'sum(rate(remap_http_requests_total{{namespace="{namespace}"}}[{timeinterval.second(interval)}s]))')
+    result = prometheus.query(f'sum(rate(remap_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))')
     print('\tthroughput: ', result)
     if result.value():
         return float(result.value()[0][1])
     return float('NaN')
 
-def workload(namespace, interval, mock=False) -> seqkmeans.Container:
+def workload(pod_regex, interval, mock=False) -> seqkmeans.Container:
     """
     query urls requests distribution in a given interval
-    :param namespace: application namespace
+    :param pod_regex: application namespace
     :param interval: query for throughput in the past interval (uses module 'timeinterval')
     :return: Workload object. Note that urls are grouped in case of using <Path Parameters>, e.g.,
 
@@ -59,15 +59,17 @@ def workload(namespace, interval, mock=False) -> seqkmeans.Container:
         return next(generator)
 
     prometheus = PrometheusAccessLayer(config.PROMETHEUS_ADDR, config.PROMETHEUS_PORT)
-    result = prometheus.query(f'sum by (path)(rate(remap_http_requests_total{{namespace="{namespace}"}}[{timeinterval.second(interval)}s])) / ignoring '
-                              f'(path) group_left sum(rate(remap_http_requests_total{{namespace="{namespace}"}}[{timeinterval.second(interval)}s]))')
+    result = prometheus.query(f'sum by (path)(rate(remap_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s])) / ignoring '
+                              f'(path) group_left sum(rate(remap_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))')
 
     urls = [u['path'] for u in result.metric()]
     values = [float(u[1]) for u in result.value()]
 
+    # sort histogram by urls
     if urls and values:
         urls, values = zip(*sorted(zip(urls, values)))
 
+    # group urls by similarity, e.g., api/v1/id3 and api/v1/id57 should be grouped
     group = __compare__(urls, 0.98)
 
     match = {}
@@ -118,11 +120,11 @@ def __group__(u, v, table, memory):
     memory.add(v)
 
 
-def workload_and_metric(namespace, interval, mock=False) -> seqkmeans.Container:
+def workload_and_metric(pod_regex, interval, mock=False) -> seqkmeans.Container:
     print('merging urls and throughput')
     with config.ThreadPoolExecutor(2) as executor:
-        future_workload = executor.submit(workload, config.NAMESPACE, config.WAITING_TIME, mock)
-        future_throughput = executor.submit(throughput, config.NAMESPACE, config.WAITING_TIME, mock)
+        future_workload = executor.submit(workload, config.POD_REGEX, config.WAITING_TIME, mock)
+        future_throughput = executor.submit(throughput, config.POD_REGEX, config.WAITING_TIME, mock)
         done = config.ThreadWait([future_workload, future_throughput], timeout=None, return_when=config.FUTURE_ALL_COMPLETED)
 
         future_throughput = done[0].pop().result()

@@ -106,7 +106,6 @@ class SearchSpace:
             self.history[label] = set()
 
         sample = hyperopt.pyll.stochastic.sample(self.search_space())
-
         self.history[label].add(json.dumps(sample))
 
         return sample, len(self.history[label])

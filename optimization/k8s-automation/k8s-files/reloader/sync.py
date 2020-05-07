@@ -18,7 +18,7 @@ class SimpleServer(BaseHTTPRequestHandler):
         path, query = self._parse_url(self.path)
         result, response_code = self.routers(path, query)
         self._set_headers(response_code)
-        self.wfile.write(result)
+        self.wfile.write(str(result).encode('utf-8'))
 
     def do_HEAD(self):
         path, query = self._parse_url(self.path)
@@ -31,7 +31,7 @@ class SimpleServer(BaseHTTPRequestHandler):
         path, query = self._parse_url(self.path)
         result, response_code = self.routers(path, post_data)
         self._set_headers(response_code)
-        self.wfile.write(result)
+        self.wfile.write(str(result).encode('utf-8'))
 
     def routers(self, path, query):
         table = {

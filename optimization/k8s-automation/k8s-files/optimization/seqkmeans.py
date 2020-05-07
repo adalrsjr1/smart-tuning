@@ -1,9 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from collections import Counter
-import sys
 import uuid
-import os
 
 import config
 # implementation note
@@ -25,7 +23,7 @@ def mock_sampling():
 generator = mock_sampling()
 
 def __distance__(u:Container, v:Container) -> float:
-    u, v = __resize__(u.content, u.content_labels, v.content, v.content_labels)
+    u, v, ulabel, vlabel = __resize__(u.content, u.content_labels, v.content, v.content_labels)
     SQRT2 = np.sqrt(2)
 
     _distance = {
@@ -36,37 +34,36 @@ def __distance__(u:Container, v:Container) -> float:
 
     return _distance[config.DISTANCE_METHOD.lower()](u, v) or 0
 
-    # hellinger
-    # return np.sqrt(np.sum((np.sqrt(u) - np.sqrt(v)) ** 2)) / np.sqrt(2)
-    # cosine distance
-    # return np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))
-    # euclidean distance
-    # return np.linalg.norm(u-v)
-
+# resize vector preserving labels ordering
 def __resize__(u:np.array, ulabels, v:np.array, vlabels) -> (np.array, np.array):
     union = sorted(set(ulabels) | set(vlabels))
     _u, _v = [], []
-
+    _ulabels, _vlabels = [], []
     for item in union:
-        if item in ulabels:
+        _ulabels.append(item)
+        _vlabels.append(item)
+        if len(u) > 0 and item in ulabels:
             index = ulabels.index(item)
-            _u.append(u[index])
+            # to handle a misterious bug when in production
+            try:
+                _u.append(u[index])
+            except IndexError as e:
+                _u.append(0)
         else:
             _u.append(0)
 
-        if item in vlabels:
+        if len(v) > 0 and item in vlabels:
             index = vlabels.index(item)
-            _v.append(v[index])
+            # to handle a misterious bug when in production
+            try:
+                _v.append(v[index])
+            except IndexError as e:
+                _v.append(0)
         else:
             _v.append(0)
     u, v = _u, _v
-    # assert len(u) == len(v), f'{len(u)} != {len(v)}'
-    # max_lenght = max(len(u), len(v))
-    #
-    # u = np.append(u, [0] * (max_lenght - len(u)))
-    # v = np.append(v, [0] * (max_lenght - len(v)))
 
-    return np.array(u), np.array(v)
+    return np.array(u), np.array(v), _ulabels, _vlabels
 
 class Container:
     def __init__(self, label, content_labels, content, metric=0):
@@ -78,24 +75,26 @@ class Container:
         self.start = None
         self.end = None
         self.classification = None
+        self.hits = 0
 
     def __str__(self):
         return f'label:{self.label}, classification:{self.classification.id}, config:{self.configuration}'
 
     def __add__(self, other):
-        u, v = __resize__(self.content, other.content)
-        return Container('', [], u + v, 0)
+        u, v, ulabel, vlabel = __resize__(self.content, self.content_labels, other.content, self.content_labels)
+        return Container('', ulabel, u + v, max(self.metric, other))
 
     def __sub__(self, other):
-        u, v = __resize__(self.content, other.content)
-        return Container('', [], u - v, 0)
+        u, v, ulabel, vlabel = __resize__(self.content, self.content_labels, other.content, self.content_labels)
+        return Container('', ulabel, u - v, min(self.metric, other))
 
     def __mul__(self, other):
         if isinstance(other, float) or isinstance(other, int):
-            return Container(self.label, self.content_labels, self.content * other.content, self.metric * other)
+            return Container(self.label, self.content_labels, self.content * other, max(self.metric, other))
 
     def serialize(self):
         container_dict = self.__dict__
+        # casting np.array to list
         container_dict['content'] = list(self.content)
         container_dict['classification'] = self.classification.id
         return container_dict
@@ -132,7 +131,10 @@ class Cluster:
     def add(self, container:Container):
         self.len += 1
         self.counter[container.label] += 1
-        self.mean = self.mean  + (container - self.mean) * (1/len(self))
+        v, u, vl, ul = __resize__(container.content, container.content_labels, self.mean.content, self.mean.content_labels)
+        self.mean.content_labels = ul
+        self.mean.content = v + (u - v) * (1/len(self))
+        # self.mean = self.mean  + (container - self.mean) * (1/len(self))
 
     def centroid(self):
         return self.mean
@@ -192,10 +194,13 @@ class KmeansContext:
 def main(k=26):
     ctx = KmeansContext(k)
     while sample := next(generator):
-        cluster = ctx.cluster(sample)
-        # print(cluster)
+        cluster, _ = ctx.cluster(sample)
+        print(cluster)
 
     for label in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
         for cluster in ctx.clusters:
             if cluster.most_common()[0][0] == label:
                 print(cluster)
+
+if __name__ == '__main__':
+    main()

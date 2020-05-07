@@ -25,18 +25,3 @@ spec:
       name: http
   selector:
     app: acmeair
-#---
-#apiVersion: v1
-#kind: Service
-#metadata:
-#  name: smarttuning-service
-#spec:
-#  selector:
-#    tuning: "true"
-#  ports:
-#    - port: 5000
-#      targetPort: 5000
-#      nodePort: 30050
-#      protocol: TCP
-#      name: register
-#  type: NodePort

@@ -3269,7 +3269,7 @@
 											"fillColor": "#ffd8d8",
 											"font": "Arial;13;0",
 											"left": 1008.72998046875,
-											"top": 541,
+											"top": 533,
 											"width": 97.83984375,
 											"height": 13,
 											"text": "apply new config"
@@ -3283,7 +3283,7 @@
 											"fillColor": "#ffd8d8",
 											"font": "Arial;13;1",
 											"left": 989,
-											"top": 541,
+											"top": 533,
 											"width": 14.72998046875,
 											"height": 13,
 											"text": "alt"
@@ -3317,17 +3317,17 @@
 															"fillColor": "#ffd8d8",
 															"font": "Arial;13;0",
 															"left": 1004,
-															"top": 574,
-															"width": 394.5322265625,
+															"top": 566,
+															"width": 542.65478515625,
 															"height": 13,
-															"text": "[new type != current type && number of iterations over new type > N]"
+															"text": "[new type != current type && number of iterations over new type > N && new perf is X% better]"
 														}
 													],
 													"fillColor": "#ffd8d8",
 													"font": "Arial;13;0",
 													"left": 984,
-													"top": 559,
-													"width": 513,
+													"top": 551,
+													"width": 593,
 													"height": 154,
 													"guardLabel": {
 														"$ref": "AAAAAAFxwbyF+g+Unps="
@@ -3353,15 +3353,15 @@
 															"fillColor": "#ffd8d8",
 															"font": "Arial;13;0",
 															"left": 1004,
-															"top": 728,
+															"top": 720,
 															"height": 13
 														}
 													],
 													"fillColor": "#ffd8d8",
 													"font": "Arial;13;0",
 													"left": 984,
-													"top": 713,
-													"width": 513,
+													"top": 705,
+													"width": 593,
 													"height": 43,
 													"guardLabel": {
 														"$ref": "AAAAAAFxwb1eQg+fBbQ="
@@ -3371,16 +3371,16 @@
 											"fillColor": "#ffd8d8",
 											"font": "Arial;13;0",
 											"left": 984,
-											"top": 559,
-											"width": 513,
+											"top": 551,
+											"width": 593,
 											"height": 197
 										}
 									],
 									"fillColor": "#ffd8d8",
 									"font": "Arial;13;0",
 									"left": 984,
-									"top": 536,
-									"width": 513,
+									"top": 528,
+									"width": 593,
 									"height": 258,
 									"nameLabel": {
 										"$ref": "AAAAAAFxwbyF1g+FMmQ="
@@ -3535,7 +3535,7 @@
 										"$ref": "AAAAAAFxwbyF1g+Etco="
 									},
 									"lineStyle": 1,
-									"points": "1292:535;1311:489"
+									"points": "1310:527;1319:489"
 								},
 								{
 									"_type": "UMLSeqMessageView",
@@ -4244,7 +4244,7 @@
 										"$ref": "AAAAAAFxwbyF1Q+CkHY="
 									},
 									"name": "Operand1",
-									"guard": "new type != current type && number of iterations over new type > N"
+									"guard": "new type != current type && number of iterations over new type > N && new perf is X% better"
 								},
 								{
 									"_type": "UMLInteractionOperand",

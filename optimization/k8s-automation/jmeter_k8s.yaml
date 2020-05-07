@@ -6,7 +6,7 @@ data:
   JLOAD_BOOKINGS: 'false'
   LIBERTYHOST: 'acmeair.default.svc.cluster.local'
   JTHREAD: '10'
-  JDURATION: '60'
+  JDURATION: '1200'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
   JMIN_SESSION_DURATION: '0'

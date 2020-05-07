@@ -9,12 +9,15 @@ data:
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
   NAMESPACE: 'default'
+  POD_REGEX: 'acmeair-tuning.*'
   WAITING_TIME: '120'
   CONFIG_PATH: '/etc/smart-tuning'
   SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
   CONFIGMAP_NAME: 'acmeair-config'
   MOCK: 'False'
+  K: '10'
   NUMBER_ITERATIONS: '3'
+  METRIC_THRESHOULD: '0.0'
   REGISTER_SERVER_PORT: '5000'
 ---
 apiVersion: apps/v1
