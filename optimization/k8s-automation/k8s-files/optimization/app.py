@@ -69,6 +69,10 @@ def save(workload:Container)->str:
     collection = db.tuning_collection
     return collection.insert_one(workload.serialize())
 
+def save_config_applied(config_applied):
+    db = config.client[config.MONGO_DB]
+    collection = db.configs_applied_collection
+    return collection.insert_one(config_applied)
 
 def best_tuning(type=None)->Container:
     db = config.client[config.MONGO_DB]
@@ -127,6 +131,7 @@ def main():
             sync(config_to_apply, register.list())
             last_config = config_to_apply
             last_type = best_type
+            save_config_applied(config_to_apply or 'None')
 
         else:
             print('do nothing: last config is the best config')
