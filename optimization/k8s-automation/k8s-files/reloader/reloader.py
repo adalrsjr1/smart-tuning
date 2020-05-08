@@ -1,6 +1,7 @@
 import kubernetes as k8s
 import time
 import os
+import traceback
 
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor
@@ -20,6 +21,7 @@ class Deployment:
         api_instance = k8s.client.AppsV1Api(k8s.client.ApiClient())
         pretty = 'true'
         first_patch = True
+        print(f'patch body: {body}')
         while True:
             try:
                 event = queue.get()
@@ -31,7 +33,7 @@ class Deployment:
                     print(response)
                 first_patch = False
             except Exception as e:
-                print(e)
+                traceback.print_exc()
 
     def watch_config(self, queue):
         api_instance = k8s.client.CoreV1Api(k8s.client.ApiClient())

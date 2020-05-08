@@ -10,14 +10,15 @@ data:
   PROMETHEUS_PORT: '9090'
   NAMESPACE: 'default'
   POD_REGEX: 'acmeair-tuning.*'
+  POD_PROD_REGEX: 'acmeair-sync.*'
   WAITING_TIME: '120'
   CONFIG_PATH: '/etc/smart-tuning'
   SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
   CONFIGMAP_NAME: 'acmeair-config'
   MOCK: 'False'
-  K: '10'
-  NUMBER_ITERATIONS: '3'
-  METRIC_THRESHOULD: '0.0'
+  K: '1'
+  NUMBER_ITERATIONS: '1'
+  METRIC_THRESHOLD: '0.0'
   REGISTER_SERVER_PORT: '5000'
 ---
 apiVersion: apps/v1

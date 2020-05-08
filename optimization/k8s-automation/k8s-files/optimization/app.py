@@ -74,6 +74,11 @@ def save_config_applied(config_applied):
     collection = db.configs_applied_collection
     return collection.insert_one(config_applied)
 
+def save_prod_metric(metric):
+    db = config.client[config.MONGO_DB]
+    collection = db.prod_metric_collection
+    return collection.insert_one({'metric':metric})
+
 def best_tuning(type=None)->Container:
     db = config.client[config.MONGO_DB]
     collection = db.tuning_collection
@@ -84,13 +89,16 @@ def best_tuning(type=None)->Container:
 
 def suitable_config(new_id, new_config, new_metric, old_id, old_config, old_metric, hits, convergence=10, metric_threshold=0.2):
     print('checking if tuning can be applied')
+    print(f'hits:{hits} < convergence:{convergence} == ', hits < convergence)
     if hits < convergence:
         print('\tconfiguration does not converged yet')
         return old_config
 
+    print(f'new_metric:{new_metric} > old_metric:{old_metric} * (1 + {metric_threshold})', old_metric is None or new_metric > old_metric * (1 + metric_threshold))
     if old_metric is None or new_metric > old_metric * (1 + metric_threshold):
         print('\trelevant improvement')
-        if new_id != old_id:
+        print(f'new_id:{new_id} != old_id:{old_id}')
+        if new_id != old_id or old_config is None:
             print('\tnew config is different configuration from actual')
             return new_config
     print('\tmaintaining current configuration')
@@ -98,8 +106,15 @@ def suitable_config(new_id, new_config, new_metric, old_id, old_config, old_metr
 
 def sync(tuning_config, endpoints):
     for endpoint in endpoints.values():
-        print(f'syncing config at {endpoint}')
-        requests.post(f'http://{endpoint}:{config.SYNC_PORT}/reload', data=tuning_config)
+        print(f'syncing config:{tuning_config} at {endpoint}')
+        try:
+            if tuning_config:
+                response = requests.post(f'http://{endpoint}:{config.SYNC_PORT}/reload', data=tuning_config)
+                print(response.content, response.status_code)
+            else:
+                print('config to sync is None')
+        except Exception as e:
+            print(e)
 
 def main():
     register.start()
@@ -114,7 +129,9 @@ def main():
         time.sleep(config.WAITING_TIME)
 
         hits, workload = classify_workload(configuration)
-        last_metric = workload.metric
+        # get metric from production pod
+        last_metric = wh.throughput(config.POD_PROD_REGEX, config.WAITING_TIME)
+        save_prod_metric(last_metric)
         workload.hits = hits
         # save current workload
         save(workload)
@@ -123,7 +140,7 @@ def main():
         best_type, best_config, best_metric = best_tuning(workload.classification)
         config_to_apply = suitable_config(best_type, best_config, best_metric, last_type, last_config, last_metric, hits,
                                           convergence=config.NUMBER_ITERATIONS, metric_threshold=config.METRIC_THRESHOLD)
-
+        print('suitable config: ', config_to_apply)
 
         print(f'>>> hits:{hits}, best_type:{best_type}, best_config:{config_to_apply}')
         if config_to_apply != last_config:
@@ -131,8 +148,10 @@ def main():
             sync(config_to_apply, register.list())
             last_config = config_to_apply
             last_type = best_type
-            save_config_applied(config_to_apply or 'None')
-
+            # workaround for consistence
+            if config_to_apply and '_id' in config_to_apply:
+                del(config_to_apply['_id'])
+            save_config_applied(config_to_apply or {})
         else:
             print('do nothing: last config is the best config')
 
