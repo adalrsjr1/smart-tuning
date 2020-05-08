@@ -27,7 +27,7 @@ def throughput(pod_regex, interval, mock=False) -> float:
     :param interval: query for throughput in the past interval (uses module 'timeinterval')
     :return: throughput (req/s)
     """
-    print('sampling throughput')
+    print(f'sampling throughput {pod_regex}')
     if mock:
         return np.random.randint(10, 101)
 

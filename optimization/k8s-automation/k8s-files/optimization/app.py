@@ -74,10 +74,10 @@ def save_config_applied(config_applied):
     collection = db.configs_applied_collection
     return collection.insert_one(config_applied)
 
-def save_prod_metric(metric):
+def save_prod_metric(prod_metric, metric):
     db = config.client[config.MONGO_DB]
     collection = db.prod_metric_collection
-    return collection.insert_one({'metric':metric})
+    return collection.insert_one({'prod_metric':prod_metric, 'tuning_metric':metric})
 
 def best_tuning(type=None)->Container:
     db = config.client[config.MONGO_DB]
@@ -130,8 +130,10 @@ def main():
 
         hits, workload = classify_workload(configuration)
         # get metric from production pod
-        last_metric = wh.throughput(config.POD_PROD_REGEX, config.WAITING_TIME)
-        save_prod_metric(last_metric)
+        last_metric = wh.throughput(config.POD_PROD_REGEX, 60)
+        current_metric = wh.throughput(config.POD_REGEX, 60)
+        workload.metric = current_metric
+        save_prod_metric(current_metric, last_metric)
         workload.hits = hits
         # save current workload
         save(workload)
