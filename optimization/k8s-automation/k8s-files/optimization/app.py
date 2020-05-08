@@ -53,13 +53,13 @@ def classify_workload(configuration:dict)->(int, Container):
     :param configuration:
     :return: how many times this type was hit and the type (as a workload)
     """
-    start = int(time.time())
+    end = int(time.time())
     print('sampling workload')
     workload = wh.workload_and_metric(config.POD_REGEX, config.WAITING_TIME, config.MOCK)
     print('set new configuration to the workload')
     workload.configuration = configuration
-    workload.start = start
-    workload.end = start + config.WAITING_TIME
+    workload.start = end - config.WAITING_TIME
+    workload.end = end
     workload.classification, hits = wh.classify(workload)
 
     return hits, workload
@@ -117,8 +117,8 @@ def sync(tuning_config, endpoints):
             print(e)
 
 def main():
-    register.start()
     last_config, last_type = None, None
+    configMapHandler = cs.ConfigMap()
     while True:
         if config.MOCK:
             configuration = {}
@@ -146,8 +146,11 @@ def main():
 
         print(f'>>> hits:{hits}, best_type:{best_type}, best_config:{config_to_apply}')
         if config_to_apply != last_config:
-            print('do sync')
-            sync(config_to_apply, register.list())
+            print('update production pod')
+
+            configMapHandler.patch(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, config_to_apply)
+            # sync(config_to_apply, register.list())
+
             last_config = config_to_apply
             last_type = best_type
             # workaround for consistence

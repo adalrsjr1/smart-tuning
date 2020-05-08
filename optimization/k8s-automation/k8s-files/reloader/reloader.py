@@ -20,19 +20,18 @@ class Deployment:
 
         api_instance = k8s.client.AppsV1Api(k8s.client.ApiClient())
         pretty = 'true'
-        first_patch = True
-        print(f'patch body: {body}')
+        first_loop = True
         while True:
             try:
                 event = queue.get()
                 name = event["object"].metadata.name
-                if not first_patch and 'MODIFIED' == event['type']:
-                    print(f'\n[P] {int(time.time())} Event: type:{event["type"]}, kind:{event["object"].kind}, name:{event["object"].metadata.name}, '
-                          f'data:{event["object"].data}\n')
+                if not first_loop and 'MODIFIED' == event['type']:
+                    print(f'[P] {int(time.time())} Event: type:{event["type"]}, kind:{event["object"].kind}, name:{event["object"].metadata.name}, '
+                          f'data:{event["object"].data}')
                     response = api_instance.patch_namespaced_deployment(self.deployment, self.namespace, body, pretty=pretty)
                     print(response)
-                first_patch = False
-            except Exception as e:
+                first_loop = False
+            except:
                 traceback.print_exc()
 
     def watch_config(self, queue):
@@ -42,7 +41,7 @@ class Deployment:
             name = event["object"].metadata.name
             if name == self.configmap:
                 queue.put(event)
-                print(f'\n[W] Event: type:{event["type"]}, kind:{event["object"].kind}, name:{name}/')
+                print(f'[W] Event: type:{event["type"]}, kind:{event["object"].kind}, name:{name}')
                 # print(f'<<< Event: type:{event["type"]}, kind:{event["object"].kind}, name:{name}, '
                 #       f'data:{event["object"].data}')
 
@@ -61,12 +60,11 @@ def main():
     queue = Queue()
     deployment = Deployment(namespace, configmap_name, deployment_name)
     try:
-        #
         executor.submit(deployment.watch_config, queue)
         executor.submit(deployment.patch, queue)
 
     except Exception as e:
-        print(e)
+        traceback.print_exc()
         deployment.close_watch()
         executor.shutdown()
 

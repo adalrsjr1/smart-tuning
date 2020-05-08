@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: acmeair-tuning
+  name: acmeair-tuningprod
   labels:
     app: "acmeair"
-    tuning: "true"
+    tuning: "false"
 spec:
   replicas: 1
   template:
@@ -12,7 +12,7 @@ spec:
       name: acmeair
       labels:
         app: "acmeair"
-        tuning: "true"
+        tuning: "false"
     spec:
       initContainers:
         - name: init-networking
@@ -34,16 +34,16 @@ spec:
           imagePullPolicy: Never
           env:
             - name: CONFIGMAP_NAME
-              value: 'acmeair-config'
+              value: 'acmeair-config-prod'
             - name: DEPLOYMENT_NAME
-              value: 'acmeair-tuning'
+              value: 'acmeair-tuningprod'
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
           envFrom:
             - configMapRef:
-                name: acmeair-config
+                name: acmeair-config-prod
         - name: proxy
           image: smarttuning-proxy
           imagePullPolicy: Never
@@ -100,21 +100,21 @@ spec:
             - containerPort: 80
           envFrom:
             - configMapRef:
-                name: acmeair-config
+                name: acmeair-config-prod
           volumeMounts:
             - mountPath: /etc/acmeair-config
-              name: acmeair-config
+              name: acmeair-config-prod
             - mountPath: /config/jvm.options
               subPath: jvm.options
               name: jvm-config
       volumes:
-        - name: acmeair-config
+        - name: acmeair-config-prod
           configMap:
-            name: acmeair-config
+            name: acmeair-config-prod
         - name: jvm-config
           configMap:
             name: jvm-config
   selector:
     matchLabels:
       app: "acmeair"
-      tuning: "true"
+      tuning: "false"

@@ -6,7 +6,8 @@ kubectl delete -f mongo-deployment.yaml
 kubectl delete -f acmeair-db-deployment.yaml
 kubectl delete -f tuning-deployment.yaml
 sleep 10
-kubectl delete -f acmeair-smarttuning-sync.yaml
+#kubectl delete -f acmeair-smarttuning-sync.yaml
+kubectl delete -f acmeair-smarttuning-tuning-prod.yaml
 sleep 10
 kubectl delete -f acmeair-smarttuning-tuning.yaml
 kubectl delete -f prometheus/
