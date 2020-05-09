@@ -144,7 +144,7 @@ def main():
                                           convergence=config.NUMBER_ITERATIONS, metric_threshold=config.METRIC_THRESHOLD)
         print('suitable config: ', config_to_apply)
 
-        print(f'>>> hits:{hits}, best_type:{best_type}, best_config:{config_to_apply}')
+        print(f'>>> hits:{hits}, best_metric:{best_metric}, best_type:{best_type}, best_config:{config_to_apply}')
         if config_to_apply != last_config:
             print('update production pod')
 
