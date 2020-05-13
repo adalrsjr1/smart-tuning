@@ -15,7 +15,7 @@ data:
   JMAX_THINK: '200'
   JREPEAT: '1'
   JRAMPUP: '0'
-  JTARGET_THROUGHPUT: '6000'
+  JTARGET_THROUGHPUT: '60000'
   THREAD_GROUP: 'workload-runtime'
   TEST_PLAN: 'tuning-workloads.jmx'
 ---
@@ -52,5 +52,5 @@ spec:
         name: jmeter-config
     - name: jmeter-output
       hostPath:
-        path: /tmp/smarttuning/jmeter-output
+        path: /tmp/smarttuning/jmeter
   restartPolicy: Never
