@@ -30,14 +30,6 @@ spec:
         app: mongo-workload
     spec:
       containers:
-        - name: mongo-workload
-          image: mongo
-          imagePullPolicy: Never
-          ports:
-            - containerPort: 27017
-          envFrom:
-            - configMapRef:
-                name: mongo-config
         - name: mongo-admin-workload
           image: mongo-express
           imagePullPolicy: Never
@@ -46,10 +38,37 @@ spec:
           envFrom:
             - configMapRef:
                 name: mongoexpress-config
+        - name: mongo-workload
+          image: mongo
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - "sh"
+                  - "-c"
+                  - |
+                    mongoexport -d smarttuning -c tuning_collection --out /home/mongo_tuning.json
+                    mongoexport -d smarttuning -c configs_applied_collection --out /home/mongo_configs.json
+                    mongoexport -d smarttuning -c prod_metric_collection --out /home/mongo_metrics.json
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 27017
+          envFrom:
+            - configMapRef:
+                name: mongo-config
+          volumeMounts:
+            - mountPath: /home
+              name: mongo-home
       restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      volumes:
+        - name: mongo-home
+          hostPath:
+            path: /tmp/smarttuning/mongo-home
   selector:
     matchLabels:
       app: mongo-workload
+
 ---
 apiVersion: v1
 kind: Service

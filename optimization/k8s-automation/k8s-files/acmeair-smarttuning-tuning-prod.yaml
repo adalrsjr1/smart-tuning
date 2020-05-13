@@ -83,10 +83,10 @@ spec:
           image: liberty-acmeair-k8s
           resources:
             requests:
-#              cpu: "1"
+              cpu: "1"
               memory: "256Mi"
             limits:
-#              cpu: "1"
+              cpu: "1"
               memory: "256Mi"
           imagePullPolicy: Never
           readinessProbe:

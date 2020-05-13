@@ -52,5 +52,5 @@ spec:
         name: jmeter-config
     - name: jmeter-output
       hostPath:
-        path: /Users/adalbertoibm.com/Coding/Dockerized_AcmeAir/smart-tuning/optimization/k8s-automation/jmeter-output
+        path: /tmp/smarttuning/jmeter-output
   restartPolicy: Never
