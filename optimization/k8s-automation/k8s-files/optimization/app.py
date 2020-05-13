@@ -130,17 +130,17 @@ def main():
 
         hits, workload = classify_workload(configuration)
         # get metric from production pod
-        last_metric = wh.throughput(config.POD_PROD_REGEX, 60)
-        current_metric = wh.throughput(config.POD_REGEX, 60)
-        workload.metric = current_metric
-        save_prod_metric(current_metric, last_metric)
+        production_metric = wh.throughput(config.POD_PROD_REGEX, 60)
+        training_metric = wh.throughput(config.POD_REGEX, 60)
+        workload.metric = training_metric
+        save_prod_metric(production_metric, training_metric)
         workload.hits = hits
         # save current workload
         save(workload)
         # fetch best configuration
 
         best_type, best_config, best_metric = best_tuning(workload.classification)
-        config_to_apply = suitable_config(best_type, best_config, best_metric, last_type, last_config, last_metric, hits,
+        config_to_apply = suitable_config(best_type, best_config, best_metric, last_type, last_config, production_metric, hits,
                                           convergence=config.NUMBER_ITERATIONS, metric_threshold=config.METRIC_THRESHOLD)
         print('suitable config: ', config_to_apply)
 

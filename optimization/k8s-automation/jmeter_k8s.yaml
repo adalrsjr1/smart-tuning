@@ -5,16 +5,17 @@ metadata:
 data:
   JLOAD_BOOKINGS: 'false'
   LIBERTYHOST: 'acmeair.default.svc.cluster.local'
-  JTHREAD: '10'
+  JTHREAD: '100'
   JDURATION: '1200'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
   JMIN_SESSION_DURATION: '0'
   JMAX_SESSION_DURATION: '60'
   JMIN_THINK: '100'
-  JMAX_THINK: '300'
+  JMAX_THINK: '200'
   JREPEAT: '1'
   JRAMPUP: '0'
+  JTARGET_THROUGHPUT: '6000'
   THREAD_GROUP: 'workload-runtime'
   TEST_PLAN: 'tuning-workloads.jmx'
 ---
@@ -28,21 +29,13 @@ spec:
   containers:
     - name: jmeter
       image: jmeter_acmeair
-#      lifecycle:
-#        postStart:
-#          exec:
-#            command:
-#              - "sh"
-#              - "-c"
-#              - |
-#                aldkf
-#        preStop:
-#          exec:
-#            command:
-#              - "sh"
-#              - "-c"
-#              - |
-#                asd
+      lifecycle:
+        preStop:
+          exec:
+            command:
+              - "sh"
+              - "-c"
+              - "shutdown.sh"
       imagePullPolicy: Never
       envFrom:
         - configMapRef:
@@ -52,6 +45,7 @@ spec:
           name: jmeter-config
         - mountPath: /output
           name: jmeter-output
+  terminationGracePeriodSeconds: 60
   volumes:
     - name: jmeter-config
       configMap:
