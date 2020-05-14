@@ -2,6 +2,7 @@ import hyperopt.hp
 import hyperopt.pyll.stochastic
 import kubernetes as k8s
 import json
+import time
 
 class ConfigMap:
     def __init__(self):
@@ -12,6 +13,7 @@ class ConfigMap:
         body = {
             "kind": "ConfigMap",
             "apiVersion": "v1",
+            "metadata": { "labels": { "date": str(int(time.time())) } },
             "data": data
         }
 

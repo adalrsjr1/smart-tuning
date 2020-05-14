@@ -98,8 +98,10 @@ def suitable_config(new_id, new_config, new_metric, old_id, old_config, old_metr
     if old_metric is None or new_metric > old_metric * (1 + metric_threshold):
         print('\trelevant improvement')
         print(f'new_id:{new_id} != old_id:{old_id}')
-        if new_id != old_id or old_config is None:
+        if config.K > 1 and (new_id != old_id or old_config is None):
             print('\tnew config is different configuration from actual')
+            return new_config
+        elif config.K <= 1 or old_config is None:
             return new_config
     print('\tmaintaining current configuration')
     return old_config
@@ -117,7 +119,7 @@ def sync(tuning_config, endpoints):
             print(e)
 
 def main():
-    last_config, last_type = None, None
+    last_config, last_type, last_prod_metric = None, None, 0
     configMapHandler = cs.ConfigMap()
     while True:
         if config.MOCK:
@@ -145,7 +147,10 @@ def main():
         print('suitable config: ', config_to_apply)
 
         print(f'>>> hits:{hits}, best_metric:{best_metric}, best_type:{best_type}, best_config:{config_to_apply}')
-        if config_to_apply != last_config:
+        # think better about all possibilities here
+        # constraint the update by config_to_apply != last_config is unreallistic
+        # the prod application may be stucked in a poor config
+        if production_metric < last_prod_metric or config_to_apply != last_config:
             print('update production pod')
 
             configMapHandler.patch(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, config_to_apply)
@@ -153,12 +158,16 @@ def main():
 
             last_config = config_to_apply
             last_type = best_type
+            last_prod_metric = production_metric
             # workaround for consistence
             if config_to_apply and '_id' in config_to_apply:
                 del(config_to_apply['_id'])
             save_config_applied(config_to_apply or {})
         else:
             print('do nothing: last config is the best config')
+
+        if production_metric > last_prod_metric:
+            last_prod_metric = production_metric
 
 if __name__ == '__main__':
     main()
