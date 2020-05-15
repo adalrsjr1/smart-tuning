@@ -1,7 +1,6 @@
 smarttuning
 smarttuning-proxy
 smart-tuning-init
-sync
 reloader
 configsamples
 workload-handler

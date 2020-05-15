@@ -134,12 +134,14 @@ def workload_and_metric(pod_regex, interval, mock=False) -> seqkmeans.Container:
 
     _workload = future_workload
     _workload.metric = future_throughput
+    _workload.end = timeinterval.now()
+    _workload.start =  _workload.end - config.WAITING_TIME
 
     return _workload
 
 classificationCtx = seqkmeans.KmeansContext(config.K)
 def classify(workload:seqkmeans.Container) -> seqkmeans.Cluster:
     print('classifying workload ', workload.label)
-    type, hits = classificationCtx.cluster(workload)
-    print(f'workload {workload.label} classified as {type.id} -- {hits}th hit')
-    return type, hits
+    classification, hits = classificationCtx.cluster(workload)
+    print(f'workload {workload.label} classified as {classification.id} -- {hits}th hit')
+    return classification, hits

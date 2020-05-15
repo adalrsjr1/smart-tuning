@@ -5,8 +5,8 @@ metadata:
 data:
   JLOAD_BOOKINGS: 'false'
   LIBERTYHOST: 'acmeair.default.svc.cluster.local'
-  JTHREAD: '100'
-  JDURATION: '1200'
+  JTHREAD: '500'
+  JDURATION: '7200'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
   JMIN_SESSION_DURATION: '0'
@@ -14,9 +14,9 @@ data:
   JMIN_THINK: '100'
   JMAX_THINK: '200'
   JREPEAT: '1'
-  JRAMPUP: '0'
-  JTARGET_THROUGHPUT: '60000'
-  THREAD_GROUP: 'workload-runtime'
+  JRAMPUP: '10'
+  JTARGET_THROUGHPUT: '120000'
+  THREAD_GROUP: 'workload-uniform'
   TEST_PLAN: 'tuning-workloads.jmx'
 ---
 apiVersion: v1
@@ -35,7 +35,11 @@ spec:
             command:
               - "sh"
               - "-c"
-              - "shutdown.sh"
+              - |
+                shutdown.sh
+                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
+                mkdir -p /output/prometheus/$FOLDER_NAME
+                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
       imagePullPolicy: Never
       envFrom:
         - configMapRef:

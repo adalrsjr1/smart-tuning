@@ -52,6 +52,7 @@ spec:
                     mongoexport -d smarttuning -c tuning_collection --out /home/$FOLDER_NAME/mongo_tuning.json
                     mongoexport -d smarttuning -c configs_applied_collection --out /home/$FOLDER_NAME/mongo_configs.json
                     mongoexport -d smarttuning -c prod_metric_collection --out /home/$FOLDER_NAME/mongo_metrics.json
+                    mongoexport -d smarttuning -c workloads_collection --out /home/$FOLDER_NAME/mongo_workloads.json
           imagePullPolicy: Never
           ports:
             - containerPort: 27017
@@ -66,7 +67,7 @@ spec:
       volumes:
         - name: mongo-home
           hostPath:
-            path: /tmp/smarttuning/mongo
+            path: /smarttuning/mongo
   selector:
     matchLabels:
       app: mongo-workload

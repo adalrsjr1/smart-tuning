@@ -96,7 +96,10 @@ class Container:
         container_dict = self.__dict__
         # casting np.array to list
         container_dict['content'] = list(self.content)
-        container_dict['classification'] = self.classification.id
+        if isinstance(self.classification, Cluster):
+            container_dict['classification'] = self.classification.id
+        elif isinstance(self.classification, str):
+            container_dict['classification'] = self.classification
         return container_dict
 
     def distance(self, other:Container):
