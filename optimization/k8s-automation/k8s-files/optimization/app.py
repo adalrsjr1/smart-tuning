@@ -94,12 +94,12 @@ def main():
 
         print('sampling workloads')
         print('sampling training workload')
-        workload = wh.workload_and_metric(config.POD_REGEX, config.WAITING_TIME, config.MOCK)
+        workload = wh.workload_and_metric(config.POD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
         workload.classification, workload.hits = wh.classify(workload)
         workload.configuration = configuration
 
         print('sampling production workload')
-        workload_prod = wh.workload_and_metric(config.POD_PROD_REGEX, config.WAITING_TIME, config.MOCK)
+        workload_prod = wh.workload_and_metric(config.POD_PROD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
         workload_prod.classification = last_type
         workload_prod.configuration = last_config
 
@@ -117,11 +117,18 @@ def main():
         save_prod_metric(workload_prod.metric, workload.metric)
         save_workload(workload_prod, workload)
 
+
         print('sampling the best tuning')
         best_type, best_config, best_metric = best_tuning(workload.classification)
         print('\tbest type: ', best_type, '\n\tlast type: ', last_type)
         print('\tbest conf: ', best_config, '\n\tlast config: ', last_config)
         print('\tbest metric: ', best_metric, '\n\tlast metric: ', last_prod_metric)
+
+        if best_config and '_id' in best_config:
+            del (best_config['_id'])
+
+        if last_config and '_id' in last_config:
+            del (last_config['_id'])
 
         print('\ndeciding about update the application\n')
         print(f'\tis the best config stable? {workload.hits > config.NUMBER_ITERATIONS}')
@@ -132,13 +139,6 @@ def main():
                 if last_config != best_config:
                     print(f'setting config: {best_config}')
                     configMapHandler.patch(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
-
-
-                    if best_config and '_id' in best_config:
-                        del (best_config['_id'])
-
-                    if last_config and '_id' in last_config:
-                        del (last_config['_id'])
 
                     last_config = best_config
                     save_config_applied(best_config or {})

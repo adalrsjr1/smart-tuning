@@ -33,6 +33,7 @@ METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 REGISTER_SERVER_PORT = int(os.environ.get('REGISTER_SERVER_PORT', default='5000'))
 REGISTER_SERVER_ADDR = os.environ.get('REGISTER_SERVER_ADDR', default='0.0.0.0')
 SYNC_PORT = int(os.environ.get('SYNC_PORT', default='5000'))
+SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='1.0'))
 
 print_config()
 print('\n *** config loaded *** \n')

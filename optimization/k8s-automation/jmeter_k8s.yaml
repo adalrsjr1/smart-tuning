@@ -6,7 +6,7 @@ data:
   JLOAD_BOOKINGS: 'false'
   LIBERTYHOST: 'acmeair.default.svc.cluster.local'
   JTHREAD: '500'
-  JDURATION: '7200'
+  JDURATION: '172800'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
   JMIN_SESSION_DURATION: '0'
@@ -56,5 +56,7 @@ spec:
         name: jmeter-config
     - name: jmeter-output
       hostPath:
-        path: /tmp/smarttuning/jmeter
+        path: /smarttuning/jmeter
   restartPolicy: Never
+
+
