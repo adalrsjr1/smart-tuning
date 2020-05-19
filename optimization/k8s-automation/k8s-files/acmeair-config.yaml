@@ -28,9 +28,9 @@ data:
   WLP_LOGGING_CONSOLE_FORMAT: "basic"
   WLP_LOGGING_CONSOLE_LOGLEVEL: "info"
   # default max connectionPoolSize MONGO_MAX_CONNECTIONS=100
-  MONGO_MAX_CONNECTIONS: "100"
+  MONGO_MAX_CONNECTIONS: "1"
   # default 10
-  MONGO_MIN_CONNECTIONS: "10"
+  MONGO_MIN_CONNECTIONS: "1"
   # default 10
   MONGO_CONNECTION_TIMEOUT: "10"
   # Openliberty specific
@@ -73,9 +73,9 @@ data:
   WLP_LOGGING_CONSOLE_FORMAT: "basic"
   WLP_LOGGING_CONSOLE_LOGLEVEL: "info"
   # default max connectionPoolSize MONGO_MAX_CONNECTIONS=100
-  MONGO_MAX_CONNECTIONS: "100"
+  MONGO_MAX_CONNECTIONS: "1"
   # default 10
-  MONGO_MIN_CONNECTIONS: "10"
+  MONGO_MIN_CONNECTIONS: "1"
   # default 10
   MONGO_CONNECTION_TIMEOUT: "10"
   # Openliberty specific
@@ -124,6 +124,13 @@ data:
           "type": "int",
           "lower": 1,
           "upper": 60,
+          "options": null
+      },
+      {
+          "key": "MONGO_MAX_CONNECTIONS",
+          "type": "int",
+          "lower": 4,
+          "upper": 100,
           "options": null
       }
     ]

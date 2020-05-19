@@ -5,8 +5,8 @@ metadata:
 data:
   JLOAD_BOOKINGS: 'false'
   LIBERTYHOST: 'acmeair.default.svc.cluster.local'
-  JTHREAD: '500'
-  JDURATION: '172800'
+  JTHREAD: '800'
+  JDURATION: '900'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
   JMIN_SESSION_DURATION: '0'
@@ -15,7 +15,7 @@ data:
   JMAX_THINK: '200'
   JREPEAT: '1'
   JRAMPUP: '10'
-  JTARGET_THROUGHPUT: '120000'
+  JTARGET_THROUGHPUT: '240000'
   THREAD_GROUP: 'workload-uniform'
   TEST_PLAN: 'tuning-workloads.jmx'
 ---

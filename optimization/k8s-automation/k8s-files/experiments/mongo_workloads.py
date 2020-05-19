@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import json
+import scipy
 
 def __distance__(u:list, lu:list,  v:list, lv:list) -> float:
     u, v, ulabel, vlabel = __resize__(np.array(u), lu, np.array(v), lv)
@@ -63,10 +64,10 @@ def load_rawdata(filepath):
 
 if __name__ == '__main__':
 
-    df = load_rawdata('volume/mongo/20200515-190326/mongo_workloads.json')
+    df = load_rawdata('volume/mongo/20200515-231120/mongo_workloads.json')
 
     print(df)
 
-    ax = df.plot(logy=True)
+    # ax = df.plot(logy=True)
     # ax.set_ylim(0, 1)
-    plt.show()
+    # plt.show()

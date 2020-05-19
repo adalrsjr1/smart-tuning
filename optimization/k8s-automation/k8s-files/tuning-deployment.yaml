@@ -12,7 +12,7 @@ data:
   NAMESPACE_PROD: 'default'
   POD_REGEX: 'acmeair-tuning.*'
   POD_PROD_REGEX: 'acmeair-tuningprod.*'
-  WAITING_TIME: '3600'
+  WAITING_TIME: '120'
   CONFIG_PATH: '/etc/smart-tuning'
   SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
   CONFIGMAP_NAME: 'acmeair-config'

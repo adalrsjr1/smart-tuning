@@ -1,5 +1,4 @@
 #!/bin/bash
-
 kubectl delete -f acmeair-config.yaml
 kubectl delete -f acmeair-service.yaml
 kubectl delete -f mongo-deployment.yaml

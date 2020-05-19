@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+
 import json
 
 def load_rawdata(filepath):
@@ -16,22 +17,22 @@ def load_rawdata(filepath):
 def x_tick_formatter(value, tick_number):
     return str(int(value))
 
-def plot(filepath, title):
+def plot(ax, filepath, title, expected_avg):
     df:pd.DataFrame = load_rawdata(filepath)
 
     # df.quantile(.x)
-    # prod_avg = df['prod. pod'].quantile(.50)
-    # tuni_avg = df['train. pod'].quantile(.50)
+    # prod_avg = df['prod. pod'].quantile(1)
+    # tuni_avg = df['train. pod'].quantile(1)
     prod_avg = df['prod. pod'].mean()
     tuni_avg = df['train. pod'].mean()
 
 
-    df['expected'] = [1000] * len(df)
-    df['average with default config.'] = [int(1677/2)] * len(df)
-    df['p99 prod.'] = [prod_avg] * len(df)
-    df['p99 train.'] = [tuni_avg] * len(df)
+    df['expected'] = [expected_avg] * len(df)
+    # df['average with default config.'] = [int(1677/2)] * len(df)
+    df['avg prod.'] = [prod_avg] * len(df)
+    df['avg train.'] = [tuni_avg] * len(df)
 
-    ax:plt.Axes = df.plot(drawstyle="steps", linewidth=0.7, style=['-', '-', '--', '--', '--', '--'], rot=0)
+    ax:plt.Axes = df.plot(ax=ax, drawstyle="steps", linewidth=0.7, style=['-', '-', '--', '--', '--', '--'], rot=0, title=title)
     ax.legend(frameon=False)
 
     ax.set_xlabel('iterations')
@@ -40,23 +41,24 @@ def plot(filepath, title):
     ax.xaxis.set_major_formatter(plt.FuncFormatter(x_tick_formatter))
 
     ax.set_ylabel('throuhgput (req/s)')
-    ax.set_yticks(np.arange(0, 2500, 200))
+    # ax.set_yticks(np.arange(0, 2500/2, 200))
 
-    print(prod_avg, tuni_avg, prod_avg-tuni_avg)
+    # print(prod_avg, tuni_avg, prod_avg-tuni_avg)
 
     avg_diff = abs(prod_avg - tuni_avg)
 
-    if avg_diff > 100:
-        yticks = sorted([1677, 2000, int(prod_avg), int(tuni_avg)])
-    else:
-        yticks = sorted([1677, 2000, int((prod_avg + tuni_avg)/2)])
+    # if avg_diff > 100:
+    #     yticks = sorted([expected_avg, int(prod_avg), int(tuni_avg)])
+    # else:
+    #     yticks = sorted([expected_avg, int((prod_avg + tuni_avg)/2)])
+    #
+    # ax.set_yticks(yticks, minor=True)
+    # labels = [str(tick) for tick in yticks]
+    # ax.set_yticklabels(labels, minor=True)
 
-    ax.set_yticks(yticks, minor=True)
-    labels = [str(tick) for tick in yticks]
-    ax.set_yticklabels(labels, minor=True)
-
-    ax.set_title(title)
-    plt.show()
+    ax.margins(x=0)
+    # plt.show()
+    return ax
 
 if __name__ == '__main__':
-    plot('volume/mongo/20200515-063218/mongo_metrics.json', '')
+    plot(None, 'volume/mongo/20200515-231120/mongo_metrics.json', '', expected_avg=1000)

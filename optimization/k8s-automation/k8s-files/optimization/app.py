@@ -60,10 +60,10 @@ def save_config_applied(config_applied):
     collection = db.configs_applied_collection
     return collection.insert_one(config_applied)
 
-def save_prod_metric(prod_metric, metric):
+def save_prod_metric(timestamp, prod_metric, metric):
     db = config.client[config.MONGO_DB]
     collection = db.prod_metric_collection
-    return collection.insert_one({'prod_metric':prod_metric, 'tuning_metric':metric})
+    return collection.insert_one({'time': timestamp, 'prod_metric':prod_metric, 'tuning_metric':metric})
 
 def best_tuning(classification=None)->Container:
     db = config.client[config.MONGO_DB]
@@ -114,7 +114,7 @@ def main():
 
         print('saving data')
         save(workload)
-        save_prod_metric(workload_prod.metric, workload.metric)
+        save_prod_metric(workload.start, workload_prod.metric, workload.metric)
         save_workload(workload_prod, workload)
 
 

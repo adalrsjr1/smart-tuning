@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
-import datetime
+from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib import dates
+
 import hashlib
 import json
 
@@ -41,13 +43,25 @@ def x_tick_formatter(value, tick_number):
     current_value = datetime.datetime.fromtimestamp(value * 1000 * 60)
     label = current_value - last_value
 
-    return str(label)
+    return str(label).split(' ')[-1]
 
-def plot(filepath, title, timestep):
+last_value = 0
+def x_tick_formatter(value, tick_number):
+    global last_value
+    formatter = dates.DateFormatter('%H:%M:%S')
+    if last_value == 0:
+        last_value = datetime.strptime(formatter.format_data_short(value), '%H:%M:%S')
+        return '0'
+
+    current_value = datetime.strptime(formatter.format_data_short(value), '%H:%M:%S')
+    label = current_value - last_value
+    return str(label).split(' ')[-1]
+
+def plot(ax, filepath, title, expected_avg):
     df:pd.DataFrame = load_rawdata(filepath)
-    print(df)
+    ax = df.plot(ax=ax, drawstyle='steps', linewidth=0.7, style=['k-', '-', '--', '--', '--', '--'], rot=45, title=title)
+    ax.legend(frameon=False)
 
-    ax:plt.Axes = df.plot(drawstyle='steps', linewidth=0.7, style=['k-', '-', '--', '--', '--', '--'], rot=0)
     points = {}
     for line in ax.get_lines():
         if line.get_label() != 'prod. pod':
@@ -76,35 +90,15 @@ def plot(filepath, title, timestep):
             ys.append(_points[0][1])
 
         ax.step(xs, ys, drawstyle='steps', label='config: ' + item[0][:6])
-        ax.legend()
+        ax.legend(frameon=False)
+    ax.xaxis.set_major_locator(plt.MaxNLocator(21))
+    ax.xaxis.set_minor_locator(plt.NullLocator())
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(x_tick_formatter))
 
-
-
-    #     if xs and ys:
-    #         xs.append(p[0][0])
-    #         ys.append(p[0][1])
-    #         ax.scatter(xs, ys)
-    #         # ax.plot(xs, ys)
-    #         xs, ys = [], []
-    #     else:
-    #         xs, ys = [], []
-    #
-    #     for x, y in p:
-    #         xs.append(x)
-    #         ys.append(y)
-    #
-    # ax.scatter(xs, ys)
-    # # ax.plot(xs, ys)
-
-
-        # for _p in p:
-            # ax.step(xs, ys, drawstyle='steps-post')
-            # ax.scatter(_p[0], _p[1], marker='o')
-
-
-    ax.set_yticks(np.arange(0, 2500, 200))
-    ax.set_title(title)
-    plt.show()
+    # ax.set_yticks(np.arange(0, 2500, 200))
+    ax.margins(x=0)
+    # plt.show()
+    return ax
 
 if __name__ == '__main__':
-    plot('volume/mongo/20200515-190326/mongo_workloads.json', '', timestep=600)
+    plot(None, 'volume/mongo/20200515-231120/mongo_workloads.json', '', expected_avg=2000)
