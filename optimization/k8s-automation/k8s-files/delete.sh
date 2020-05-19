@@ -11,3 +11,5 @@ sleep 10
 kubectl delete -f acmeair-smarttuning-tuning.yaml
 kubectl delete -f prometheus/
 kubectl delete -f ../jmeter_k8s.yaml
+# https://github.com/stakater/Reloader
+kubectl delete -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml

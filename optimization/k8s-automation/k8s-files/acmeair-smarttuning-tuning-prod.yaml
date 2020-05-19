@@ -5,6 +5,9 @@ metadata:
   labels:
     app: "acmeair"
     tuning: "false"
+  annotations:
+    # https://github.com/stakater/Reloader
+    configmap.reloader.stakater.com/reload: "jvm-config"
 spec:
   replicas: 1
   template:
@@ -29,21 +32,6 @@ spec:
             - name: SERVICE_PORT
               value: "80"
       containers:
-        - name: reloader
-          image: reloader
-          imagePullPolicy: Never
-          env:
-            - name: CONFIGMAP_NAME
-              value: 'jvm-config-prod'
-            - name: DEPLOYMENT_NAME
-              value: 'acmeair-tuningprod'
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-          envFrom:
-            - configMapRef:
-                name: acmeair-config-prod
         - name: proxy
           image: smarttuning-proxy
           imagePullPolicy: Never

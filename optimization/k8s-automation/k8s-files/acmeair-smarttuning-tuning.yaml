@@ -5,6 +5,9 @@ metadata:
   labels:
     app: "acmeair"
     tuning: "true"
+  annotations:
+    # https://github.com/stakater/Reloader
+    configmap.reloader.stakater.com/reload: "jvm-config"
 spec:
   replicas: 1
   template:
