@@ -78,7 +78,7 @@ def main():
     configMapHandler = cs.ConfigMap()
 
     start = time.time()
-    print(f'waiting {config.WAITING_TIME}s for the application warming up')
+    print(f' *** waiting {config.WAITING_TIME}s for the application warming up *** ')
     while time.time() - start < config.WAITING_TIME:
         print('.', end='')
         time.sleep(10)
@@ -89,10 +89,10 @@ def main():
         start = time.time()
         configuration = update_config()
 
-        print(f'waiting {config.WAITING_TIME}s for a new workload')
+        print(f' *** waiting {config.WAITING_TIME}s for a new workload *** ')
         time.sleep(config.WAITING_TIME)
 
-        print('sampling workloads')
+        print(' *** sampling workloads *** ')
         print('sampling training workload')
         workload = wh.workload_and_metric(config.POD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
         workload.classification, workload.hits = wh.classify(workload)
@@ -118,7 +118,7 @@ def main():
         save_workload(workload_prod, workload)
 
 
-        print('sampling the best tuning')
+        print(' *** sampling the best tuning *** ')
         best_type, best_config, best_metric = best_tuning(workload.classification)
         print('\tbest type: ', best_type, '\n\tlast type: ', last_type)
         print('\tbest conf: ', best_config, '\n\tlast config: ', last_config)
