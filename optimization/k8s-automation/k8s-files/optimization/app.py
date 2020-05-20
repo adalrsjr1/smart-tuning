@@ -132,7 +132,7 @@ def main():
 
         print('\ndeciding about update the application\n')
         print(f'\tis the best config stable? {workload.hits > config.NUMBER_ITERATIONS}')
-        if workload.hits > config.NUMBER_ITERATIONS:
+        if workload.hits >= config.NUMBER_ITERATIONS:
             print(f'\tis best metric > current prod metric? {best_metric > workload_prod.metric * (1+config.METRIC_THRESHOLD)}')
             if best_metric > workload_prod.metric * (1+config.METRIC_THRESHOLD):
                 print(f'\tis last config != best config? ', last_config != best_config)

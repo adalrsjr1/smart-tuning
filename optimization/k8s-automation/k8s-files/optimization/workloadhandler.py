@@ -33,7 +33,7 @@ def throughput(pod_regex, interval, mock=False) -> float:
 
     prometheus = PrometheusAccessLayer(config.PROMETHEUS_ADDR, config.PROMETHEUS_PORT)
     result = prometheus.query(f'sum(rate(remap_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))')
-    print('\tthroughput: ', result)
+
     if result.value():
         return float(result.value()[0][1])
     return float('NaN')
@@ -75,7 +75,6 @@ def workload(pod_regex, interval, mock=False) -> seqkmeans.Container:
     match = {}
     for key, items in group.items():
         match.update({urls[key] : sum([values[k] for k in items])})
-    print('\turls: ', match)
     return seqkmeans.Container(label=str(timeinterval.now()), content_labels=list(match.keys()), content=np.array(list(match.values())), metric=0)
 
 def __distance__(u, v):
@@ -121,10 +120,9 @@ def __group__(u, v, table, memory):
 
 
 def workload_and_metric(pod_regex, interval, mock=False) -> seqkmeans.Container:
-    print('merging urls and throughput')
     with config.ThreadPoolExecutor(2) as executor:
-        future_workload = executor.submit(workload, config.POD_REGEX, config.WAITING_TIME, mock)
-        future_throughput = executor.submit(throughput, config.POD_REGEX, config.WAITING_TIME, mock)
+        future_workload = executor.submit(workload, pod_regex, interval, mock)
+        future_throughput = executor.submit(throughput, pod_regex, interval, mock)
         done = config.ThreadWait([future_workload, future_throughput], timeout=None, return_when=config.FUTURE_ALL_COMPLETED)
 
         future_throughput = done[0].pop().result()
@@ -135,7 +133,7 @@ def workload_and_metric(pod_regex, interval, mock=False) -> seqkmeans.Container:
     _workload = future_workload
     _workload.metric = future_throughput
     _workload.end = timeinterval.now()
-    _workload.start =  _workload.end - config.WAITING_TIME
+    _workload.start =  _workload.end - interval
 
     return _workload
 
