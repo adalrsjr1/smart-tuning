@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: jmeter-config-prod
+  name: jmeter-config
 data:
   JLOAD_BOOKINGS: 'false'
   JTHREAD: '800'
-  JDURATION: '900'
+  JDURATION: '7200'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
   JMIN_SESSION_DURATION: '0'
@@ -14,7 +14,7 @@ data:
   JMAX_THINK: '200'
   JREPEAT: '1'
   JRAMPUP: '10'
-  JTARGET_THROUGHPUT: '240000'
+  JTARGET_THROUGHPUT: '120000'
   THREAD_GROUP: 'workload-uniform'
   TEST_PLAN: 'tuning-workloads.jmx'
 ---
