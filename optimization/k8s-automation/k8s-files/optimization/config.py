@@ -1,7 +1,6 @@
 import os
 from concurrent.futures import ThreadPoolExecutor, wait as ThreadWait, ALL_COMPLETED as FUTURE_ALL_COMPLETED
 
-
 from pymongo import MongoClient
 
 def print_config():
@@ -28,6 +27,7 @@ DISTANCE_METHOD = os.environ.get('DISTANCE_METHOD', default='hellinger')
 PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', default='localhost')
 PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', default='30090')
 DISTANCE_METHOD = 'hellinger'
+BAYESIAN = eval(os.environ.get('OPTIMIZATION_METHOD', default='True'))
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 REGISTER_SERVER_PORT = int(os.environ.get('REGISTER_SERVER_PORT', default='5000'))
