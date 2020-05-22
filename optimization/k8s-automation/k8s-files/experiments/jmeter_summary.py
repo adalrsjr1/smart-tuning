@@ -11,9 +11,9 @@ _avg_ = 'avg resp. time (ms)'
 _sum_ = 'req/s'
 _err_ = 'errors'
 
-def load_rawdata(filepath):
+def load_rawdata(filepath, label):
 
-    data = {_time_: [], _sum_: [], _avg_: [], _min_: [], _max_: [], _err_: []}
+    data = {_time_: [], label + ' ' + _sum_: [],label + ' ' +  _avg_: [], label + ' ' + _min_: [], label + ' ' + _max_: [], label + ' ' + _err_: []}
     with open(filepath) as f:
         #o.a.j.r.Summariser
         pattern = '^(?P<time>2020.*) INFO (o\.a\.j\.r\.Summariser: summary [=].+ =\s+)(?P<summary>\d+\.\d+/s)( Avg:\s+)(?P<avg>\d+)( Min:\s+)(?P<min>\d+)( Max:\s+)(?P<max>\d+)( Err:\s+)(?P<err>\d+)'
@@ -23,11 +23,11 @@ def load_rawdata(filepath):
             if search:
                 search = search[0]
                 data[_time_].append(search[0].replace(',','.'))
-                data[_sum_].append(float(search[2].split('/')[0]))
-                data[_avg_].append(int(search[4]))
-                data[_min_].append(int(search[6]))
-                data[_max_].append(int(search[8]))
-                data[_err_].append(int(search[10])/6)
+                data[label + ' ' + _sum_].append(float(search[2].split('/')[0]))
+                data[label + ' ' + _avg_].append(int(search[4]))
+                data[label + ' ' + _min_].append(int(search[6]))
+                data[label + ' ' + _max_].append(int(search[8]))
+                data[label + ' ' + _err_].append(int(search[10])/6)
 
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S.%f')
@@ -48,9 +48,11 @@ def x_tick_formatter(value, tick_number):
     return str(label).split(' ')[-1]
 
 
-def plot(ax, filename, title, expected_avg):
-    df = load_rawdata(filename)
-    ax = df.plot(ax=ax, linewidth=0.7, y=[_sum_, _avg_, _err_], title=title)
+def plot(ax, filename, title, expected_avg, label):
+    df = load_rawdata(filename, label)
+
+    ax = df.plot(ax=ax, linewidth=0.7, y=[label+' '+_sum_, label+' '+_avg_, label+' '+_err_], title=title)
+
     ax.legend(frameon=False)
 
 
@@ -61,10 +63,15 @@ def plot(ax, filename, title, expected_avg):
     # date_fmt = '%H:%M:%S'
     # formatter = dates.DateFormatter(date_fmt)
     # ax.xaxis.set_major_formatter(plt.FuncFormatter(x_tick_formatter))
-    # plt.show()
     ax.margins(x=0)
     return ax
 
 if __name__ == '__main__':
 
-    plot(None, 'volume/jmeter/20200515-043107/acmeair.stats.2020051543107', '', expected_avg=1000)
+    ax = plot(None, 'volume/jmeter/prod/20200522-014432/acmeair.stats.2020052214432',
+         '', expected_avg=1000, label='prod')
+
+    ax = plot(ax, 'volume/jmeter/train/20200522-014432/acmeair.stats.2020052214432',
+              '', expected_avg=1000, label='train')
+
+    plt.show()

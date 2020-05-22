@@ -10,14 +10,14 @@ import json
 
 def load_rawdata(filepath):
     data = {'date': [], 'prod. pod': [],
-            # 'train. pod': [],
+            'train. pod': [],
             'config': []}
     first = 0
     with open(filepath) as f:
         for doc in f:
             doc_parsed = json.loads(doc)
             data['prod. pod'].append(float(doc_parsed['prod_workload']['metric']))
-            # data['train. pod'].append(float(doc_parsed['training_workload']['metric']))
+            data['train. pod'].append(float(doc_parsed['training_workload']['metric']))
             data['config'].append(hashlib.md5(str(doc_parsed['prod_workload']['configuration']).encode('utf-8')).hexdigest())
 
             if first == 0:
@@ -59,8 +59,10 @@ def x_tick_formatter(value, tick_number):
 
 def plot(ax, filepath, title, expected_avg):
     df:pd.DataFrame = load_rawdata(filepath)
-    ax = df.plot(ax=ax, drawstyle='steps', linewidth=0.7, style=['k-', '-', '--', '--', '--', '--'], rot=45, title=title)
+    ax = df.plot(ax=ax, drawstyle='steps', linewidth=0.7, y=['prod. pod'], style=['k-', '-', '--', '--', '--', '--'], rot=45, title=title)
     ax.legend(frameon=False)
+
+    ax.set_ylim(0, 100 + max(df['prod. pod'].max(), df['train. pod'].max()))
 
     points = {}
     for line in ax.get_lines():

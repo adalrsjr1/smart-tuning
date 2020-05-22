@@ -5,8 +5,8 @@ from matplotlib import dates
 
 import datetime
 
-def load_rawdata(filepath):
-    df = pd.read_csv(filepath, na_values='-', usecols=[0, 1], names=['time', 'measured'])
+def load_rawdata(filepath, label):
+    df = pd.read_csv(filepath, na_values='-', usecols=[0, 1], names=['time', label + ' measured'])
     df.fillna(0, inplace=True)
     df['time'] = pd.to_datetime(df['time'], unit='ms')
     df = df.set_index('time').sort_index()
@@ -26,16 +26,24 @@ def x_tick_formatter(value, tick_number):
 
     return str(label).split(' ')[-1]
 
-def plot(ax, filepath, title, timestep, interval, expected_avg):
-    df:pd.DataFrame = load_rawdata(filepath)
+def plot(ax, filepath, title, timestep, interval, expected_avg, label):
+    df:pd.DataFrame = load_rawdata(filepath, label)
     average = float(df.rolling('1ms').count().sum() / interval)
     df = df.rolling('1ms').count().groupby(pd.Grouper(freq=f'{timestep}s')).sum() / timestep
 
-    df['expected'] = [expected_avg] * len(df)
     # df['avg w/default config.\n        wo/SmartTuning'] = [1677] * len(df)
-    df['avg'] = [average] * len(df)
+    df[label + ' avg'] = [average] * len(df)
 
-    ax:plt.Axes = df.plot(ax=ax, drawstyle="steps", linewidth=0.7, style=['b-', 'k--', 'r--', 'g--'], rot=45, title=title)
+    if 'prod' == label:
+        ax:plt.Axes = df.plot(ax=ax, drawstyle="steps", linewidth=0.7, style=['b-', 'r--', 'g--'], rot=45, title=title)
+        # df['expected'] = [expected_avg] * len(df)
+        # ax.plot(df['expected'], linewidth=0.7, color='k--')
+    else:
+        ax:plt.Axes = df.plot(ax=ax, drawstyle="steps", linewidth=0.7, style=['c-', 'm--', 'y--'], rot=45,
+                               title=title)
+
+
+
     ax.legend(frameon=False)
 
     ax.set_xlabel('time elapsed (h:m:s)')
@@ -58,8 +66,18 @@ if __name__ == '__main__':
     ##
     # for multiple plots reger to: https://stackoverflow.com/questions/38989178/pandas-plot-combine-two-plots
     ##
-    plot(ax=None, title=f'throughput measured at client',
-         filepath='volume/jmeter/20200515-150051/raw_data_20200515150051.jtl',
-         timestep=600  ,
-         interval=4*3600,
-         expected_avg=2000)
+    ax = plot(ax=None, title=f'throughput measured at client',
+         filepath='volume/jmeter/prod/20200522-014432/raw_data_2020052214432.jtl',
+         timestep=900  ,
+         interval=2*3600,
+         expected_avg=2000,
+         label='prod')
+
+    ax = plot(ax=ax, title=f'throughput measured at client',
+              filepath='volume/jmeter/train/20200522-014432/raw_data_2020052214432.jtl',
+              timestep=900,
+              interval=2 * 3600,
+              expected_avg=2000,
+              label='train')
+
+    plt.show()

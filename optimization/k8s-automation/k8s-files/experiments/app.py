@@ -12,15 +12,25 @@ def plot(name, _jmeter_folder_, _mongo_folder_, _jmeter_id_, _timestep_, _interv
     fig, axs = plt.subplots(2, 2, figsize=(10, 8))
     fig.subplots_adjust(top=0.6)
 
-    # ax0 = jmeter.plot(ax=axs[0, 0], title=f'throughput measured at client',
-    #                   filepath=_jmeter_ + _jmeter_folder_ + '/raw_data_' + _jmeter_id_ + '.jtl',
-    #                   timestep=_timestep_,
-    #                   interval=_interval_,
-    #                   expected_avg=_expected_avg_ * 2)
+    ax0 = jmeter.plot(ax=axs[0, 0], title=f'throughput measured at client',
+                      filepath=_jmeter_ + 'prod/' + _jmeter_folder_ + '/raw_data_' + _jmeter_id_ + '.jtl',
+                      timestep=_timestep_,
+                      interval=_interval_,
+                      expected_avg=_expected_avg_ * 2, label='prod')
 
-    # ax1 = jmeter_summary.plot(axs[0, 1],
-    #                           filename=_jmeter_ + _jmeter_folder_ + 'acmeair.stats.' + _jmeter_id_,
-    #                           title='errors overtime', expected_avg=_expected_avg_)
+    ax0 = jmeter.plot(ax=ax0, title=f'throughput measured at client',
+                      filepath=_jmeter_ + 'train/' + _jmeter_folder_ + '/raw_data_' + _jmeter_id_ + '.jtl',
+                      timestep=_timestep_,
+                      interval=_interval_,
+                      expected_avg=_expected_avg_ * 2, label='train')
+
+    ax1 = jmeter_summary.plot(axs[0, 1],
+                              filename=_jmeter_ + 'prod/' + _jmeter_folder_ + 'acmeair.stats.' + _jmeter_id_,
+                              title='errors overtime', expected_avg=_expected_avg_, label='prod')
+
+    ax1 = jmeter_summary.plot(ax1,
+                              filename=_jmeter_ + 'train/' + _jmeter_folder_ + 'acmeair.stats.' + _jmeter_id_,
+                              title='errors overtime', expected_avg=_expected_avg_, label='train')
 
     ax2 = mongo_metrics.plot(axs[1, 0],
                              filepath=_mongo_ + _mongo_folder_ + 'mongo_metrics.json',
@@ -53,7 +63,16 @@ if __name__ == '__main__':
     #         plot(name, _jmeter_folder_, _mongo_folder_, _jmeter_id_, _timestep_, _interval_, _expected_avg_)
     #     name += 1
 
-    # plot('', '', '20200520-164010/', '', 900, 135 * 60, 2000)
-    plot('', '', '20200520-204704/', '', 900, 120 * 60, 2000)
-    plot('', '', '20200520-230338/', '', 900, 120 * 60, 2000)
+    # # sampling .6667 / min conn 4 / 3 it
+    # plot('', '', '20200520-164010/', '', 900, 135 * 60, 1000)
+    # # sampling 1.0 / min conn 4 / 0 it
+    # plot('', '', '20200520-204704/', '', 900, 135 * 60, 1000)
+    # # sampling 1.0 / min conn 1 / 0 it
+    # plot('', '', '20200520-230338/', '', 900, 135 * 60, 1000)
+    # # sampling 1.0 / min conn 1 / 0 it
+    # plot('', '20200520-205006/', '20200521-011404/', '20200520205006', 900, 120 * 60, 1000)
+    # # only http parameters
+    # plot('', '20200521-012617/', '20200521-033713/', '2020052112617', 900, 120 * 60, 1000)
+    # max threads
+    plot('', '20200522-014432/', '20200522-035512/', '2020052214432', 900, 130 * 60, 1000)
 

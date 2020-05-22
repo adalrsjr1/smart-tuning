@@ -34,7 +34,7 @@ def plot(ax, filepath, title, expected_avg):
 
     ax:plt.Axes = df.plot(ax=ax, drawstyle="steps", linewidth=0.7, style=['-', '-', '--', '--', '--', '--'], rot=0, title=title)
     ax.legend(frameon=False)
-
+    ax.set_ylim(0, 100+max(df['prod. pod'].max(), df['train. pod'].max()))
     ax.set_xlabel('iterations')
     ax.xaxis.set_major_locator(plt.IndexLocator(base=1, offset=1))
     ax.xaxis.set_minor_locator(plt.NullLocator())
