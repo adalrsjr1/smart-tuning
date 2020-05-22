@@ -34,7 +34,7 @@ spec:
           imagePullPolicy: Never
           env:
             - name: CONFIGMAP_NAME
-              value: 'jvm-config-train'
+              value: 'jvm-config-prod'
             - name: DEPLOYMENT_NAME
               value: 'acmeair-tuningprod'
             - name: NAMESPACE
