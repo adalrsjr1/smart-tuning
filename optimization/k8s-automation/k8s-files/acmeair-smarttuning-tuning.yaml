@@ -34,7 +34,7 @@ spec:
           imagePullPolicy: Never
           env:
             - name: CONFIGMAP_NAME
-              value: 'acmeair-config'
+              value: 'jvm-config-train'
             - name: DEPLOYMENT_NAME
               value: 'acmeair-tuning'
             - name: NAMESPACE
@@ -82,12 +82,12 @@ spec:
         - name: service
           image: liberty-acmeair-k8s
           resources:
-            requests:
-              cpu: "1"
-              memory: "256Mi"
+#            requests:
+#              cpu: "1"
+#              memory: "2048Mi"
             limits:
               cpu: "1"
-              memory: "256Mi"
+              memory: "2048Mi"
           imagePullPolicy: Never
           readinessProbe:
             httpGet:
@@ -113,7 +113,7 @@ spec:
             name: acmeair-config
         - name: jvm-config
           configMap:
-            name: jvm-config
+            name: jvm-config-train
   selector:
     matchLabels:
       app: "acmeair"

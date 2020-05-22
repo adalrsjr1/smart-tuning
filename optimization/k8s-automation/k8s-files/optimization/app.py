@@ -9,12 +9,12 @@ import configsampler as cs
 import workloadhandler as wh
 from seqkmeans import Container
 
-def load_search_space(config_path, search_space_path)-> cs.SearchSpace:
-    envvar = {}
-    files = [f for f in os.listdir(config_path) if os.path.isfile(os.path.join(config_path, f))]
-
-    for f in files:
-        envvar[f] = os.environ.get(f, '')
+def load_search_space(search_space_path)-> cs.SearchSpace:
+    # envvar = {}
+    # files = [f for f in os.listdir(config_path) if os.path.isfile(os.path.join(config_path, f))]
+    #
+    # for f in files:
+    #     envvar[f] = os.environ.get(f, '')
 
     search_space = cs.SearchSpace({})
 
@@ -37,7 +37,7 @@ def update_config(last_metric)->dict:
     if config.MOCK:
         return {}
 
-    search_space = load_search_space(config.CONFIG_PATH, config.SEARCHSPACE_PATH)
+    search_space = load_search_space(config.SEARCHSPACE_PATH)
     if last_metric:
         search_space.update_model(last_metric)
 
@@ -49,7 +49,8 @@ def update_config(last_metric)->dict:
     print('new config >>> ', configuration)
 
     print('patching new config')
-    config_map.patch(config.CONFIGMAP_NAME, config.NAMESPACE, configuration)
+    # config_map.patch(config.CONFIGMAP_NAME, config.NAMESPACE, configuration)
+    config_map.patch_jvm(config.CONFIGMAP_NAME, config.NAMESPACE, configuration)
     return configuration
 
 def save(workload:Container)->str:
@@ -148,7 +149,8 @@ def main():
                 print(f'\tis last config != best config? ', last_config != best_config)
                 if last_config != best_config:
                     print(f'setting config: {best_config}')
-                    configMapHandler.patch(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
+                    # configMapHandler.patch(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
+                    configMapHandler.patch_jvm(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
 
                     last_config = best_config
                     save_config_applied(best_config or {})

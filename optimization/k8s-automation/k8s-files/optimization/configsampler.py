@@ -25,8 +25,30 @@ class ConfigMap:
 
         return api_instance.patch_namespaced_config_map(name, namespace, body, pretty=pretty)
 
-    def patch_jvm(self, configmap_name, configmape_namespace, data):
-        pass
+    def patch_jvm(self, configmap_name, configmap_namespace, data):
+        # https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/CoreV1Api.md#patch_namespaced_config_map
+
+        params = []
+        if '-Xmx' in data:
+            params.append('-Xmx'+str(data['-Xmx'])+'m')
+        if '-Xnojit' in data and data['-Xnojit']:
+            params.append('-Xnojit')
+        if '-Xnoaot' in data and data['-Xnoaot']:
+            params.append('-Xnoaot')
+
+        body = {
+            "kind": "ConfigMap",
+            "apiVersion": "v1",
+            "metadata": {"labels": {"date": str(int(time.time()))}},
+            "data": {'jvm.options': '\n'.join(params)}
+        }
+
+        api_instance = k8s.client.CoreV1Api(k8s.client.ApiClient())
+        name = configmap_name
+        namespace = configmap_namespace
+        pretty = 'true'
+
+        return api_instance.patch_namespaced_config_map(name, namespace, body, pretty=pretty)
 
 
 class SearchSpace:

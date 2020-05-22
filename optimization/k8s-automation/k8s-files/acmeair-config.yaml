@@ -1,12 +1,24 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: jvm-config
+  name: jvm-config-prod
 data:
   jvm.options: |-
-    -Xtune:virtualized
-    -XX:+UseContainerSupport
-    -XX:MaxRAMPercentage=90
+    -Xmx230m
+#    -Xtune:virtualized
+#    -XX:+UseContainerSupport
+#    -XX:MaxRAMPercentage=90
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jvm-config-train
+data:
+  jvm.options: |-
+    -Xmx230m
+#    -Xtune:virtualized
+#    -XX:+UseContainerSupport
+#    -XX:MaxRAMPercentage=90
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -106,10 +118,24 @@ data:
   search-space.json: |
     [
       {
-          "key": "MONGO_MAX_CONNECTIONS",
+          "key": "-Xmx",
           "type": "int",
-          "lower": 4,
-          "upper": 100,
+          "lower": 230,
+          "upper": 1840,
+          "options": null
+      },
+      {
+          "key": "-Xnojit",
+          "type": "bool",
+          "lower": null,
+          "upper": null,
+          "options": null
+      },
+      {
+          "key": "-Xnoaot",
+          "type": "bool",
+          "lower": null,
+          "upper": null,
           "options": null
       }
     ]
