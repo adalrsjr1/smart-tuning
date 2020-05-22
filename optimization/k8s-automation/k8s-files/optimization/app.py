@@ -9,43 +9,18 @@ import configsampler as cs
 import workloadhandler as wh
 from seqkmeans import Container
 
-def load_search_space(search_space_path)-> cs.SearchSpace:
-    # envvar = {}
-    # files = [f for f in os.listdir(config_path) if os.path.isfile(os.path.join(config_path, f))]
-    #
-    # for f in files:
-    #     envvar[f] = os.environ.get(f, '')
-
-    search_space = cs.SearchSpace({})
-
-    print('\nloading search space')
-    with open(search_space_path) as json_file:
-        data = json.load(json_file)
-        for item in data:
-            print('\t', item)
-            search_space.add_to_domain(
-                key=item.get('key', None),
-                lower=item.get('lower', None),
-                upper=item.get('upper', None),
-                options=item.get('options', None),
-                type=item.get('type', None)
-            )
-
-    return search_space
-
 def update_config(last_metric)->dict:
     if config.MOCK:
         return {}
 
-    search_space = load_search_space(config.SEARCHSPACE_PATH)
+    search_space = cs.load_search_space(config.SEARCHSPACE_PATH)
     if last_metric:
         search_space.update_model(last_metric)
 
     config_map = cs.ConfigMap()
 
     print('sampling new configuration')
-    configuration, length = search_space.sampling('sampling_label')
-    configuration = search_space.sample_values_to_str(configuration)
+    configuration = search_space.sampling()
     print('new config >>> ', configuration)
 
     print('patching new config')

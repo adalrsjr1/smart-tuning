@@ -122,6 +122,7 @@ data:
           "type": "int",
           "lower": 230,
           "upper": 1840,
+          "step" : 100,
           "options": null
       },
       {
@@ -129,6 +130,7 @@ data:
           "type": "bool",
           "lower": null,
           "upper": null,
+          "step": null,
           "options": null
       },
       {
@@ -136,6 +138,7 @@ data:
           "type": "bool",
           "lower": null,
           "upper": null,
+          "step": null,
           "options": null
       }
     ]

@@ -52,21 +52,64 @@ class ConfigMap:
 
         return api_instance.patch_namespaced_config_map(name, namespace, body, pretty=pretty)
 
+def load_search_space(search_space_path):
+    search_space = SearchSpace({})
+
+    print('\nloading search space')
+    with open(search_space_path) as json_file:
+        data = json.load(json_file)
+        for item in data:
+            print('\t', item)
+            search_space.add_to_domain(
+                key=item.get('key', None),
+                lower=item.get('lower', None),
+                upper=item.get('upper', None),
+                options=item.get('options', None),
+                step=item.get('step', None),
+                type=item.get('type', None)
+            )
+
+    return search_space
 
 class SearchSpace:
     def __init__(self, domain=None):
         if not domain:
             domain = {}
         self.domain = domain
-        self.history = {}
 
-    def add_to_domain(self, key, type=None, lower=None, upper=None, options=None):
+    def get_lower(self, key):
+        return self.domain[key][0]
+
+    def get_upper(self, key):
+        return self.domain[key][1]
+
+    def get_options(self, key):
+        return self.domain[key][2]
+
+    def get_step(self, key):
+        return self.domain[key][3]
+
+    def get_type(self, key):
+        return self.domain[key][4]
+
+    def add_to_domain(self, key, type=None, lower=None, step=None, upper=None, options=None):
         """
         type: str, int, float, bool
         """
         t = self.convert_type_from_str(type)
+
+        try:
+            step = float(step)
+            if step < 0:
+                step  = abs(step)
+            elif step == 0:
+                step = None
+        except (TypeError, ValueError):
+            step = None
+
+
         if self.check_arguments(t, lower, upper, options):
-            self.domain.update({key: (lower, upper, options, type)})
+            self.domain.update({key: (lower, upper, options, step, type)})
 
     def convert_type_from_str(self, type):
         if isinstance(type, str):
@@ -82,6 +125,7 @@ class SearchSpace:
         return type
 
     def check_arguments(self, type, lower, upper, options):
+
         if type == int:
             if not (isinstance(lower, int) and isinstance(upper, int)):
                 raise TypeError(f"both lower and upper params should be int for type={int}")
@@ -108,18 +152,15 @@ class SearchSpace:
         return True
 
     def dimension(self, key):
-        lower = self.domain[key][0]
-        upper = self.domain[key][1]
-        options = self.domain[key][2]
-        t = self.domain[key][3]
-        if t == int.__name__:
-            dimension = hyperopt.hp.quniform(key, lower, upper, 1)
-        elif t == float.__name__:
-            dimension = hyperopt.hp.uniform(key, lower, upper)
-        elif t == bool.__name__:
+        if self.get_type(key) == int.__name__ or self.get_type(key) == float.__name__:
+            if self.get_step(key):
+                dimension = hyperopt.hp.quniform(key, self.get_lower(key), self.get_upper(key), self.get_step(key))
+            else:
+                dimension = hyperopt.hp.uniform(key, self.get_lower(key), self.get_upper(key))
+        elif self.get_type(key) == bool.__name__:
             dimension = hyperopt.hp.choice(key, [True, False])
-        elif t == str.__name__:
-            dimension = hyperopt.hp.choice(key, options)
+        elif self.get_type(key) == str.__name__:
+            dimension = hyperopt.hp.choice(key, self.get_options(key))
         else:
             raise TypeError(f'cannot handle type={type}')
 
@@ -131,10 +172,8 @@ class SearchSpace:
             space.update(self.dimension(key))
         return space
 
-    def sampling(self, label):
+    def sampling(self):
 
-        if not label in self.history:
-            self.history[label] = set()
         #
         # sample = hyperopt.pyll.stochastic.sample(self.search_space())
         #
@@ -142,9 +181,8 @@ class SearchSpace:
             bayesian.init(self.search_space())
 
         sample = bayesian.get()
-        self.history[label].add(json.dumps(sample))
 
-        return sample, len(self.history[label])
+        return self.sample_values_to_str(sample)
 
     def update_model(self, metric):
         bayesian.put(metric)
@@ -154,15 +192,7 @@ class SearchSpace:
         # 1: upper bound
         # 2: options
         # 3: type
-        type = self.convert_type_from_str(self.domain[key][3])
-        if type == int:
-            return int(value)
-        elif type == float:
-            return float(value)
-        elif type == bool:
-            return bool(value)
-        else:
-            return str(value)
+        return self.convert_type_from_str(self.get_type(key))(value)
 
     def sample_values_to_str(self, sample):
         str_sample = {}
