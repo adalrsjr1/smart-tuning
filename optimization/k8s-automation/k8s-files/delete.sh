@@ -10,3 +10,4 @@ kubectl delete -f acmeair-smarttuning-tuning-prod.yaml
 sleep 10
 kubectl delete -f acmeair-smarttuning-tuning.yaml
 kubectl delete -f prometheus/
+kubectl delete -f ../jmeter_k8s.yaml

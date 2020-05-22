@@ -1,6 +1,7 @@
 import hyperopt.hp
 import hyperopt.pyll.stochastic
 import kubernetes as k8s
+import bayesian
 import json
 import time
 
@@ -23,6 +24,10 @@ class ConfigMap:
         pretty = 'true'
 
         return api_instance.patch_namespaced_config_map(name, namespace, body, pretty=pretty)
+
+    def patch_jvm(self, configmap_name, configmape_namespace, data):
+        pass
+
 
 class SearchSpace:
     def __init__(self, domain=None):
@@ -106,11 +111,19 @@ class SearchSpace:
 
         if not label in self.history:
             self.history[label] = set()
+        #
+        # sample = hyperopt.pyll.stochastic.sample(self.search_space())
+        #
+        if not bayesian.space:
+            bayesian.init(self.search_space())
 
-        sample = hyperopt.pyll.stochastic.sample(self.search_space())
+        sample = bayesian.get()
         self.history[label].add(json.dumps(sample))
 
         return sample, len(self.history[label])
+
+    def update_model(self, metric):
+        bayesian.put(metric)
 
     def cast_value(self, key, value):
         # 0: lower bound

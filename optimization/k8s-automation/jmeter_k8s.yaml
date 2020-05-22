@@ -4,7 +4,7 @@ metadata:
   name: jmeter-config
 data:
   JLOAD_BOOKINGS: 'false'
-  JTHREAD: '800'
+  JTHREAD: '1'
   JDURATION: '7200'
   JURL: 'acmeair-webapp'
   JPORT: '8888'

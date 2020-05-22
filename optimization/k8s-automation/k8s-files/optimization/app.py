@@ -33,11 +33,14 @@ def load_search_space(config_path, search_space_path)-> cs.SearchSpace:
 
     return search_space
 
-def update_config()->dict:
+def update_config(last_metric)->dict:
     if config.MOCK:
         return {}
 
     search_space = load_search_space(config.CONFIG_PATH, config.SEARCHSPACE_PATH)
+    if last_metric:
+        search_space.update_model(last_metric)
+
     config_map = cs.ConfigMap()
 
     print('sampling new configuration')
@@ -79,6 +82,7 @@ def best_tuning(classification=None)->Container:
 
 def main():
     last_config, last_type, last_prod_metric = None, None, 0
+    last_train_matric = None
     configMapHandler = cs.ConfigMap()
 
     start = time.time()
@@ -91,7 +95,7 @@ def main():
     first_loop = True
     while True:
         start = time.time()
-        configuration = update_config()
+        configuration = update_config(last_train_matric)
 
         print(f' *** waiting {config.WAITING_TIME}s for a new workload *** ')
         time.sleep(config.WAITING_TIME)
@@ -101,6 +105,8 @@ def main():
         workload = wh.workload_and_metric(config.POD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
         workload.classification, workload.hits = wh.classify(workload)
         workload.configuration = configuration
+
+        last_train_matric = workload.metric
 
         print('sampling production workload')
         workload_prod = wh.workload_and_metric(config.POD_PROD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
