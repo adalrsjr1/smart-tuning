@@ -31,8 +31,10 @@ class ConfigMap:
         params = []
         if '-Xmx' in data:
             params.append('-Xmx'+str(data['-Xmx'])+'m')
+
         if '-Xnojit' in data and data['-Xnojit']:
             params.append('-Xnojit')
+            
         if '-Xnoaot' in data and data['-Xnoaot']:
             params.append('-Xnoaot')
 
