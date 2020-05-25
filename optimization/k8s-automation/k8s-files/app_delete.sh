@@ -1,9 +1,9 @@
 #!/bin/bash
-kubectl delete -f acmeair-config.yaml
-kubectl delete -f acmeair-service.yaml
-kubectl delete -f acmeair-db-deployment.yaml
-kubectl delete -f acmeair-smarttuning-tuning-prod.yaml
-kubectl delete -f acmeair-smarttuning-tuning.yaml
-kubectl delete -f prometheus/
+kubectl --kubeconfig remote-config delete -f acmeair-config.yaml
+kubectl --kubeconfig remote-config delete -f acmeair-service.yaml
+kubectl --kubeconfig remote-config delete -f acmeair-db-deployment.yaml
+kubectl --kubeconfig remote-config delete -f acmeair-smarttuning-tuning-prod.yaml
+kubectl --kubeconfig remote-config delete -f acmeair-smarttuning-tuning.yaml
+kubectl --kubeconfig remote-config delete -f prometheus/4-monitoring-deployment.yml
 # https://github.com/stakater/Reloader
-kubectl delete -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
+kubectl --kubeconfig remote-config delete -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml

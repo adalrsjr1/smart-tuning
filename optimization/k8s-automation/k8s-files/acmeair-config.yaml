@@ -15,7 +15,7 @@ metadata:
   name: jvm-config-train
 data:
   jvm.options: |-
-    -Xmx230m
+    -Xmx7300m
 #    -Xtune:virtualized
 #    -XX:+UseContainerSupport
 #    -XX:MaxRAMPercentage=90
@@ -85,7 +85,7 @@ data:
   WLP_LOGGING_CONSOLE_FORMAT: "basic"
   WLP_LOGGING_CONSOLE_LOGLEVEL: "info"
   # default max connectionPoolSize MONGO_MAX_CONNECTIONS=100
-  MONGO_MAX_CONNECTIONS: "4"
+  MONGO_MAX_CONNECTIONS: "100"
   # default 10
   MONGO_MIN_CONNECTIONS: "1"
   # default 10
@@ -110,6 +110,22 @@ data:
   # default ABORT, other CALLER_RUNS
   EXECUTOR_REJECTED_WORK_POLICY: "CALLER_RUNS"
 ---
+#{
+#  "key": "-Xnojit",
+#  "type": "bool",
+#  "lower": null,
+#  "upper": null,
+#  "step": null,
+#  "options": null
+#},
+#{
+#  "key": "-Xnoaot",
+#  "type": "bool",
+#  "lower": null,
+#  "upper": null,
+#  "step": null,
+#  "options": null
+#}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -121,24 +137,8 @@ data:
           "key": "-Xmx",
           "type": "int",
           "lower": 230,
-          "upper": 1840,
+          "upper": 7373,
           "step" : 100,
-          "options": null
-      },
-      {
-          "key": "-Xnojit",
-          "type": "bool",
-          "lower": null,
-          "upper": null,
-          "step": null,
-          "options": null
-      },
-      {
-          "key": "-Xnoaot",
-          "type": "bool",
-          "lower": null,
-          "upper": null,
-          "step": null,
           "options": null
       }
     ]

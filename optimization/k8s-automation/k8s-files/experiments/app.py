@@ -5,7 +5,7 @@ import mongo_metrics
 import mongo_configs
 
 
-def plot(name, _jmeter_folder_, _mongo_folder_, _jmeter_id_, _timestep_, _interval_, _expected_avg_):
+def plot(n_clients, name, _jmeter_folder_, _mongo_folder_, _jmeter_id_, _timestep_, _interval_, _expected_avg_):
     _jmeter_ = 'volume/jmeter/'
     _mongo_ = 'volume/mongo/'
 
@@ -18,19 +18,21 @@ def plot(name, _jmeter_folder_, _mongo_folder_, _jmeter_id_, _timestep_, _interv
                       interval=_interval_,
                       expected_avg=_expected_avg_ * 2, label='prod')
 
-    ax0 = jmeter.plot(ax=ax0, title=f'throughput measured at client',
-                      filepath=_jmeter_ + 'train/' + _jmeter_folder_ + '/raw_data_' + _jmeter_id_ + '.jtl',
-                      timestep=_timestep_,
-                      interval=_interval_,
-                      expected_avg=_expected_avg_ * 2, label='train')
+    if n_clients == 2:
+        ax0 = jmeter.plot(ax=ax0, title=f'throughput measured at client',
+                          filepath=_jmeter_ + 'train/' + _jmeter_folder_ + '/raw_data_' + _jmeter_id_ + '.jtl',
+                          timestep=_timestep_,
+                          interval=_interval_,
+                          expected_avg=_expected_avg_ * 2, label='train')
 
     ax1 = jmeter_summary.plot(axs[0, 1],
                               filename=_jmeter_ + 'prod/' + _jmeter_folder_ + 'acmeair.stats.' + _jmeter_id_,
                               title='errors overtime', expected_avg=_expected_avg_, label='prod')
 
-    ax1 = jmeter_summary.plot(ax1,
-                              filename=_jmeter_ + 'train/' + _jmeter_folder_ + 'acmeair.stats.' + _jmeter_id_,
-                              title='errors overtime', expected_avg=_expected_avg_, label='train')
+    if n_clients == 2:
+        ax1 = jmeter_summary.plot(ax1,
+                                  filename=_jmeter_ + 'train/' + _jmeter_folder_ + 'acmeair.stats.' + _jmeter_id_,
+                                  title='errors overtime', expected_avg=_expected_avg_, label='train')
 
     ax2 = mongo_metrics.plot(axs[1, 0],
                              filepath=_mongo_ + _mongo_folder_ + 'mongo_metrics.json',
@@ -44,8 +46,11 @@ def plot(name, _jmeter_folder_, _mongo_folder_, _jmeter_id_, _timestep_, _interv
     fig.suptitle('tuning interval: {}min, experiment interval: {}h, req/s expectation: {}, sampling: {}min'.format(
         _timestep_ // 60, _interval_ // 3600, _expected_avg_, _timestep_ // 60), y=1)
     fig.tight_layout()
-    plt.show()
-    # plt.savefig(str(name))
+    if name:
+        plt.savefig(str(name))
+    else:
+        plt.show()
+    #
 
 if __name__ == '__main__':
     # jmeter_folder =    ['20200515-043107/', '20200515-150051/', '20200515-231509/', '20200515-190929/', '20200516-013602/', '20200518-022204/', '20200518-165703/', '20200519-044613/', '20200519-195932/', '20200519-225006/']
@@ -74,5 +79,21 @@ if __name__ == '__main__':
     # # only http parameters
     # plot('', '20200521-012617/', '20200521-033713/', '2020052112617', 900, 120 * 60, 1000)
     # max threads
-    plot('', '20200522-014432/', '20200522-035512/', '2020052214432', 900, 130 * 60, 1000)
+    # plot('', '20200522-014432/', '20200522-035512/', '2020052214432', 900, 130 * 60, 1000)
+    # xmx / mongo conn prod4 train100
+    # plot('', '20200523-022434/', '20200523-044328/', '2020052322434', 900, 130 * 60, 2000)
+    # -xmx 2h 10% to update - sampling 66% [ok]
+    # plot('', '20200523-161514/', '20200523-181854/', '20200523161514', 900, 130 * 60, 2000)
+
+    # #-xmx 4h 0% to update - sampling 66% [ok]
+    # plot(2, '4h-s066-2c', '20200523-182342/', '20200523-223255/', '20200523182342', 900, 240 * 60, 2000)
+    # # -xmx 4h 0% to update - sampling 100% - two services
+    # plot(2, '4h-s100-2c', '20200524-194620/', '20200524-235332/', '20200524194620', 900, 240 * 60, 2000)
+    #
+    # # -xmx 4h 0% to update - sampling 66% - single service
+    # plot(1, '4h-s066-1c', '20200523-223727/', '20200524-025037/', '20200523223727', 900, 240 * 60, 2000)
+    # # -xmx 4h 0% to update - sampling 100% - single service
+    # plot(1, '4h-s100-1c', '20200524-152813/', '20200524-193347/', '20200524152813', 900, 240 * 60, 2000)
+
+    plot(2, '', '20200525-174655/', '20200525-191638/', '20200525174655', 900, 90, 2000)
 

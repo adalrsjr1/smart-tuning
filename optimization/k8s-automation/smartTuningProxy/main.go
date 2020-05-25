@@ -94,8 +94,8 @@ func (p *Proxy) forwardRequest(req *http.Request) (*http.Response, time.Duration
 	proxyURL := fmt.Sprintf("http://127.0.0.1:%d%s", servicePort, req.RequestURI)
 
 	// Print the original URL and the proxied request URL.
-	fmt.Printf("Original URL: http://%s/:%d%s\n", req.Host, servicePort, req.RequestURI)
-	fmt.Printf("%s:%s URL: %s\n", podName, podNamespace, proxyURL)
+	//fmt.Printf("Original URL: http://%s/:%d%s\n", req.Host, servicePort, req.RequestURI)
+	//fmt.Printf("%s:%s URL: %s\n", podName, podNamespace, proxyURL)
 
 	// Create an HTTP client and a proxy request based on the original request.
 	httpClient := http.Client{}

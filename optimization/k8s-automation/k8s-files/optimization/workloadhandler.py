@@ -120,15 +120,14 @@ def __group__(u, v, table, memory):
 
 
 def workload_and_metric(pod_regex, interval, mock=False) -> seqkmeans.Container:
-    with config.ThreadPoolExecutor(2) as executor:
-        future_workload = executor.submit(workload, pod_regex, interval, mock)
-        future_throughput = executor.submit(throughput, pod_regex, interval, mock)
-        done = config.ThreadWait([future_workload, future_throughput], timeout=None, return_when=config.FUTURE_ALL_COMPLETED)
+    future_workload = config.executor.submit(workload, pod_regex, interval, mock)
+    future_throughput = config.executor.submit(throughput, pod_regex, interval, mock)
+    done = config.ThreadWait([future_workload, future_throughput], timeout=None, return_when=config.FUTURE_ALL_COMPLETED)
 
-        future_throughput = done[0].pop().result()
-        future_workload = done[0].pop().result()
-        if not isinstance(future_workload, seqkmeans.Container):
-            future_workload, future_throughput = future_throughput, future_workload
+    future_throughput = done[0].pop().result()
+    future_workload = done[0].pop().result()
+    if not isinstance(future_workload, seqkmeans.Container):
+        future_workload, future_throughput = future_throughput, future_workload
 
     _workload = future_workload
     _workload.metric = future_throughput

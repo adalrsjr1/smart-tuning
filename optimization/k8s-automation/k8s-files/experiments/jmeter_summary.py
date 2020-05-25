@@ -16,7 +16,7 @@ def load_rawdata(filepath, label):
     data = {_time_: [], label + ' ' + _sum_: [],label + ' ' +  _avg_: [], label + ' ' + _min_: [], label + ' ' + _max_: [], label + ' ' + _err_: []}
     with open(filepath) as f:
         #o.a.j.r.Summariser
-        pattern = '^(?P<time>2020.*) INFO (o\.a\.j\.r\.Summariser: summary [=].+ =\s+)(?P<summary>\d+\.\d+/s)( Avg:\s+)(?P<avg>\d+)( Min:\s+)(?P<min>\d+)( Max:\s+)(?P<max>\d+)( Err:\s+)(?P<err>\d+)'
+        pattern = '^(?P<time>2020.*) INFO (o\.a\.j\.r\.Summariser: summary [=].+ =\s+)(?P<summary>\d+\.\d+/s)( Avg:\s+)(?P<avg>\d+)( Min:\s+)(?P<min>\d+)( Max:\s+)(?P<max>\d+)( Err:\s+)\d+\s\((?P<err>\d+\.\d+)'
         for row in f:
             search = re.findall(pattern, row)
 
@@ -27,7 +27,7 @@ def load_rawdata(filepath, label):
                 data[label + ' ' + _avg_].append(int(search[4]))
                 data[label + ' ' + _min_].append(int(search[6]))
                 data[label + ' ' + _max_].append(int(search[8]))
-                data[label + ' ' + _err_].append(int(search[10])/6)
+                data[label + ' ' + _err_].append(float(search[10]))
 
     df = pd.DataFrame(data)
     df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S.%f')
@@ -51,9 +51,15 @@ def x_tick_formatter(value, tick_number):
 def plot(ax, filename, title, expected_avg, label):
     df = load_rawdata(filename, label)
 
-    ax = df.plot(ax=ax, linewidth=0.7, y=[label+' '+_sum_, label+' '+_avg_, label+' '+_err_], title=title)
-
+    # ax = df.plot(ax=ax, linewidth=0.7, y=[label+' '+_sum_, label+' '+_avg_, label+' '+_err_], title=title)
+    ax = df.plot(ax=ax, linewidth=0.7, y=[label+' '+_sum_], title=title)
+    ax.set_ylabel('req/s')
     ax.legend(frameon=False)
+    ax2=df.plot(ax=ax, linewidth=0.7, y=[label+' '+_err_], title=title, secondary_y=True)
+    ax2.set_ylabel('errors (%)')
+    print(df)
+    ax.legend(frameon=False)
+    ax2.legend(frameon=False)
 
 
     ax.set_xlabel('time elapsed (h:m:s)')
@@ -68,10 +74,10 @@ def plot(ax, filename, title, expected_avg, label):
 
 if __name__ == '__main__':
 
-    ax = plot(None, 'volume/jmeter/prod/20200522-014432/acmeair.stats.2020052214432',
+    ax = plot(None, 'volume/jmeter/prod/20200524-194620/acmeair.stats.20200524194620',
          '', expected_avg=1000, label='prod')
 
-    ax = plot(ax, 'volume/jmeter/train/20200522-014432/acmeair.stats.2020052214432',
+    ax = plot(ax, 'volume/jmeter/train/20200524-194620/acmeair.stats.20200524194620',
               '', expected_avg=1000, label='train')
 
     plt.show()

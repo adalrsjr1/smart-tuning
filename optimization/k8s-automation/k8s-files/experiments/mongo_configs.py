@@ -103,4 +103,4 @@ def plot(ax, filepath, title, expected_avg):
     return ax
 
 if __name__ == '__main__':
-    plot(None, 'volume/mongo/20200515-231120/mongo_workloads.json', '', expected_avg=2000)
+    plot(None, 'volume/mongo/20200524-025037/mongo_workloads.json', '', expected_avg=2000)

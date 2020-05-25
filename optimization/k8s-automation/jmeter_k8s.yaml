@@ -4,17 +4,21 @@ metadata:
   name: jmeter-config
 data:
   JLOAD_BOOKINGS: 'false'
-  JTHREAD: '1'
-  JDURATION: '7200'
+  # total users id
+  JUSERS: '5'
+  # max value user id
+  JUSER: '4'
+  JTHREAD: '100'
+  JDURATION: '3600'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
   JMIN_SESSION_DURATION: '0'
   JMAX_SESSION_DURATION: '60'
-  JMIN_THINK: '100'
-  JMAX_THINK: '200'
+  JMIN_THINK: '0'
+  JMAX_THINK: '0'
   JREPEAT: '1'
   JRAMPUP: '10'
-  JTARGET_THROUGHPUT: '120000'
+  JTARGET_THROUGHPUT: '48000000'
   THREAD_GROUP: 'workload-uniform'
   TEST_PLAN: 'tuning-workloads.jmx'
 ---

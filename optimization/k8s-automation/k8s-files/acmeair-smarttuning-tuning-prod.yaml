@@ -7,7 +7,7 @@ metadata:
     tuning: "false"
   annotations:
     # https://github.com/stakater/Reloader
-    configmap.reloader.stakater.com/reload: "jvm-config"
+    configmap.reloader.stakater.com/reload: "jvm-config-prod"
 spec:
   replicas: 1
   template:
@@ -74,8 +74,8 @@ spec:
 #              cpu: "1"
 #              memory: "2048Mi"
             limits:
-              cpu: "1"
-              memory: "2048Mi"
+              cpu: "4"
+              memory: "8192Mi"
           imagePullPolicy: Never
           readinessProbe:
             httpGet:
