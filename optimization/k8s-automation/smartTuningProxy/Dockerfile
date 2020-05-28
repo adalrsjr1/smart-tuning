@@ -16,16 +16,16 @@ RUN go mod download
 #FROM build-env as builder
 ## COPY the source code as the last step
 COPY main.go main.go
-RUN pwd
-RUN ls
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -i -installsuffix cgo -o /go/bin/proxy
-#FROM scratch 
+#RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -i -installsuffix cgo -o /go/bin/proxy
+# use -trimpath to enable pprof to find source code when it is running in the source code folder
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /go/bin/proxy
+#FROM scratch
 #FROM alpine
 
-ENV PROXY_PORT=8888 \
-    SERVICE_PORT=80 \
-    METRICS_PORT=9090
+#ENV PROXY_PORT=8888 \
+#    SERVICE_PORT=80 \
+#    METRICS_PORT=9090
 
 # <- Second step to build minimal image
 #COPY build/proxy /go/bin/proxy

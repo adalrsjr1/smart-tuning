@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: acmeair-tuning
+  labels:
+    app: "acmeair"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: acmeair
+      labels:
+        app: "acmeair"
+    spec:
+#      initContainers:
+#        - name: init-networking
+#          image: smarttuning-init
+#          imagePullPolicy: Never
+#          securityContext:
+#            capabilities:
+#              add:
+#                - NET_ADMIN
+#            privileged: true
+#          env:
+#            - name: PROXY_PORT
+#              value: "8888"
+#            - name: SERVICE_PORT
+#              value: "80"
+      containers:
+        - name: proxy
+          image: smarttuning-proxy
+          imagePullPolicy: Never
+          env:
+            - name: RESOURCE_USAGE
+              value: "FALSE"
+            - name: PROXY_PORT
+              value: "8888"
+            - name: SERVICE_PORT
+              value: "80"
+            - name: METRICS_PORT
+              value: "9090"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+          ports:
+            - containerPort: 8888
+            - containerPort: 9090
+        - name: service
+          image: liberty-acmeair-k8s
+          imagePullPolicy: Never
+          readinessProbe:
+            httpGet:
+              port: 80
+              path: /acmeair-webapp/
+            initialDelaySeconds: 30
+            failureThreshold: 3
+            periodSeconds: 10
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: acmeair-config
+          volumeMounts:
+            - mountPath: /etc/acmeair-config
+              name: acmeair-config
+            - mountPath: /config/jvm.options
+              subPath: jvm.options
+              name: jvm-config
+      volumes:
+        - name: acmeair-config
+          configMap:
+            name: acmeair-config
+        - name: jvm-config
+          configMap:
+            name: jvm-config-train
+  selector:
+    matchLabels:
+      app: "acmeair"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: acmeair
+spec:
+  selector:
+    app: acmeair
+  ports:
+    - port: 8888
+      targetPort: 8888
+      nodePort: 30080
+      name: app
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30091
+      name: admin
+  type: NodePort

@@ -15,7 +15,7 @@ metadata:
   name: jvm-config-train
 data:
   jvm.options: |-
-    -Xmx7300m
+    -Xmx230m
 #    -Xtune:virtualized
 #    -XX:+UseContainerSupport
 #    -XX:MaxRAMPercentage=90
