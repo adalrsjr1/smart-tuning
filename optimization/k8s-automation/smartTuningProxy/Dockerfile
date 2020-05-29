@@ -15,11 +15,13 @@ RUN go mod download
 
 #FROM build-env as builder
 ## COPY the source code as the last step
+#COPY main.go main.go
 COPY main.go main.go
 # Build the binary
 #RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -i -installsuffix cgo -o /go/bin/proxy
 # use -trimpath to enable pprof to find source code when it is running in the source code folder
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /go/bin/proxy
+#RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /go/bin/proxy
 #FROM scratch
 #FROM alpine
 

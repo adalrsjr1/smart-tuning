@@ -1,30 +1,25 @@
 package main
 
-// Source:
-// https://venilnoronha.io/hand-crafting-a-sidecar-proxy-and-demystifying-istio
-
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"io"
+	"log"
 	"net/http"
 	"net/http/pprof"
-	"net/url"
 	"os"
-	"sort"
 	"strconv"
-	"strings"
+	"time"
 
-	//"github.com/prometheus/client_golang/prometheus"
-	//"github.com/prometheus/client_golang/prometheus/promauto"
-	//"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/valyala/fasthttp"
 )
 
 var (
-	proxyPort, _   = strconv.Atoi(os.Getenv("PROXY_PORT"))
-	servicePort, _ = strconv.Atoi(os.Getenv("SERVICE_PORT"))
-	metricsPort, _ = strconv.Atoi(os.Getenv("METRICS_PORT"))
-	proxyURL 	   = "http://127.0.0.1:" + os.Getenv("SERVICE_PORT")
+	proxyPort, _    = strconv.Atoi(os.Getenv("PROXY_PORT"))
+	metricsPort, _  = strconv.Atoi(os.Getenv("METRICS_PORT"))
+	upstreamPort, _ = strconv.Atoi(os.Getenv("SERVICE_PORT"))
+	upstreamAddr    = "127.0.0.1:" + os.Getenv("SERVICE_PORT")
 
 	// https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/
 	podName           = os.Getenv("POD_NAME")
@@ -34,122 +29,82 @@ var (
 	podIP             = os.Getenv("POD_IP")
 	podServiceAccount = os.Getenv("POD_SERVICE_ACCOUNT")
 
-	httpClient 		  = http.Client{}
+	maxConn, _ = strconv.Atoi(os.Getenv("MAX_CONNECTIONS"))
+	readBuffer, _ = strconv.Atoi(os.Getenv("READ_BUFFER_SIZE"))
+	writeBuffer, _ = strconv.Atoi(os.Getenv("WRITE_BUFFER_SIZE"))
+	readTimeout, _ = strconv.Atoi(os.Getenv("READ_TIMEOUT"))
+	writeTimeout, _ = strconv.Atoi(os.Getenv("WRITE_TIMEOUT"))
+	connDuration, _ = strconv.Atoi(os.Getenv("MAX_IDLE_CONNECTION_DURATION"))
+	connTimeout, _ = strconv.Atoi(os.Getenv("MAX_CONNECTION_TIMEOUT"))
 
-	//httpRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-	//	// when change this name also update prometheus config file
-	//	Name: "remap_http_requests_total",
-	//	Help: "Count of all HTTP requests",
-	//}, []string{"node", "pod", "namespace", "code", "method", "path"})
+	proxyClient = &fasthttp.HostClient{
+		Addr:                          upstreamAddr,
+		NoDefaultUserAgentHeader:      true, // Don't send: User-Agent: fasthttp
+		MaxConns:                      maxConn,
+		ReadBufferSize:                readBuffer, // Make sure to set this big enough that your whole request can be read at once.
+		WriteBufferSize:               writeBuffer, // Same but for your response.
+		ReadTimeout:                   time.Duration(readTimeout) * time.Second,
+		WriteTimeout:                  time.Duration(writeTimeout) * time.Second,
+		MaxIdleConnDuration:           time.Duration(connDuration) * time.Second,
+		MaxConnWaitTimeout: 		   time.Duration(connTimeout) * time.Second,
+		DisableHeaderNamesNormalizing: true, // If you set the case on your headers correctly you can enable this.
+	}
 
-	keysBuffer = make([]string, 1000)
+	httpRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		// when change this name also update prometheus config file
+		Name: "smarttuning_http_requests_total",
+		Help: "Count of all HTTP requests",
+	}, []string{"node", "pod", "namespace", "code", "method", "path"})
 )
 
-// Create a structure to define the proxy functionality.
-type Proxy struct{}
+func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
+	req := &ctx.Request
+	resp := &ctx.Response
 
-func (p *Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// Forward the HTTP request to the destination service
-	res, err := p.forwardRequest(req)
-
-	// Notify the client if there was an error while forwarding the request.
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
+	prepareRequest(req)
+	if err := proxyClient.Do(req, resp); err != nil {
+		resp.SetStatusCode(fasthttp.StatusBadGateway)
+		ctx.Logger().Printf("error when proxying the request: %s", err)
 	}
+	postprocessResponse(resp)
 
-	// If the request was forwared successfully, write the response back to the client.
-	p.writeResponse(w, res)
-
-	//go func(req *http.Request, res *http.Response) {
-	//	// chopping of all queries
-	//	httpRequestsTotal.With(prometheus.Labels{
-	//		"node":      nodeName,
-	//		"pod":       podName,
-	//		"namespace": podNamespace,
-	//		"code":      strconv.Itoa(res.StatusCode),
-	//		"method":    req.Method,
-	//		"path":      req.URL.Path, //+ p.sanitizeURLQuery(req.URL.RawQuery),
-	//	}).Inc()
-	//}(req, res)
+	go func(path []byte, method []byte, statusCode int) {
+		httpRequestsTotal.With(prometheus.Labels{
+			"node":      nodeName,
+			"pod":       podName,
+			"namespace": podNamespace,
+			"code":      strconv.Itoa(statusCode),
+			"method":    string(method),
+			"path":      string(path), //+ p.sanitizeURLQuery(req.URL.RawQuery),
+		}).Inc()
+	}(req.RequestURI(), ctx.Method(), resp.StatusCode())
 }
 
-func (p *Proxy) sanitizeURLQuery(rawQuery string) string {
-	query, _ := url.ParseQuery(rawQuery)
-	keys := keysBuffer[0:len(query)]
-	i := 0
-	for k := range query {
-		keys[i] = k
-		i++
-	}
+func prepareRequest(req *fasthttp.Request) {
+	// do not proxy "Connection" header.
+	req.SetHost(proxyClient.Addr)
+	req.Header.Set("X-Forwarded-Host", podIP)
+	//req.Header.Del("Connection")
+	// strip other unneeded headers.
 
-	sort.Strings(keys)
+	// alter other request params before sending them to upstream host
 
-	var strQuery strings.Builder
 
-	for _, key := range keys {
-		strQuery.WriteString(key)
-		strQuery.WriteString(",")
-	}
-
-	if i > 0 {
-		return "?" + strQuery.String()
-	}
-	return ""
 }
 
-func (p *Proxy) forwardRequest(req *http.Request) (*http.Response, error) {
-	proxyReq, err := http.NewRequest(req.Method, proxyURL+req.RequestURI, req.Body)
+func postprocessResponse(resp *fasthttp.Response) {
+	// do not proxy "Connection" header
+	//resp.Header.Del("Connection")
+	resp.Header.Add("Server", "X-SMART-TUNING-PROXY")
+	resp.Header.Add("Pod", podName)
 
-	//proxyReq.Header = req.Header
-	p.copyHeader(req.Header, proxyReq.Header)
-	proxyReq.Header.Set("Server", "smarttuning-proxy")
-	proxyReq.Header.Set("POD", podName)
+	// strip other unneeded headers
 
-	// Capture the duration while making a request to the destination service.
-	res, err := httpClient.Do(proxyReq)
+	// alter other response data if needed
 
-	// Return the response, the request duration, and the error.
-	return res, err
 }
 
-func (p *Proxy) writeResponse(w http.ResponseWriter, res *http.Response) {
-	// Copy all the header values from the response.
-	p.copyHeader(res.Header, w.Header())
-
-	// Set a special header to notify that the proxy actually serviced the
-	// request.
-	w.Header().Set("Server", "X-SMART-TUNING-PROXY")
-  	w.Header().Set("Pod", podName)
-
-	// Set the status code returned by the destination service.
-	w.WriteHeader(res.StatusCode)
-
-	// Copy the contents from the response body.
-	io.Copy(w, res.Body)
-
-	// Finish the request.
-	res.Body.Close()
-}
-
-func (p *Proxy) copyHeader(sourceHeader, destinationHeader http.Header) {
-	for name, values := range sourceHeader {
-		destinationHeader[name] = values
-	}
-}
-
-
-/*
-no proxy : 1426.8
-custom   : 919.5
-envoy    : 1312.2
-traefik  : 1011.8
-
-cat jmeter/$(ls -lha jmeter | tail -n 1 | awk '{print $9}')/*.csv | tail -n 1 | awk -F ',' '{print $11}'
- */
 func main() {
-  	fmt.Printf("Initalizing proxy")
-
 	go func() {
 		r := http.NewServeMux()
 		r.Handle("/metrics", promhttp.Handler())
@@ -161,9 +116,8 @@ func main() {
 
 		http.ListenAndServe(fmt.Sprintf(":%d", metricsPort), r)
 	}()
-	// Listen on the predefined proxy port.
-	fmt.Sprintf("0.0.0.0:%d/ --> 127.0.0.1:%d", proxyPort, servicePort)
-	http.ListenAndServe(fmt.Sprintf(":%d", proxyPort), &Proxy{})
 
+	if err := fasthttp.ListenAndServe(fmt.Sprintf(":%d", proxyPort), ReverseProxyHandler); err != nil {
+		log.Fatalf("error in fasthttp server: %s", err)
+	}
 }
-

@@ -31,6 +31,20 @@ spec:
           image: smarttuning-proxy
           imagePullPolicy: Never
           env:
+            - name: MAX_CONNECTIONS
+              value: "100"
+            - name: READ_BUFFER_SIZE
+              value: "4096"
+            - name: WRITE_BUFFER_SIZE
+              value: "4096"
+            - name: READ_TIMEOUT
+              value: "30"
+            - name: WRITE_TIMEOUT
+              value: "30"
+            - name: MAX_IDLE_CONNECTION_DURATION
+              value: "60"
+            - name: MAX_CONNECTION_TIMEOUT
+              value: "30"
             - name: RESOURCE_USAGE
               value: "FALSE"
             - name: PROXY_PORT
