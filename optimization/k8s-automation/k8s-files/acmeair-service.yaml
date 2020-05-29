@@ -11,7 +11,7 @@ spec:
     # prometheus proxy
     - port: 9090
       targetPort: 9090
-      name: remap
+      name: smarttuning
       protocol: TCP
     - port: 9093
       targetPort: 493
@@ -38,7 +38,7 @@ spec:
     # prometheus proxy
     - port: 9090
       targetPort: 9090
-      name: remap
+      name: smarttuning
       protocol: TCP
     - port: 9093
       targetPort: 493

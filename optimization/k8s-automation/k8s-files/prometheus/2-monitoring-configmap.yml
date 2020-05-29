@@ -118,7 +118,7 @@ data:
           action: replace
           target_label: kubernetes_name
       # https://blog.sebastian-daschner.com/entries/prometheus-kubernetes-discovery
-      - job_name: 'remap-services'
+      - job_name: 'smarttuning-services'
         metrics_path: /metrics
         scheme: http
         kubernetes_sd_configs:
@@ -134,7 +134,7 @@ data:
           #  action: keep
           - source_labels: [__meta_kubernetes_endpoint_port_name]
             separator: ;
-            regex: remap
+            regex: smarttuning
             replacement: $1
             action: keep
           - source_labels: [__meta_kubernetes_namespace]
@@ -176,5 +176,5 @@ data:
           - separator: ;
             regex: (.*)
             target_label: endpoint
-            replacement: remap
+            replacement: smarttuning
             action: replace

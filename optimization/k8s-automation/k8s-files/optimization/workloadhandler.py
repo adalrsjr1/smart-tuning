@@ -32,7 +32,7 @@ def throughput(pod_regex, interval, mock=False) -> float:
         return np.random.randint(10, 101)
 
     prometheus = PrometheusAccessLayer(config.PROMETHEUS_ADDR, config.PROMETHEUS_PORT)
-    result = prometheus.query(f'sum(rate(remap_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))')
+    result = prometheus.query(f'sum(rate(smarttuning_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))')
 
     if result.value():
         return float(result.value()[0][1])
@@ -59,8 +59,8 @@ def workload(pod_regex, interval, mock=False) -> seqkmeans.Container:
         return next(generator)
 
     prometheus = PrometheusAccessLayer(config.PROMETHEUS_ADDR, config.PROMETHEUS_PORT)
-    result = prometheus.query(f'sum by (path)(rate(remap_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s])) / ignoring '
-                              f'(path) group_left sum(rate(remap_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))')
+    result = prometheus.query(f'sum by (path)(rate(smarttuning_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s])) / ignoring '
+                              f'(path) group_left sum(rate(smarttuning_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))')
 
     urls = [u['path'] for u in result.metric()]
     values = [float(u[1]) for u in result.value()]

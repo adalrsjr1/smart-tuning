@@ -59,6 +59,6 @@ spec:
       name: app
     - port: 9090
       targetPort: 9090
+      name: smarttuning
       nodePort: 30091
-      name: admin
   type: NodePort
