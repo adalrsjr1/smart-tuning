@@ -12,15 +12,12 @@ spec:
     - port: 9090
       targetPort: 9090
       name: smarttuning
-      protocol: TCP
     - port: 9093
       targetPort: 493
       name: https
-      protocol: TCP
     - nodePort: 30080
       port: 8888
-      targetPort: 80
-      protocol: TCP
+      targetPort: 8888
       name: http
   selector:
     app: "acmeair"
@@ -39,15 +36,13 @@ spec:
     - port: 9090
       targetPort: 9090
       name: smarttuning
-      protocol: TCP
     - port: 9093
       targetPort: 493
       name: https
       protocol: TCP
     - nodePort: 30088
       port: 8888
-      targetPort: 80
-      protocol: TCP
+      targetPort: 8888
       name: http
   selector:
     app: "acmeair"

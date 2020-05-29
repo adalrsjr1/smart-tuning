@@ -4,7 +4,7 @@ metadata:
   name: jvm-config-prod
 data:
   jvm.options: |-
-    -Xmx8192m
+    -Xmx230m
 #    -Xtune:virtualized
 #    -XX:+UseContainerSupport
 #    -XX:MaxRAMPercentage=90
@@ -15,7 +15,7 @@ metadata:
   name: jvm-config-train
 data:
   jvm.options: |-
-    -Xmx8192m
+    -Xmx230m
 #    -Xtune:virtualized
 #    -XX:+UseContainerSupport
 #    -XX:MaxRAMPercentage=90

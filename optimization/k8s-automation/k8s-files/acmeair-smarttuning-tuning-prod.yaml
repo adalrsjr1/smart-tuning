@@ -17,25 +17,39 @@ spec:
         app: "acmeair"
         tuning: "false"
     spec:
-      initContainers:
-        - name: init-networking
-          image: smarttuning-init
-          imagePullPolicy: Never
-          securityContext:
-            capabilities:
-              add:
-                - NET_ADMIN
-            privileged: true
-          env:
-            - name: PROXY_PORT
-              value: "8888"
-            - name: SERVICE_PORT
-              value: "80"
+#      initContainers:
+#        - name: init-networking
+#          image: smarttuning-init
+#          imagePullPolicy: Never
+#          securityContext:
+#            capabilities:
+#              add:
+#                - NET_ADMIN
+#            privileged: true
+#          env:
+#            - name: PROXY_PORT
+#              value: "8888"
+#            - name: SERVICE_PORT
+#              value: "80"
       containers:
         - name: proxy
           image: smarttuning-proxy
           imagePullPolicy: Never
           env:
+            - name: MAX_CONNECTIONS
+              value: "100"
+            - name: READ_BUFFER_SIZE
+              value: "4096"
+            - name: WRITE_BUFFER_SIZE
+              value: "4096"
+            - name: READ_TIMEOUT
+              value: "30"
+            - name: WRITE_TIMEOUT
+              value: "30"
+            - name: MAX_IDLE_CONNECTION_DURATION
+              value: "60"
+            - name: MAX_CONNECTION_TIMEOUT
+              value: "30"
             - name: RESOURCE_USAGE
               value: "FALSE"
             - name: PROXY_PORT
