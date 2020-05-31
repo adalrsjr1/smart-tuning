@@ -40,14 +40,14 @@ data:
   WLP_LOGGING_CONSOLE_FORMAT: "basic"
   WLP_LOGGING_CONSOLE_LOGLEVEL: "info"
   # default max connectionPoolSize MONGO_MAX_CONNECTIONS=100
-  MONGO_MAX_CONNECTIONS: "100"
+  MONGO_MAX_CONNECTIONS: "1"
   # default 10
   MONGO_MIN_CONNECTIONS: "1"
   # default 10
   MONGO_CONNECTION_TIMEOUT: "10"
   # Openliberty specific
   # default 100
-  HTTP_MAX_KEEP_ALIVE_REQUESTS: "100"
+  HTTP_MAX_KEEP_ALIVE_REQUESTS: "1"
   # default 30
   HTTP_PERSIST_TIMEOUT: "30"
   # default 60
@@ -85,7 +85,7 @@ data:
   WLP_LOGGING_CONSOLE_FORMAT: "basic"
   WLP_LOGGING_CONSOLE_LOGLEVEL: "info"
   # default max connectionPoolSize MONGO_MAX_CONNECTIONS=100
-  MONGO_MAX_CONNECTIONS: "100"
+  MONGO_MAX_CONNECTIONS: "1"
   # default 10
   MONGO_MIN_CONNECTIONS: "1"
   # default 10
@@ -111,6 +111,14 @@ data:
   EXECUTOR_REJECTED_WORK_POLICY: "CALLER_RUNS"
 ---
 #{
+#  "key": "-Xmx",
+#  "type": "int",
+#  "lower": 230,
+#  "upper": 7373,
+#  "step" : 100,
+#  "options": null
+#},
+#{
 #  "key": "-Xnojit",
 #  "type": "bool",
 #  "lower": null,
@@ -134,11 +142,11 @@ data:
   search-space.json: |
     [
       {
-          "key": "-Xmx",
+          "key": "MONGO_MAX_CONNECTIONS",
           "type": "int",
-          "lower": 230,
-          "upper": 7373,
-          "step" : 100,
+          "lower": 1,
+          "upper": 30,
+          "step" : 1,
           "options": null
       }
     ]

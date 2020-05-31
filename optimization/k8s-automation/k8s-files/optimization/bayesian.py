@@ -17,7 +17,7 @@ def objective(params):
         metric = chn_in.get(True)
     except Exception as e:
         print(e)
-    return metric
+    return -metric
 
 def sample(metric):
     parameters = chn_out.get(True)
@@ -38,6 +38,6 @@ if config.BAYESIAN:
 def init(search_space):
     global space
     space = search_space
-    config.executor.submit(fmin, fn=objective, space=space, algo=surrogate, max_evals=int(1e15), verbose=False, show_progressbar=False, rstate= np.random.RandomState(31))
+    config.executor.submit(fmin, fn=objective, space=space, algo=surrogate, max_evals=int(1e15), verbose=False, show_progressbar=False, rstate= np.random.RandomState(config.RANDOM_SEED))
 # done = wait([o], timeout=None, return_when=FUTURE_ALL_COMPLETED)
 

@@ -24,8 +24,8 @@ def update_config(last_metric)->dict:
     print('new config >>> ', configuration)
 
     print('patching new config')
-    # config_map.patch(config.CONFIGMAP_NAME, config.NAMESPACE, configuration)
-    config_map.patch_jvm(config.CONFIGMAP_NAME, config.NAMESPACE, configuration)
+    config_map.patch(config.CONFIGMAP_NAME, config.NAMESPACE, configuration)
+    # config_map.patch_jvm(config.CONFIGMAP_NAME, config.NAMESPACE, configuration)
     return configuration
 
 def save(workload:Container)->str:
@@ -62,13 +62,15 @@ def main():
     configMapHandler = cs.ConfigMap()
 
     start = time.time()
-    print(f' *** waiting {config.WAITING_TIME}s for the application warming up *** ')
+    print(f' *** waiting {config.WAITING_TIME}s for application warm up *** ')
     while time.time() - start < config.WAITING_TIME:
         print('.', end='')
         time.sleep(10)
     print()
 
+    print(f'*** starting SmartTuning loop ***')
     first_loop = True
+    iteration_counter = 1
     while True:
         start = time.time()
         configuration = update_config(last_train_matric)
@@ -77,28 +79,27 @@ def main():
         time.sleep(config.WAITING_TIME)
 
         print(' *** sampling workloads *** ')
-        print('sampling training workload')
+        print('\tsampling training workload')
         workload = wh.workload_and_metric(config.POD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
         workload.classification, workload.hits = wh.classify(workload)
         workload.configuration = configuration
 
         last_train_matric = workload.metric
 
-        print('sampling production workload')
+        print('\tsampling production workload')
         workload_prod = wh.workload_and_metric(config.POD_PROD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
         workload_prod.classification = last_type
         workload_prod.configuration = last_config
 
-        print(f'\t[T] throughput: {workload.metric}')
-        print(f'\t[P] throughput: {workload_prod.metric}')
-
+        print(f'\t\t[T] throughput: {workload.metric}')
+        print(f'\t\t[P] throughput: {workload_prod.metric}')
 
         if first_loop:
             first_loop = False
             print(f'smarttuning loop took {time.time() - start}s')
             continue
 
-        print('saving data')
+        print(' *** saving data ***')
         save(workload)
         save_prod_metric(workload.start, workload_prod.metric, workload.metric)
         save_workload(workload_prod, workload)
@@ -116,7 +117,7 @@ def main():
         if last_config and '_id' in last_config:
             del (last_config['_id'])
 
-        print('\ndeciding about update the application\n')
+        print('\n *** deciding about update the application *** \n')
         print(f'\tis the best config stable? {workload.hits > config.NUMBER_ITERATIONS}')
         if workload.hits >= config.NUMBER_ITERATIONS:
             print(f'\tis best metric > current prod metric? {best_metric > workload_prod.metric * (1+config.METRIC_THRESHOLD)}')
@@ -124,8 +125,8 @@ def main():
                 print(f'\tis last config != best config? ', last_config != best_config)
                 if last_config != best_config:
                     print(f'setting config: {best_config}')
-                    # configMapHandler.patch(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
-                    configMapHandler.patch_jvm(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
+                    configMapHandler.patch(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
+                    # configMapHandler.patch_jvm(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
 
                     last_config = best_config
                     save_config_applied(best_config or {})
@@ -133,7 +134,8 @@ def main():
         last_type = workload.classification
         last_prod_metric = workload_prod.metric
 
-        print(f'smarttuning loop took {time.time() - start}s')
+        print(f' *** smarttuning loop [{iteration_counter}] took {time.time() - start}s *** \n\n')
+        iteration_counter += 1
 
 
 if __name__ == '__main__':

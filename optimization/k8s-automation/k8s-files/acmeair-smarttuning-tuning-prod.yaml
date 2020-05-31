@@ -7,7 +7,7 @@ metadata:
     tuning: "false"
   annotations:
     # https://github.com/stakater/Reloader
-    configmap.reloader.stakater.com/reload: "jvm-config-prod"
+    configmap.reloader.stakater.com/reload: "jvm-config-prod,acmeair-config-prod"
 spec:
   replicas: 1
   template:
@@ -37,7 +37,7 @@ spec:
           imagePullPolicy: Never
           env:
             - name: MAX_CONNECTIONS
-              value: "100"
+              value: "300"
             - name: READ_BUFFER_SIZE
               value: "4096"
             - name: WRITE_BUFFER_SIZE
@@ -89,7 +89,7 @@ spec:
 #              memory: "2048Mi"
             limits:
               cpu: "4"
-              memory: "8192Mi"
+              memory: "2048Mi"
           imagePullPolicy: Never
           readinessProbe:
             httpGet:

@@ -1,4 +1,5 @@
 import os
+import time
 from concurrent.futures import ThreadPoolExecutor, wait as ThreadWait, ALL_COMPLETED as FUTURE_ALL_COMPLETED
 
 from pymongo import MongoClient
@@ -20,6 +21,7 @@ WAITING_TIME = int(os.environ.get('WAITING_TIME', default='2'))
 CONFIGMAP_NAME = os.environ.get('CONFIGMAP_NAME', default='tuning-config')
 CONFIGMAP_PROD_NAME = os.environ.get('CONFIGMAP_PROD_NAME', default='tuning-config')
 NAMESPACE = os.environ.get('NAMESPACE', 'default')
+RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
 NAMESPACE_PROD = os.environ.get('NAMESPACE_PROD', 'default')
 POD_REGEX = os.environ.get('POD_REGEX', '.*tuning.*')
 POD_PROD_REGEX = os.environ.get('POD_PROD_REGEX', '.*tuningprod.*')
