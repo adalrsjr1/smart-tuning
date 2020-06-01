@@ -64,7 +64,7 @@ def load_rawdata(filepath):
 
 if __name__ == '__main__':
 
-    df = load_rawdata('volume/mongo/20200524-235332/mongo_workloads.json')
+    df = load_rawdata('volume/mongo/20200531-225554/mongo_workloads.json')
 
     print(df)
 

@@ -43,8 +43,8 @@ def plot(n_clients, name, _jmeter_folder_, _mongo_folder_, _jmeter_id_, _timeste
                              title='configurations over time',
                              expected_avg=_expected_avg_)
 
-    fig.suptitle('tuning interval: {}min, experiment interval: {}h, req/s expectation: {}, sampling: {}min'.format(
-        _timestep_ // 60, _interval_ // 3600, _expected_avg_, _timestep_ // 60), y=1)
+    fig.suptitle('tuning interval: {}min, experiment interval: {}h, req/s expectation: {}'.format(
+        _timestep_ // 60, _interval_ // 3600, _expected_avg_), y=1)
     fig.tight_layout()
     if name:
         plt.savefig(str(name))
@@ -95,5 +95,9 @@ if __name__ == '__main__':
     # # -xmx 4h 0% to update - sampling 100% - single service
     # plot(1, '4h-s100-1c', '20200524-152813/', '20200524-193347/', '20200524152813', 900, 240 * 60, 2000)
 
-    plot(2, '', '20200525-174655/', '20200525-191638/', '20200525174655', 900, 90, 2000)
+    # plot(2, '', '20200525-174655/', '20200525-191638/', '20200525174655', 900, 90, 2000)
+    # threads (4,100), http (4, 100), mongo(1, 30)
+    plot(2, '4h-s033-2c', '20200531-183030/', '20200531-225554/', '20200531183030', 900, 240*60 + 25*60, 8000)
+    # mongo(1, 30)
+    plot(2, '4h-s033-2c', '20200531-230123/', '20200601-010756/', '2020053123012', 900, 240*60 + 25*60, 8000)
 
