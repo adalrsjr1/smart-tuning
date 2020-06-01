@@ -44,14 +44,14 @@ def plot(ax, filepath, title, timestep, interval, expected_avg, label):
 
 
 
-    # ax.legend(frameon=False)
-    #
-    # ax.set_xlabel('time elapsed (h:m:s)')
-    # ax.xaxis.set_major_locator(plt.MaxNLocator(21))
-    # ax.xaxis.set_minor_locator(plt.NullLocator())
-    # ax.xaxis.set_major_formatter(plt.FuncFormatter(x_tick_formatter))
-    #
-    # ax.set_ylabel('throuhgput (req/s)')
+    ax.legend(frameon=False)
+
+    ax.set_xlabel('time elapsed (h:m:s)')
+    ax.xaxis.set_major_locator(plt.MaxNLocator(21))
+    ax.xaxis.set_minor_locator(plt.NullLocator())
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(x_tick_formatter))
+
+    ax.set_ylabel('throuhgput (req/s)')
 
     # yticks = sorted([1677, expected_avg, int(average)])
     # ax.set_yticks(yticks, minor=True)
@@ -67,17 +67,17 @@ if __name__ == '__main__':
     # for multiple plots reger to: https://stackoverflow.com/questions/38989178/pandas-plot-combine-two-plots
     ##
     ax = plot(ax=None, title=f'throughput measured at client',
-         filepath='volume/jmeter/prod/20200531-183030/raw_data_20200531183030.jtl',
+         filepath='volume/jmeter/prod/20200522-014432/raw_data_2020052214432.jtl',
          timestep=900  ,
-         interval=4*3600+25,
-         expected_avg=6000,
+         interval=2*3600,
+         expected_avg=2000,
          label='prod')
 
-    # ax = plot(ax=ax, title=f'throughput measured at client',
-    #           filepath='volume/jmeter/train/20200522-014432/raw_data_2020052214432.jtl',
-    #           timestep=900,
-    #           interval=2 * 3600,
-    #           expected_avg=2000,
-    #           label='train')
+    ax = plot(ax=ax, title=f'throughput measured at client',
+              filepath='volume/jmeter/train/20200522-014432/raw_data_2020052214432.jtl',
+              timestep=900,
+              interval=2 * 3600,
+              expected_avg=2000,
+              label='train')
 
     plt.show()
