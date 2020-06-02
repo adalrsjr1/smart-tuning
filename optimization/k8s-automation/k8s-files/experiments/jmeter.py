@@ -6,12 +6,13 @@ from matplotlib import dates
 import datetime
 
 def load_rawdata(filepath, label):
-    df = pd.read_csv(filepath, na_values='-', usecols=[0, 1], names=['time', label + ' measured'])
-    df.fillna(0, inplace=True)
+    df = pd.read_csv(filepath, na_values='-', usecols=[0], names=['time'], index_col=False)
+    # df.fillna(0, inplace=True)
     df['time'] = pd.to_datetime(df['time'], unit='ms')
+    df[label] = 1
     df = df.set_index('time').sort_index()
 
-    df = df.drop(df.index[0:3])
+    # df = df.drop(df.index[0:3])
     return df
 
 last_value = 0
@@ -28,8 +29,10 @@ def x_tick_formatter(value, tick_number):
 
 def plot(ax, filepath, title, timestep, interval, expected_avg, label):
     df:pd.DataFrame = load_rawdata(filepath, label)
-    average = float(df.rolling('1ms').count().sum() / interval)
-    df = df.rolling('1ms').count().groupby(pd.Grouper(freq=f'{timestep}s')).sum() / timestep
+    # average = float(df.rolling('1ms').count().sum() / interval)
+    # df = df.rolling('1ms').count().groupby(pd.Grouper(freq=f'{timestep}s')).sum() / timestep
+    average = float(df.count() / interval)
+    df = df.groupby(pd.Grouper(freq=f'{timestep}s')).sum() / timestep
 
     # df['avg w/default config.\n        wo/SmartTuning'] = [1677] * len(df)
     df[label + ' avg'] = [average] * len(df)
@@ -63,21 +66,20 @@ def plot(ax, filepath, title, timestep, interval, expected_avg, label):
     return ax
 
 if __name__ == '__main__':
-    ##
     # for multiple plots reger to: https://stackoverflow.com/questions/38989178/pandas-plot-combine-two-plots
     ##
     ax = plot(ax=None, title=f'throughput measured at client',
-         filepath='volume/jmeter/prod/20200522-014432/raw_data_2020052214432.jtl',
+         filepath='volume/jmeter/prod/20200531-183030/raw_data_20200531183030.jtl',
          timestep=900  ,
-         interval=2*3600,
-         expected_avg=2000,
+         interval=4*3600,
+         expected_avg=8000,
          label='prod')
 
     ax = plot(ax=ax, title=f'throughput measured at client',
-              filepath='volume/jmeter/train/20200522-014432/raw_data_2020052214432.jtl',
+              filepath='volume/jmeter/train/20200531-183030/raw_data_20200531183030.jtl',
               timestep=900,
-              interval=2 * 3600,
-              expected_avg=2000,
+              interval=4 * 3600,
+              expected_avg=8000,
               label='train')
 
     plt.show()
