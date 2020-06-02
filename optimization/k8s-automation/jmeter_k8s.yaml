@@ -9,7 +9,7 @@ data:
   # max value user id
   JUSER: '4'
   JTHREAD: '100'
-  JDURATION: '7200'
+  JDURATION: '14400'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
   JMIN_SESSION_DURATION: '0'
@@ -19,7 +19,7 @@ data:
   JREPEAT: '1'
   JRAMPUP: '10'
   THREAD_GROUP: 'workload-uniform'
-  JTARGET_THROUGHPUT: '300000'
+  JTARGET_THROUGHPUT: '360000'
 #  THREAD_GROUP: 'workload-uniformconst'
   TEST_PLAN: 'tuning-workloads.jmx'
 ---

@@ -59,11 +59,10 @@ def x_tick_formatter(value, tick_number):
 
 def plot(ax, filepath, title, expected_avg):
     df:pd.DataFrame = load_rawdata(filepath)
-    ax = df.plot(ax=ax, drawstyle='steps', linewidth=0.7, y=['prod. pod'], style=['k-', '-', '--', '--', '--', '--'], rot=45, title=title)
+    ax = df.plot(ax=ax, drawstyle='steps-post', linewidth=0.7, y=['prod. pod'], style=['k-', '-', '--', '--', '--', '--'], rot=45, title=title)
     ax.legend(frameon=False)
-
+    print(df)
     ax.set_ylim(0, 100 + max(df['prod. pod'].max(), df['train. pod'].max()))
-
     points = {}
     for line in ax.get_lines():
         if line.get_label() != 'prod. pod':
@@ -76,7 +75,6 @@ def plot(ax, filepath, title, expected_avg):
             else:
                 points[config] = [point]
 
-    xs, ys = [], []
     items = [item for item in points.items()]
     for i, item in enumerate(items):
         _points = item[1]
@@ -91,8 +89,11 @@ def plot(ax, filepath, title, expected_avg):
             xs.append(_points[0][0])
             ys.append(_points[0][1])
 
-        ax.step(xs, ys, drawstyle='steps', label='config: ' + item[0][:6])
+        print(xs, ys)
+
+        ax.plot(xs, ys, drawstyle='steps-post', label='config: ' + item[0][:6])
         ax.legend(frameon=False)
+
     ax.xaxis.set_major_locator(plt.MaxNLocator(21))
     ax.xaxis.set_minor_locator(plt.NullLocator())
     ax.xaxis.set_major_formatter(plt.FuncFormatter(x_tick_formatter))
@@ -103,4 +104,5 @@ def plot(ax, filepath, title, expected_avg):
     return ax
 
 if __name__ == '__main__':
-    plot(None, 'volume/mongo/20200524-025037/mongo_workloads.json', '', expected_avg=2000)
+    plot(None, 'volume/mongo/20200531-225554/mongo_workloads.json', '', expected_avg=2000)
+    plt.show()

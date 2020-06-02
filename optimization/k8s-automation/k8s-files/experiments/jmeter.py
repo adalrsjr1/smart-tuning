@@ -38,11 +38,11 @@ def plot(ax, filepath, title, timestep, interval, expected_avg, label):
     df[label + ' avg'] = [average] * len(df)
 
     if 'prod' == label:
-        ax:plt.Axes = df.plot(ax=ax, drawstyle="steps", linewidth=0.7, style=['b-', 'r--', 'g--'], rot=45, title=title)
+        ax:plt.Axes = df.plot(ax=ax, drawstyle="steps-post", linewidth=0.7, style=['b-', 'r--', 'g--'], rot=45, title=title)
         # df['expected'] = [expected_avg] * len(df)
         # ax.plot(df['expected'], linewidth=0.7, color='k--')
     else:
-        ax:plt.Axes = df.plot(ax=ax, drawstyle="steps", linewidth=0.7, style=['c-', 'm--', 'y--'], rot=45,
+        ax:plt.Axes = df.plot(ax=ax, drawstyle="steps-post", linewidth=0.7, style=['c-', 'm--', 'y--'], rot=45,
                                title=title)
 
 

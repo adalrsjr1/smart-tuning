@@ -32,7 +32,9 @@ def plot(ax, filepath, title, expected_avg):
     df['avg prod.'] = [prod_avg] * len(df)
     df['avg train.'] = [tuni_avg] * len(df)
 
-    ax:plt.Axes = df.plot(ax=ax, drawstyle="steps", linewidth=0.7, style=['-', '-', '--', '--', '--', '--'], rot=0, title=title)
+    print(df)
+
+    ax:plt.Axes = df.plot(ax=ax, drawstyle="steps-post", linewidth=0.7, style=['-', '-', '--', '--', '--', '--'], rot=0, title=title)
     ax.legend(frameon=False)
     ax.set_ylim(0, 100+max(df['prod. pod'].max(), df['train. pod'].max()))
     ax.set_xlabel('iterations')
@@ -61,4 +63,5 @@ def plot(ax, filepath, title, expected_avg):
     return ax
 
 if __name__ == '__main__':
-    plot(None, 'volume/mongo/20200524-235332/mongo_metrics.json', '', expected_avg=1000)
+    plot(None, 'volume/mongo/20200531-225554/mongo_metrics.json', '', expected_avg=1000)
+    plt.show()
