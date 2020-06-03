@@ -68,19 +68,3 @@ spec:
   selector:
     matchLabels:
       app: smarttuning
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: smarttuning-service
-spec:
-  selector:
-    app: smarttuning
-  ports:
-    - port: 5000
-      targetPort: 5000
-      nodePort: 30050
-      protocol: TCP
-      name: register
-  type: NodePort
-

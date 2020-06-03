@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1591135781757,
+  "iteration": 1591218544711,
   "links": [],
   "panels": [
     {
@@ -69,40 +69,46 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuning-.*\", container_name=~\".*service.*\"}[$wait_time]))",
+          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuning-.*\", container_name=~\".*service.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "app train,",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuningprod-.*\",container_name=~\".*service.*\"}[$wait_time]))",
+          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuningprod-.*\",container_name=~\".*service.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "app prod.",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuning-.*\",container_name=~\".*proxy.*\"}[$wait_time]))",
+          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuning-.*\",container_name=~\".*proxy.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "proxy train",
           "refId": "C"
         },
         {
-          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuningprod-.*\",container_name=~\".*proxy.*\"}[$wait_time]))",
+          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuningprod-.*\",container_name=~\".*proxy.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "proxy prod",
           "refId": "D"
         },
         {
-          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"jmeter-train\"}[$wait_time]))",
+          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"jmeter-train\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "jmeter train",
           "refId": "F"
         },
         {
-          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"jmeter-prod\"}[$wait_time]))",
+          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"jmeter-prod\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "jmeter prod",
           "refId": "G"
+        },
+        {
+          "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-db-.*\"}[$sampling_interval]))",
+          "interval": "",
+          "legendFormat": "mongo",
+          "refId": "E"
         }
       ],
       "thresholds": [],
@@ -218,6 +224,12 @@
           "interval": "",
           "legendFormat": "prod-proxy",
           "refId": "D"
+        },
+        {
+          "expr": "sum(container_memory_usage_bytes{pod=~\"acmeair-db-.*\"})",
+          "interval": "",
+          "legendFormat": "mongo",
+          "refId": "E"
         }
       ],
       "thresholds": [],
@@ -311,13 +323,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"acmeair-tuning-.*\"}[$wait_time]))",
+          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"acmeair-tuning-.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "train",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningprod-.*\"}[$wait_time]))",
+          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningprod-.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "prod",
           "refId": "B"
@@ -382,7 +394,7 @@
         },
         "hide": 0,
         "label": null,
-        "name": "wait_time",
+        "name": "sampling_interval",
         "options": [
           {
             "selected": false,
@@ -420,6 +432,26 @@
         "refresh": 2,
         "skipUrlSync": false,
         "type": "interval"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "0.5, 0.9, 0.99, 1.0",
+          "value": "0.5, 0.9, 0.99, 1.0"
+        },
+        "hide": 2,
+        "label": null,
+        "name": "percentile",
+        "options": [
+          {
+            "selected": true,
+            "text": "0.5, 0.9, 0.99, 1.0",
+            "value": "0.5, 0.9, 0.99, 1.0"
+          }
+        ],
+        "query": "0.5, 0.9, 0.99, 1.0",
+        "skipUrlSync": false,
+        "type": "constant"
       }
     ]
   },
@@ -443,5 +475,5 @@
   "timezone": "",
   "title": "SmartTuning",
   "uid": "8RkJTIzGz",
-  "version": 4
+  "version": 2
 }

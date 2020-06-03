@@ -32,7 +32,7 @@ spec:
           imagePullPolicy: Never
           env:
             - name: MAX_CONNECTIONS
-              value: "100"
+              value: "10000"
             - name: READ_BUFFER_SIZE
               value: "4096"
             - name: WRITE_BUFFER_SIZE
@@ -100,7 +100,7 @@ spec:
       volumes:
         - name: acmeair-config
           configMap:
-            name: acmeair-config
+            name: acmeair-config-train
         - name: jvm-config
           configMap:
             name: jvm-config-train

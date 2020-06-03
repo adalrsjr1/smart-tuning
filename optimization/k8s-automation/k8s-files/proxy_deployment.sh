@@ -18,20 +18,20 @@ kubectl --kubeconfig remote-config apply -f ../single_jmeter_k8s.yaml
 sleep 1000
 kubectl --kubeconfig remote-config delete -f ../single_jmeter_k8s.yaml
 kubectl --kubeconfig remote-config delete -f test_custom.yaml
-
-# custom envoy
-kubectl --kubeconfig remote-config apply -f test_envoy.yaml
-sleep 60
-kubectl --kubeconfig remote-config apply -f ../single_jmeter_k8s.yaml
-sleep 1000
-kubectl --kubeconfig remote-config delete -f ../single_jmeter_k8s.yaml
-kubectl --kubeconfig remote-config delete -f test_envoy.yaml
-
-# custom traefik
-kubectl --kubeconfig remote-config apply -f test_traefik.yaml
-sleep 60
-kubectl --kubeconfig remote-config apply -f ../single_jmeter_k8s.yaml
-sleep 1000
-kubectl --kubeconfig remote-config delete -f ../single_jmeter_k8s.yaml
-kubectl --kubeconfig remote-config delete -f test_traefik.yaml
-
+#
+## custom envoy
+#kubectl --kubeconfig remote-config apply -f test_envoy.yaml
+#sleep 60
+#kubectl --kubeconfig remote-config apply -f ../single_jmeter_k8s.yaml
+#sleep 1000
+#kubectl --kubeconfig remote-config delete -f ../single_jmeter_k8s.yaml
+#kubectl --kubeconfig remote-config delete -f test_envoy.yaml
+#
+## custom traefik
+#kubectl --kubeconfig remote-config apply -f test_traefik.yaml
+#sleep 60
+#kubectl --kubeconfig remote-config apply -f ../single_jmeter_k8s.yaml
+#sleep 1000
+#kubectl --kubeconfig remote-config delete -f ../single_jmeter_k8s.yaml
+#kubectl --kubeconfig remote-config delete -f test_traefik.yaml
+#

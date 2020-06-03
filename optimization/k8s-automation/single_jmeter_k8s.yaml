@@ -9,7 +9,7 @@ data:
   # max value user id
   JUSER: '4'
   JTHREAD: '100'
-  JDURATION: '900'
+  JDURATION: '3600'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
   JMIN_SESSION_DURATION: '0'
@@ -40,9 +40,6 @@ spec:
               - "-c"
               - |
                 shutdown.sh
-#                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
-#                mkdir -p /output/prometheus/$FOLDER_NAME
-#                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
       imagePullPolicy: Never
       env:
         - name: LIBERTYHOST

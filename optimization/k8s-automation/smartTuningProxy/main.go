@@ -54,13 +54,20 @@ var (
 		// when change this name also update prometheus config file
 		Name: "smarttuning_http_requests_total",
 		Help: "Count of all HTTP requests",
-	}, []string{"node", "pod", "namespace", "code", "method", "path"})
+	}, []string{"node", "pod", "namespace", "code", "path"})
+
+	httpLatencyHist = promauto.NewSummaryVec(prometheus.SummaryOpts{
+		Name: "smarttuning_http_latency_milliseconds",
+		Help: "Server time latency",
+		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001, 1.00: 0.00},
+	}, []string{"node", "pod", "namespace", "code"})
 )
 
 func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	req := &ctx.Request
 	resp := &ctx.Response
 
+	tStart := time.Now()
 	prepareRequest(req)
 	if err := proxyClient.Do(req, resp); err != nil {
 		resp.SetStatusCode(fasthttp.StatusBadGateway)
@@ -68,16 +75,24 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	}
 	postprocessResponse(resp)
 
-	go func(path []byte, method []byte, statusCode int) {
+	go func(path []byte, statusCode int) {
 		httpRequestsTotal.With(prometheus.Labels{
 			"node":      nodeName,
 			"pod":       podName,
 			"namespace": podNamespace,
 			"code":      strconv.Itoa(statusCode),
-			"method":    string(method),
-			"path":      string(path), //+ p.sanitizeURLQuery(req.URL.RawQuery),
+			"path":      string(path), //+ p.sanitizeURLQuery(req.URL.RawQuery)
 		}).Inc()
-	}(req.RequestURI(), ctx.Method(), resp.StatusCode())
+	}(req.RequestURI(), resp.StatusCode())
+
+	go func(statusCode int, start time.Time) {
+		httpLatencyHist.With(prometheus.Labels{
+			"node":      nodeName,
+			"pod":       podName,
+			"namespace": podNamespace,
+			"code":      strconv.Itoa(statusCode),
+		}).Observe(time.Since(start).Seconds())
+	}(resp.StatusCode(), tStart)
 }
 
 func prepareRequest(req *fasthttp.Request) {

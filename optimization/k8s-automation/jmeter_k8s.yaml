@@ -66,45 +66,45 @@ spec:
         path: /smarttuning/jmeter/prod
   restartPolicy: Never
 ---
-#apiVersion: v1
-#kind: Pod
-#metadata:
-#  name: jmeter-train
-#  labels:
-#    app: jmeter
-#spec:
-#  containers:
-#    - name: jmeter
-#      image: jmeter_acmeair
-#      lifecycle:
-#        preStop:
-#          exec:
-#            command:
-#              - "sh"
-#              - "-c"
-#              - |
-#                shutdown.sh
-#                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
-#                mkdir -p /output/prometheus/$FOLDER_NAME
-#                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
-#      imagePullPolicy: Never
-#      env:
-#        - name: LIBERTYHOST
-#          value: 'acmeair-train.default.svc.cluster.local'
-#      envFrom:
-#        - configMapRef:
-#            name: jmeter-config
-#      volumeMounts:
-#        - mountPath: /etc/jmeter
-#          name: jmeter-config
-#        - mountPath: /output
-#          name: jmeter-output
-#  terminationGracePeriodSeconds: 60
-#  volumes:
-#    - name: jmeter-config
-#      configMap:
-#        name: jmeter-config
-#    - name: jmeter-output
-#      hostPath:
-#        path: /smarttuning/jmeter/train
-#  restartPolicy: Never
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jmeter-train
+  labels:
+    app: jmeter
+spec:
+  containers:
+    - name: jmeter
+      image: jmeter_acmeair
+      lifecycle:
+        preStop:
+          exec:
+            command:
+              - "sh"
+              - "-c"
+              - |
+                shutdown.sh
+                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
+                mkdir -p /output/prometheus/$FOLDER_NAME
+                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
+      imagePullPolicy: Never
+      env:
+        - name: LIBERTYHOST
+          value: 'acmeair-train.default.svc.cluster.local'
+      envFrom:
+        - configMapRef:
+            name: jmeter-config
+      volumeMounts:
+        - mountPath: /etc/jmeter
+          name: jmeter-config
+        - mountPath: /output
+          name: jmeter-output
+  terminationGracePeriodSeconds: 60
+  volumes:
+    - name: jmeter-config
+      configMap:
+        name: jmeter-config
+    - name: jmeter-output
+      hostPath:
+        path: /smarttuning/jmeter/train
+  restartPolicy: Never

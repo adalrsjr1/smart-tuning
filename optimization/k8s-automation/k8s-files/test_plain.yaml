@@ -37,7 +37,7 @@ spec:
       volumes:
         - name: acmeair-config
           configMap:
-            name: acmeair-config
+            name: acmeair-config-train
         - name: jvm-config
           configMap:
             name: jvm-config-train

@@ -109,10 +109,10 @@ spec:
             name: traefik-dynamic
         - name: acmeair-config
           configMap:
-            name: acmeair-config-prod
+            name: acmeair-config-train
         - name: jvm-config
           configMap:
-            name: jvm-config-prod
+            name: jvm-config-train
   selector:
     matchLabels:
       app: acmeair

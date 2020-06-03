@@ -17,20 +17,6 @@ spec:
         app: "acmeair"
         tuning: "true"
     spec:
-#      initContainers:
-#        - name: init-networking
-#          image: smarttuning-init
-#          imagePullPolicy: Never
-#          securityContext:
-#            capabilities:
-#              add:
-#                - NET_ADMIN
-#            privileged: true
-#          env:
-#            - name: PROXY_PORT
-#              value: "8888"
-#            - name: SERVICE_PORT
-#              value: "80"
       containers:
         - name: proxy
           image: smarttuning-proxy
@@ -84,12 +70,9 @@ spec:
         - name: service
           image: liberty-acmeair-k8s
           resources:
-#            requests:
-#              cpu: "1"
-#              memory: "2048Mi"
             limits:
               cpu: "4"
-              memory: "2048Mi"
+              memory: "4096Mi"
           imagePullPolicy: Never
           readinessProbe:
             httpGet:
@@ -112,7 +95,7 @@ spec:
       volumes:
         - name: acmeair-config
           configMap:
-            name: acmeair-config
+            name: acmeair-config-train
         - name: jvm-config
           configMap:
             name: jvm-config-train
