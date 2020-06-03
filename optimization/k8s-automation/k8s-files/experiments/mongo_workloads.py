@@ -56,8 +56,10 @@ def load_rawdata(filepath):
 
             data['p'].append(u)
             data['t'].append(v)
-
-            data['distance'].append( __distance__(u, lu, v, lv) )
+            try:
+                data['distance'].append( __distance__(u, lu, v, lv) )
+            except:
+                continue
 
     return pd.DataFrame(data['distance'])
 

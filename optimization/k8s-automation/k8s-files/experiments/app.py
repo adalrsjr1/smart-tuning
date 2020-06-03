@@ -43,8 +43,8 @@ def plot(n_clients, name, _jmeter_folder_, _mongo_folder_, _jmeter_id_, _timeste
                              title='configurations over time',
                              expected_avg=_expected_avg_)
 
-    fig.suptitle('tuning interval: {}min, experiment interval: {}h, req/s expectation: {}'.format(
-        _timestep_ // 60, _interval_ // 3600, _expected_avg_), y=1)
+    fig.suptitle('tuning interval: {}min, experiment interval: {}h'.format(
+        _timestep_ // 60, _interval_ // 3600), y=1)
     fig.tight_layout()
     if name:
         plt.savefig(str(name))
@@ -97,7 +97,12 @@ if __name__ == '__main__':
 
     # plot(2, '', '20200525-174655/', '20200525-191638/', '20200525174655', 900, 90, 2000)
     # threads (4,100), http (4, 100), mongo(1, 30)
-    plot(2, '4h-s033-2c-multi', '20200531-183030/', '20200531-225554/', '20200531183030', 900, 3600*4, 8000)
+    # plot(2, '4h-s033-2c-multi', '20200531-183030/', '20200531-225554/', '20200531183030', 900, 3600*4, 8000)
     # mongo(1, 30)
-    plot(2, '4h-s033-2c-mongo', '20200531-230123/', '20200601-010756/', '20200531230123', 900, 3600*2, 8000)
+    # plot(2, '4h-s033-2c-mongo', '20200531-230123/', '20200601-010756/', '20200531230123', 900, 3600*2, 8000)
+    # threads (4,100), http (4, 100), mongo(1, 30)
+    # plot(2, '4h-s033-2c-multi2', '20200602-160050/', '20200602-201422/', '20200602160050', 900, 3600*4, 8000)
+    # threads (4,100), http (4, 100), mongo(1, 30) no load balancer
+    # plot(1, '2h-s033-2c-multi-noLB', '20200602-202617/', '20200602-223113/', '20200602202617', 900, 3600*2, 8000)
+    plot(2, '4h-s033-2c-multi3', '20200602-223445/', '20200603-024429/', '20200602223445', 900, 3600*4, 8000)
 
