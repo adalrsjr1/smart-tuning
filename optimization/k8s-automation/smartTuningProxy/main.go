@@ -75,7 +75,7 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	}
 	postprocessResponse(resp)
 
-	go func(path []byte, statusCode int) {
+	go func(path []byte, start time.Time, statusCode int) {
 		httpRequestsTotal.With(prometheus.Labels{
 			"node":      nodeName,
 			"pod":       podName,
@@ -83,16 +83,14 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 			"code":      strconv.Itoa(statusCode),
 			"path":      string(path), //+ p.sanitizeURLQuery(req.URL.RawQuery)
 		}).Inc()
-	}(req.RequestURI(), resp.StatusCode())
 
-	go func(statusCode int, start time.Time) {
 		httpLatencyHist.With(prometheus.Labels{
 			"node":      nodeName,
 			"pod":       podName,
 			"namespace": podNamespace,
 			"code":      strconv.Itoa(statusCode),
 		}).Observe(time.Since(start).Seconds())
-	}(resp.StatusCode(), tStart)
+	}(req.RequestURI(), tStart, resp.StatusCode())
 }
 
 func prepareRequest(req *fasthttp.Request) {
