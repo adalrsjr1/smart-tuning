@@ -61,7 +61,15 @@ var (
 		Help: "Server time latency",
 		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001, 1.00: 0.00},
 	}, []string{"node", "pod", "namespace", "code"})
+
+	promChan = make(chan PromMetric, maxConn)
 )
+
+type PromMetric struct {
+	path []byte
+	statusCode int
+	startTime time.Time
+}
 
 func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	req := &ctx.Request
@@ -75,22 +83,30 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	}
 	postprocessResponse(resp)
 
-	go func(path []byte, start time.Time, statusCode int) {
+	// fix inconsistent URL with channels
+	promChan <- PromMetric{
+		path: req.RequestURI(),
+		statusCode: resp.StatusCode(),
+		startTime: tStart,
+	}
+
+	go func(promChan chan PromMetric) {
+		metric := <- promChan
 		httpRequestsTotal.With(prometheus.Labels{
 			"node":      nodeName,
 			"pod":       podName,
 			"namespace": podNamespace,
-			"code":      strconv.Itoa(statusCode),
-			"path":      string(path), //+ p.sanitizeURLQuery(req.URL.RawQuery)
+			"code":      strconv.Itoa(metric.statusCode),
+			"path":      string(metric.path), //+ p.sanitizeURLQuery(req.URL.RawQuery)
 		}).Inc()
 
 		httpLatencyHist.With(prometheus.Labels{
 			"node":      nodeName,
 			"pod":       podName,
 			"namespace": podNamespace,
-			"code":      strconv.Itoa(statusCode),
-		}).Observe(time.Since(start).Seconds())
-	}(req.RequestURI(), tStart, resp.StatusCode())
+			"code":      strconv.Itoa(metric.statusCode),
+		}).Observe(time.Since(metric.startTime).Seconds())
+	}(promChan)
 }
 
 func prepareRequest(req *fasthttp.Request) {

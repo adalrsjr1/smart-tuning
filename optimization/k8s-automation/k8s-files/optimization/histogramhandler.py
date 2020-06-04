@@ -68,32 +68,32 @@ def insert(path:list, value:float, node:Node, threshould=0):
     node.value += value
     return node
 
-def expands_tree(node:Node, root:Node):
-    if node == root:
-        same_key, diff_key = [], []
-        for child in node.children:
-            if child in root.children:
-                index = root.children.index(child)
-                same_key.append((child, root.children[index]))
-            else:
-                diff_key.append(child)
-
-
-        for item in diff_key:
-            heapq.heappush(root.children, item.clone())
-
-        queue = []
-        for src, dst in same_key:
-            queue.append(expands_tree(src, dst))
-
-        return root
-
-    if node != root:
-        new_root = Node('', 0)
-        heapq.heappush(new_root.children, root)
-        heapq.heappush(new_root.children, node)
-
-        return new_root
+# def expands_tree(node:Node, root:Node):
+#     if node == root:
+#         same_key, diff_key = [], []
+#         for child in node.children:
+#             if child in root.children:
+#                 index = root.children.index(child)
+#                 same_key.append((child, root.children[index]))
+#             else:
+#                 diff_key.append(child)
+#
+#
+#         for item in diff_key:
+#             heapq.heappush(root.children, item.clone())
+#
+#         queue = []
+#         for src, dst in same_key:
+#             queue.append(expands_tree(src, dst))
+#
+#         return root
+#
+#     if node != root:
+#         new_root = Node('', 0)
+#         heapq.heappush(new_root.children, root)
+#         heapq.heappush(new_root.children, node)
+#
+#         return new_root
 
 def compare_trees(tree1, tree2):
     if tree1 != tree2:
@@ -124,7 +124,7 @@ def print_tree(node:Node, space=0):
     for child in node.children:
         print_tree(child, space=space+1)
 
-def expand_trees(root1:Node, root2:Node):
+def expand_trees(root1:Node, root2:Node, merge=True):
 
     aux1 = [root1]
     aux2 = [root2]
@@ -159,7 +159,8 @@ def expand_trees(root1:Node, root2:Node):
                     equals = True
             if not equals:
                 new_item = item.clone()
-                new_item.value = 0
+                if not merge:
+                    new_item.value = 0
                 heapq.heappush(_item1.children, new_item)
 
         for item in level2:
@@ -169,7 +170,8 @@ def expand_trees(root1:Node, root2:Node):
                     equals = True
             if not equals:
                 new_item = item.clone()
-                new_item.value = 0
+                if not merge:
+                    new_item.value = 0
                 heapq.heappush(_item2.children, new_item)
         # end copying
 
@@ -185,16 +187,16 @@ def tree_to_list(node:Node, l:list):
 
     return l
 
-def pandas_to_tree(serie:pd.Series) -> Node:
+def pandas_to_tree(serie:pd.Series, similarity_threshould=0.8) -> Node:
     regex = "(?<=\")(.*)(?=\")"
 
     root = Node('/', 0)
     for index, item in zip(serie.index, serie):
-        print(index)
         path = re.search(regex, index).group()
         path = split_path(split_uri(path)[0])
-        insert(path, item, root, 0.8)
-    print_tree(root)
+        insert(path, item, root, similarity_threshould)
+
+    return root
 
 def create_comparable_histograms(urls1:list, urls2:list):
     root1 = Node('/', 0)

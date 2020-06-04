@@ -30,7 +30,6 @@ class TestSeqKmeans(unittest.TestCase):
     def test_create_container(self):
         prometheus = query.Prometheus(f'http://localhost:30090')
         hist = sampler.workload('acmeair-tuning.*', 600)
-        print(hist.result())
         c = Container('', hist)
 
 if __name__ == '__main__':

@@ -176,7 +176,7 @@ data:
           "type": "int",
           "lower": 4,
           "upper": 100,
-          "step" : 1,
+          "step" : 10,
           "options": null
       },
       {
@@ -184,7 +184,7 @@ data:
           "type": "int",
           "lower": 4,
           "upper": 100,
-          "step" : 1,
+          "step" : 10,
           "options": null
       },
       {
@@ -192,7 +192,7 @@ data:
           "type": "int",
           "lower": 4,
           "upper": 100,
-          "step" : 1,
+          "step" : 10,
           "options": null
       }
     ]

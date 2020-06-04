@@ -111,30 +111,40 @@ class Metric:
 
 import histogramhandler as hh
 class Container:
-    def __init__(self, label, histogram:pd.Series, metric=Metric(cpu=0,memory=0,throughput=0,latency=0)):
+    def __init__(self, label, histogram:pd.Series=None, metric=Metric(cpu=0,memory=0,throughput=0,latency=0),
+                 similarityThreshold=config.URL_SIMILARITY_THRESHOULD):
+
         self.label = label
-        self.content_labels = content_labels
-        self.content = content
+        # self.content_labels = content_labels
+        # self.content = content
+        self.node = hh.pandas_to_tree(histogram, similarityThreshold) if histogram else None
         self.metric = metric
+
         self.configuration = None
+
         self.start = None
         self.end = None
+
         self.classification = None
         self.hits = 0
 
     def __str__(self):
         return f'label:{self.label}, classification:{self.classification.id}, config:{self.configuration}'
 
-    def __add__(self, other):
-        u, v, ulabel, vlabel = __resize__(self.content, self.content_labels, other.content, self.content_labels)
-        return Container('', ulabel, u + v, self.metric + other.metric)
+    def __add__(self, other:Container):
+        c = Container('', None, None)
+        c.node = hh.expand_trees(self.node, other.node)
 
-    def __sub__(self, other):
-        u, v, ulabel, vlabel = __resize__(self.content, self.content_labels, other.content, self.content_labels)
-        return Container('', ulabel, u - v, self.metric - other.metric)
-
-    def __mul__(self, other):
-        return Container(self.label, self.content_labels, self.content * other, self.metric * other.metric)
+    # def __add__(self, other):
+    #     u, v, ulabel, vlabel = __resize__(self.content, self.content_labels, other.content, self.content_labels)
+    #     return Container('', ulabel, u + v, self.metric + other.metric)
+    #
+    # def __sub__(self, other):
+    #     u, v, ulabel, vlabel = __resize__(self.content, self.content_labels, other.content, self.content_labels)
+    #     return Container('', ulabel, u - v, self.metric - other.metric)
+    #
+    # def __mul__(self, other):
+    #     return Container(self.label, self.content_labels, self.content * other, self.metric * other.metric)
 
     def serialize(self):
         container_dict = self.__dict__

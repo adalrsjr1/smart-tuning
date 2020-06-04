@@ -8,7 +8,7 @@ data:
   JUSERS: '5'
   # max value user id
   JUSER: '4'
-  JTHREAD: '1000'
+  JTHREAD: '100'
   JDURATION: '14400'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
@@ -41,9 +41,9 @@ spec:
               - "-c"
               - |
                 shutdown.sh
-                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
-                mkdir -p /output/prometheus/$FOLDER_NAME
-                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
+#                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
+#                mkdir -p /output/prometheus/$FOLDER_NAME
+#                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
       imagePullPolicy: Never
       env:
         - name: LIBERTYHOST
@@ -84,9 +84,9 @@ spec:
               - "-c"
               - |
                 shutdown.sh
-                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
-                mkdir -p /output/prometheus/$FOLDER_NAME
-                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
+#                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
+#                mkdir -p /output/prometheus/$FOLDER_NAME
+#                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
       imagePullPolicy: Never
       env:
         - name: LIBERTYHOST
