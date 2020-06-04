@@ -34,7 +34,7 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
+        "h": 5,
         "w": 24,
         "x": 0,
         "y": 0
@@ -71,13 +71,13 @@
         {
           "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuning-.*\", container_name=~\".*service.*\"}[$sampling_interval]))",
           "interval": "",
-          "legendFormat": "app train,",
+          "legendFormat": "app train",
           "refId": "A"
         },
         {
           "expr": "sum(rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuningprod-.*\",container_name=~\".*service.*\"}[$sampling_interval]))",
           "interval": "",
-          "legendFormat": "app prod.",
+          "legendFormat": "app prod",
           "refId": "B"
         },
         {
@@ -170,7 +170,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 5
       },
       "hiddenSeries": false,
       "id": 4,
@@ -204,25 +204,25 @@
         {
           "expr": "sum(container_memory_usage_bytes{pod=~\"acmeair-tuning-.*\", container_name=~\".*service.*\"})",
           "interval": "",
-          "legendFormat": "train.",
+          "legendFormat": "app train",
           "refId": "A"
         },
         {
           "expr": "sum(container_memory_usage_bytes{pod=~\"acmeair-tuningprod-.*\", container_name=~\".*service.*\"})",
           "interval": "",
-          "legendFormat": "prod.",
+          "legendFormat": "app prod",
           "refId": "B"
         },
         {
           "expr": "sum(container_memory_usage_bytes{pod=~\"acmeair-tuning-.*\", container_name=~\".*proxy.*\"})",
           "interval": "",
-          "legendFormat": "train-proxy",
+          "legendFormat": "proxy train",
           "refId": "C"
         },
         {
           "expr": "sum(container_memory_usage_bytes{pod=~\"acmeair-tuningprod-.*\", container_name=~\".*proxy.*\"})",
           "interval": "",
-          "legendFormat": "prod-proxy",
+          "legendFormat": "proxy prod",
           "refId": "D"
         },
         {
@@ -279,6 +279,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "prometheus",
+      "description": "proxy/app round-trip",
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -288,10 +289,113 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 10,
+        "h": 5,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 11
+      },
+      "hiddenSeries": false,
+      "id": 10,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": false,
+        "max": true,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "sideWidth": 250,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(rate(smarttuning_http_latency_seconds_sum{pod=~\"acmeair-tuning-.*\"}[$sampling_interval])) / sum(rate(smarttuning_http_latency_seconds_count{pod=~\"acmeair-tuning-.*\"}[$sampling_interval]))",
+          "interval": "",
+          "legendFormat": "train",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(smarttuning_http_latency_seconds_sum{pod=~\"acmeair-tuningprod-.*\"}[$sampling_interval])) / sum(rate(smarttuning_http_latency_seconds_count{pod=~\"acmeair-tuningprod-.*\"}[$sampling_interval]))",
+          "interval": "",
+          "legendFormat": "prod",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "App Latency",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "s",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 16
       },
       "hiddenSeries": false,
       "id": 6,
@@ -456,7 +560,7 @@
     ]
   },
   "time": {
-    "from": "now-2h",
+    "from": "2020-06-03T22:19:00.000Z",
     "to": "now"
   },
   "timepicker": {
@@ -475,5 +579,5 @@
   "timezone": "",
   "title": "SmartTuning",
   "uid": "8RkJTIzGz",
-  "version": 2
+  "version": 4
 }

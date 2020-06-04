@@ -7,7 +7,7 @@ metadata:
     tuning: "false"
   annotations:
     # https://github.com/stakater/Reloader
-    configmap.reloader.stakater.com/reload: "jvm-config-prod,acmeair-config-prod"
+    configmap.reloader.stakater.com/reload: "jvm-config-prod,acmeair-config-prod,proxy-config-prod"
 spec:
   replicas: 1
   template:
@@ -21,9 +21,12 @@ spec:
         - name: proxy
           image: smarttuning-proxy
           imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: proxy-config
           env:
             - name: MAX_CONNECTIONS
-              value: "300"
+              value: "10000"
             - name: READ_BUFFER_SIZE
               value: "4096"
             - name: WRITE_BUFFER_SIZE
@@ -75,7 +78,7 @@ spec:
 #              memory: "2048Mi"
             limits:
               cpu: "4"
-              memory: "2048Mi"
+              memory: "4096Mi"
           imagePullPolicy: Never
           readinessProbe:
             httpGet:
@@ -91,14 +94,19 @@ spec:
                 name: acmeair-config-prod
           volumeMounts:
             - mountPath: /etc/acmeair-config
-              name: acmeair-config-prod
+              name: acmeair-config
+            - mountPath: /etc/proxy-config
+              name: proxy-config
             - mountPath: /config/jvm.options
               subPath: jvm.options
               name: jvm-config
       volumes:
-        - name: acmeair-config-prod
+        - name: acmeair-config
           configMap:
             name: acmeair-config-prod
+        - name: proxy-config
+          configMap:
+            name: proxy-config-prod
         - name: jvm-config
           configMap:
             name: jvm-config-prod

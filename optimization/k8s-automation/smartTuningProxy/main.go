@@ -57,7 +57,7 @@ var (
 	}, []string{"node", "pod", "namespace", "code", "path"})
 
 	httpLatencyHist = promauto.NewSummaryVec(prometheus.SummaryOpts{
-		Name: "smarttuning_http_latency_milliseconds",
+		Name: "smarttuning_http_latency_seconds",
 		Help: "Server time latency",
 		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001, 1.00: 0.00},
 	}, []string{"node", "pod", "namespace", "code"})

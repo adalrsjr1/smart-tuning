@@ -12,20 +12,6 @@ spec:
       labels:
         app: "acmeair"
     spec:
-#      initContainers:
-#        - name: init-networking
-#          image: smarttuning-init
-#          imagePullPolicy: Never
-#          securityContext:
-#            capabilities:
-#              add:
-#                - NET_ADMIN
-#            privileged: true
-#          env:
-#            - name: PROXY_PORT
-#              value: "8888"
-#            - name: SERVICE_PORT
-#              value: "80"
       containers:
         - name: proxy
           image: smarttuning-proxy
