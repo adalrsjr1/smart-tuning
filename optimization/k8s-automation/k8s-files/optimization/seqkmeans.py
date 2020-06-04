@@ -1,7 +1,11 @@
 from __future__ import annotations
 import numpy as np
+from dataclasses import dataclass
 from collections import Counter
+import pandas as pd
+import numbers
 import uuid
+import dataclasses
 
 import config
 # implementation note
@@ -65,8 +69,49 @@ def __resize__(u:np.array, ulabels, v:np.array, vlabels) -> (np.array, np.array)
 
     return np.array(u), np.array(v), _ulabels, _vlabels
 
+@dataclass
+class Metric:
+    cpu: float = 0
+    memory: float = 0
+    throughput: float = 0
+    latency: float = 0
+
+    def __operation__(self, other, op):
+        if isinstance(other, Metric):
+            return Metric(cpu=op(self.cpu, other.cpu),
+                          memory=op(self.memory, other.memory),
+                          throughput=op(self.throughput, other.throughput),
+                          latency=op(self.latency, other.latency))
+
+        if isinstance(other, numbers.Number):
+            return Metric(cpu=op(self.cpu, other),
+                          memory=op(self.memory, other),
+                          throughput=op(self.throughput, other),
+                          latency=op(self.latency, other))
+
+        raise TypeError(f'other is {type(other)} should be a scalar or a Metric type')
+
+    def __add__(self, other):
+        return self.__operation__(other, lambda a, b: a + b)
+
+    def __sub__(self, other):
+        return self.__operation__(other, lambda a, b: a - b)
+
+    def __mul__(self, other):
+        return self.__operation__(other, lambda a, b: a * b)
+
+    def __floordiv__(self, other):
+        return self.__operation__(other, lambda a, b: a.__floordiv__(b))
+
+    def __truediv__(self, other):
+        return self.__operation__(other, lambda a, b: a.__truediv__(b))
+
+    def __divmod__(self, other):
+        return self.__operation__(other, lambda a, b: a.__divmod__(b))
+
+import histogramhandler as hh
 class Container:
-    def __init__(self, label, content_labels, content, metric=0):
+    def __init__(self, label, histogram:pd.Series, metric=Metric(cpu=0,memory=0,throughput=0,latency=0)):
         self.label = label
         self.content_labels = content_labels
         self.content = content
@@ -82,15 +127,14 @@ class Container:
 
     def __add__(self, other):
         u, v, ulabel, vlabel = __resize__(self.content, self.content_labels, other.content, self.content_labels)
-        return Container('', ulabel, u + v, max(self.metric, other))
+        return Container('', ulabel, u + v, self.metric + other.metric)
 
     def __sub__(self, other):
         u, v, ulabel, vlabel = __resize__(self.content, self.content_labels, other.content, self.content_labels)
-        return Container('', ulabel, u - v, min(self.metric, other))
+        return Container('', ulabel, u - v, self.metric - other.metric)
 
     def __mul__(self, other):
-        if isinstance(other, float) or isinstance(other, int):
-            return Container(self.label, self.content_labels, self.content * other, max(self.metric, other))
+        return Container(self.label, self.content_labels, self.content * other, self.metric * other.metric)
 
     def serialize(self):
         container_dict = self.__dict__

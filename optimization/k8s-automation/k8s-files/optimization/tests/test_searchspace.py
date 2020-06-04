@@ -9,7 +9,7 @@ class TestSearchSpace(unittest.TestCase):
         self.assertTrue(searchSpace is not None)
 
         for _  in range(10):
-            print(hyperopt.pyll.stochastic.sample(searchSpace.search_space()))
+            print(hyperopt.pyll.stochastic.do_sample(searchSpace.search_space()))
 
 
 if __name__ == '__main__':

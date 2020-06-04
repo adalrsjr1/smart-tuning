@@ -1,6 +1,7 @@
 import unittest
 import histogramhandler as hh
-
+from prometheus_pandas import query
+import sampler
 
 class TestHistogramHandler(unittest.TestCase):
 
@@ -251,6 +252,10 @@ class TestHistogramHandler(unittest.TestCase):
         l = hh.tree_to_list(root, [])
         self.assertListEqual([20, 10, 2, 4, 3, 4, 1,100], l)
 
+    def test_pandasseries_to_tree(self):
+        prometheus = query.Prometheus(f'http://localhost:30090')
+        hist = sampler.workload('acmeair-tuning.*', 6000)
+        hh.pandas_to_tree(hist.result())
 
 if __name__ == '__main__':
     unittest.main()

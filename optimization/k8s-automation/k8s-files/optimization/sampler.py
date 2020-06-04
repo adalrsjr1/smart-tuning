@@ -1,48 +1,50 @@
+from __future__ import annotations
 import numpy as np
-
+from concurrent.futures import Future
 import config
 import seqkmeans
 import timeinterval
 
-from prometheus_pandas import query
+from prometheus_pandas import query as handler
 
-from util import PrometheusAccessLayer
+_prometheus = handler.Prometheus(f'http://{config.PROMETHEUS_ADDR}:{config.PROMETHEUS_PORT}')
 
+def do_sample(query:str, endpoint=_prometheus) -> Future:
+    return config.executor.submit(endpoint.query, query)
 
+def throughput(pod_regex, interval, endpoint=_prometheus) -> Future:
+    """ return a concurrent.futures.Future<pandas.Series> with the total_requests rate of an specific pod"""
+    print(f' >>> sampling throughput at {pod_regex}')
+    query = f'sum(rate(smarttuning_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))'
 
-def mock_sampling():
-    with open('tests/letter-recognition.data') as f:
-        for line in f:
-            v = []
-            for i, c in enumerate(line.split(',')):
-                if i > 0:
-                    v.append(int(c))
-            _min = min(v)
-            _max = max(v)
-            v = np.array(v)
-            v = (v - _min) / (_max - _min)
-            yield seqkmeans.Container(label=line[0], content_labels=[*range(len(v))], content=v, metric=0)
-generator = mock_sampling()
+    return do_sample(query, endpoint=endpoint)
 
-def throughput(pod_regex, interval, mock=False) -> float:
+def latency(pod_regex, interval, endpoint=_prometheus) -> Future:
+    """ return a concurrent.futures.Future<pandas.Series> with the latency_sum/latency_count rate of an specific pod"""
+    print(f' >>> sampling latency at {pod_regex}')
+    query = f'sum(rate(smarttuning_http_latency_seconds_sum{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s])) / ' \
+            f'sum(rate(smarttuning_http_latency_seconds_count{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))'
+
+    return do_sample(query, endpoint=endpoint)
+
+def memory(pod_regex, interval, quantile=1.0, endpoint=_prometheus) -> Future:
+    """ return a concurrent.futures.Future<pandas.Series> with the memory (bytes) quantile over time of an specific pod
+        :param quantile a value 0.0 - 1.0
     """
-    query throughput of the applicatoion in a given interval
-    :param pod_regex: application namespace
-    :param interval: query for throughput in the past interval (uses module 'timeinterval')
-    :return: throughput (req/s)
+    print(f' >>> sampling memory at {pod_regex}')
+    query = f'sum(quantile_over_time({quantile},container_memory_usage_bytes{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))'
+
+    return do_sample(query, endpoint=endpoint)
+
+def cpu(pod_regex, interval, endpoint=_prometheus) -> Future:
+    """ return a concurrent.futures.Future<pandas.Series> with the CPU (milicores) rate over time of an specific pod
     """
-    print(f'sampling throughput {pod_regex}')
-    if mock:
-        return np.random.randint(10, 101)
+    print(f' >>> sampling cpu at {pod_regex}')
+    query = f'sum(rate(container_cpu_system_seconds_total{{pod=~"{pod_regex}",}}[{timeinterval.second(interval)}s]))'
 
-    prometheus = PrometheusAccessLayer(config.PROMETHEUS_ADDR, config.PROMETHEUS_PORT)
-    result = prometheus.query(f'sum(rate(smarttuning_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))')
+    return do_sample(query, endpoint=endpoint)
 
-    if result.value():
-        return float(result.value()[0][1])
-    return float('NaN')
-
-def workload(pod_regex, interval, mock=False) -> seqkmeans.Container:
+def workload(pod_regex, interval, endpoint=_prometheus) -> seqkmeans.Container:
     """
     query urls requests distribution in a given interval
     :param pod_regex: application namespace
@@ -58,28 +60,28 @@ def workload(pod_regex, interval, mock=False) -> seqkmeans.Container:
     are grouped into /my/url/using/path-parameter/uid153@email.com
 
     """
-    print('sampling urls')
-    if mock:
-        return next(generator)
+    print(f' >>> sampling urls at {pod_regex}')
 
-    prometheus = PrometheusAccessLayer(config.PROMETHEUS_ADDR, config.PROMETHEUS_PORT)
-    result = prometheus.query(f'sum by (path)(rate(smarttuning_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s])) / ignoring '
-                              f'(path) group_left sum(rate(smarttuning_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))')
+    query = f'sum by (path)(rate(smarttuning_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))' \
+            f' / ignoring ' \
+            f'(path) group_left sum(rate(smarttuning_http_requests_total{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))'
 
-    urls = [u['path'] for u in result.metric()]
-    values = [float(u[1]) for u in result.value()]
+    return do_sample(query, endpoint=endpoint)
 
-    # sort histogram by urls
-    if urls and values:
-        urls, values = zip(*sorted(zip(urls, values)))
-
-    # group urls by similarity, e.g., api/v1/id3 and api/v1/id57 should be grouped
-    group = __compare__(urls, 0.98)
-
-    match = {}
-    for key, items in group.items():
-        match.update({urls[key] : sum([values[k] for k in items])})
-    return seqkmeans.Container(label=str(timeinterval.now()), content_labels=list(match.keys()), content=np.array(list(match.values())), metric=0)
+    # urls = [u['path'] for u in result.metric()]
+    # values = [float(u[1]) for u in result.value()]
+    #
+    # # sort histogram by urls
+    # if urls and values:
+    #     urls, values = zip(*sorted(zip(urls, values)))
+    #
+    # # group urls by similarity, e.g., api/v1/id3 and api/v1/id57 should be grouped
+    # group = __compare__(urls, 0.98)
+    #
+    # match = {}
+    # for key, items in group.items():
+    #     match.update({urls[key] : sum([values[k] for k in items])})
+    # return seqkmeans.Container(label=str(timeinterval.now()), content_labels=list(match.keys()), content=np.array(list(match.values())), metric=0)
 
 def __distance__(u, v):
     len_u = len(u)
@@ -139,10 +141,3 @@ def workload_and_metric(pod_regex, interval, mock=False) -> seqkmeans.Container:
     _workload.start =  _workload.end - interval
 
     return _workload
-
-classificationCtx = seqkmeans.KmeansContext(config.K)
-def classify(workload:seqkmeans.Container) -> seqkmeans.Cluster:
-    print('classifying workload ', workload.label)
-    classification, hits = classificationCtx.cluster(workload)
-    print(f'workload {workload.label} classified as {classification.id} -- {hits}th hit')
-    return classification, hits

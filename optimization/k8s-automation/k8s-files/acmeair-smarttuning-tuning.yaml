@@ -23,7 +23,7 @@ spec:
           imagePullPolicy: Never
           envFrom:
             - configMapRef:
-                name: proxy-config
+                name: proxy-config-train
           env:
             - name: NODE_NAME
               valueFrom:
@@ -52,8 +52,8 @@ spec:
           image: liberty-acmeair-k8s
           resources:
             limits:
-              cpu: "4"
-              memory: "4096Mi"
+              cpu: "1"
+              memory: "256Mi"
           imagePullPolicy: Never
           readinessProbe:
             httpGet:
@@ -66,7 +66,7 @@ spec:
             - containerPort: 80
           envFrom:
             - configMapRef:
-                name: acmeair-config
+                name: acmeair-config-train
           volumeMounts:
             - mountPath: /etc/acmeair-config
               name: acmeair-config

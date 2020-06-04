@@ -7,7 +7,7 @@ import pymongo
 import config
 import configsampler as cs
 import sampler as wh
-from seqkmeans import Container
+from seqkmeans import Container, KmeansContext
 
 def update_config(last_metric)->dict:
     if config.MOCK:
@@ -71,6 +71,9 @@ def main():
     print(f'*** starting SmartTuning loop ***')
     first_loop = True
     iteration_counter = 1
+
+    classificationCtx = KmeansContext(config.K)
+
     while True:
         start = time.time()
         configuration = update_config(last_train_matric)
@@ -80,8 +83,14 @@ def main():
 
         print(' *** sampling workloads *** ')
         print('\tsampling training workload')
-        workload = wh.workload_and_metric(config.POD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
-        workload.classification, workload.hits = wh.classify(workload)
+        workload = wh.workload(config.POD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE)).result()
+        # workload = wh.workload_and_metric(config.POD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
+
+        print('classifying workload ', workload.label)
+        workload.classification, workload.hits = classificationCtx.cluster(workload)
+        print(f'workload {workload.label} classified as {workload.classification.id} -- {workload.hits}th hit')
+
+
         workload.configuration = configuration
 
         last_train_matric = workload.metric

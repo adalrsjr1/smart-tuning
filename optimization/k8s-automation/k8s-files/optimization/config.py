@@ -4,14 +4,17 @@ from concurrent.futures import ThreadPoolExecutor, wait as ThreadWait, ALL_COMPL
 
 from pymongo import MongoClient
 
-def print_config():
-    for item in globals().items():
-        if item[0].isupper():
-            print(item)
+def print_config(toPrint=False):
+    if toPrint:
+        print('\n *** loading config ***\n')
+        for item in globals().items():
+            if item[0].isupper():
+                print(item)
+        print('\n *** config loaded *** \n')
 
-print('\n *** loading config ***\n')
 # test config
 MOCK = eval(os.environ.get('MOCK', default='True'))
+PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='False'))
 
 # mongo config
 MONGO_ADDR = os.environ.get('MONGO_ADDR', default='127.0.0.1')
@@ -52,8 +55,8 @@ NAMESPACE_PROD = os.environ.get('NAMESPACE_PROD', 'default')
 # SYNC_PORT = int(os.environ.get('SYNC_PORT', default='5000'))
 
 
-print_config()
-print('\n *** config loaded *** \n')
+print_config(PRINT_CONFIG)
+
 
 executor = ThreadPoolExecutor()
 client = MongoClient(MONGO_ADDR, MONGO_PORT)

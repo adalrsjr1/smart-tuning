@@ -1,5 +1,6 @@
 import heapq
-
+import pandas as pd
+import re
 from Levenshtein import StringMatcher
 
 
@@ -183,6 +184,17 @@ def tree_to_list(node:Node, l:list):
             l.append(node.value)
 
     return l
+
+def pandas_to_tree(serie:pd.Series) -> Node:
+    regex = "(?<=\")(.*)(?=\")"
+
+    root = Node('/', 0)
+    for index, item in zip(serie.index, serie):
+        print(index)
+        path = re.search(regex, index).group()
+        path = split_path(split_uri(path)[0])
+        insert(path, item, root, 0.8)
+    print_tree(root)
 
 def create_comparable_histograms(urls1:list, urls2:list):
     root1 = Node('/', 0)

@@ -8,4 +8,4 @@ space = {
 }
 
 for _ in range(10):
-    print(hyperopt.pyll.stochastic.sample(space))
+    print(hyperopt.pyll.stochastic.do_sample(space))

@@ -16,7 +16,7 @@ data:
   SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
 #  CONFIGMAP_NAME: 'jvm-config-train'
 #  CONFIGMAP_PROD_NAME: 'jvm-config-prod'
-  CONFIGMAP_NAME: 'acmeair-config'
+  CONFIGMAP_NAME: 'acmeair-config-train'
   CONFIGMAP_PROD_NAME: 'acmeair-config-prod'
   MOCK: 'False'
   BAYESIAN: 'True'
@@ -49,19 +49,17 @@ spec:
             - containerPort: 5000
           envFrom:
             - configMapRef:
-                name: acmeair-config
-            - configMapRef:
                 name: smarttuning-config
           volumeMounts:
             - mountPath: /etc/smart-tuning
-              name: smart-tuning-config
+              name: smarttuning-config
             - mountPath: /etc/tuning-search-space/search-space.json
               name: tuning-search-space
               subPath: search-space.json
       volumes:
-        - name: smart-tuning-config
+        - name: smarttuning-config
           configMap:
-            name: acmeair-config
+            name: smarttuning-config
         - name: tuning-search-space
           configMap:
             name: tuning-search-space
