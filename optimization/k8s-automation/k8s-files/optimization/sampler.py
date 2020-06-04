@@ -3,11 +3,15 @@ import numpy as np
 import config
 import seqkmeans
 import timeinterval
+
+from prometheus_pandas import query
+
 from util import PrometheusAccessLayer
 
 
+
 def mock_sampling():
-    with open('letter-recognition.data') as f:
+    with open('tests/letter-recognition.data') as f:
         for line in f:
             v = []
             for i, c in enumerate(line.split(',')):

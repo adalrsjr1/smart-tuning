@@ -8,7 +8,7 @@ import config
 # https://www.cs.princeton.edu/courses/archive/fall08/cos436/Duda/C/sk_means.htm
 #
 def mock_sampling():
-    with open('letter-recognition.data') as f:
+    with open('tests/letter-recognition.data') as f:
         for line in f:
             v = []
             for i, c in enumerate(line.split(',')):

@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
 COPY requirements.txt ./
-COPY letter-recognition.data ./
+COPY tests/letter-recognition.data ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .

@@ -6,7 +6,7 @@ import pymongo
 
 import config
 import configsampler as cs
-import workloadhandler as wh
+import sampler as wh
 from seqkmeans import Container
 
 def update_config(last_metric)->dict:
