@@ -1,21 +1,24 @@
+from __future__ import annotations
 import heapq
 import pandas as pd
 import re
 from Levenshtein import StringMatcher
 
 
-class Node():
-    def __init__(self, key:str, value:float):
+class Node:
+    def __init__(self, key:str, weight:float):
         self.key = key
-        self.value = value
+        self.weight = weight
         self.is_clone = False
 
         self.children = []
 
-    
+    def add_child(self, key:str, weight:float):
+        child = Node(key, weight)
+        heapq(self.children, child)
 
     def is_endpoint(self):
-        return 0 == len(self.children) or self.value > 0
+        return 0 == len(self.children) or self.weight > 0
 
     def __lt__(self, other):
         return self.key < other.key
@@ -24,16 +27,49 @@ class Node():
         return self.key == other.key
 
     def __repr__(self):
-        return f'({self.key}, {self.value}, e:{self.is_endpoint()}, c:{self.is_clone})'
+        return f'({self.key}, {self.weight}, e:{self.is_endpoint()}, c:{self.is_clone})'
 
     def clone(self, mark=True):
-        node = Node(self.key, self.value)
+        node = Node(self.key, self.weight)
         node.is_clone = mark
 
         for child in self.children:
             node.children.append(child.clone(mark))
 
         return node
+
+    def compare_node(self, other:Node) -> int:
+        if self == other and self.weight == other.weight:
+            return 1
+        if self == other and self.weight != other.weight:
+            return 0
+        return -1
+
+    def compare_subtree(self, other:Node) ->(bool, Node):
+        if len(self.children) == 0 and len(other.children) > 0:
+            return False, other
+
+        if len(other.children) == 0 and len(self.children) > 0:
+            return False, other
+
+        if self.compare_node(other) < 1:
+            return False, other
+
+        aux = []
+        for child in self.children:
+            if child in other.children:
+                index = other.children.index(child)
+                aux.append((child, index))
+            else:
+                return False, other
+
+        while aux:
+            child, index = aux.pop(0)
+            result, other_child = child.compare_subtree(other.children[index])
+            if not result:
+                return False, other_child
+
+        return True, None
 
 
 def split_uri(uri:str) -> tuple:
@@ -67,7 +103,7 @@ def insert(path:list, value:float, node:Node, threshould=0):
         heapq.heappush(node.children, child)
         return insert(path[1:], value, child, threshould)
 
-    node.value += value
+    node.weight += value
     return node
 
 def compare_trees(tree1, tree2):
@@ -98,16 +134,6 @@ def print_tree(node:Node, space=0):
     print('\t' * (space + 1), node)
     for child in node.children:
         print_tree(child, space=space+1)
-
-def merge_trees(node1:Node, node2:Node) -> Node:
-    new_node = node1.clone(mark=False)
-
-    aux = [node2]
-
-    while aux:
-        item = aux.pop(0)
-
-        insert(item.)
 
 def expand_trees(root1:Node, root2:Node, merge=True):
 
@@ -168,7 +194,7 @@ def tree_to_list(node:Node, l:list):
         if node.is_clone:
             l.append(0)
         else:
-            l.append(node.value)
+            l.append(node.weight)
 
     return l
 

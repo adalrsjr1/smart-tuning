@@ -9,8 +9,8 @@ class TestHistogramHandler(unittest.TestCase):
         data = {}
         with open("requests.histogram") as raw_data:
             for row in raw_data:
-                key, value = row.split()
-                data[key] = value
+                key, weight = row.split()
+                data[key] = weight
 
         return data
 
@@ -60,14 +60,14 @@ class TestHistogramHandler(unittest.TestCase):
         hh.insert(['/', 'a', 'b'], 1, root, 1)
         self.assertListEqual([hh.Node('a', 0)], root.children)
         self.assertListEqual([hh.Node('b', 1)], root.children[0].children)
-        self.assertEqual(1, root.children[0].children[0].value)
+        self.assertEqual(1, root.children[0].children[0].weight)
 
         hh.print_tree(root)
 
         hh.insert(['/', 'b', 'c'], 1, root, 1)
         self.assertListEqual([hh.Node('a', 0)], root.children)
         self.assertListEqual([hh.Node('b', 2)], root.children[0].children)
-        self.assertEqual(2, root.children[0].children[0].value)
+        self.assertEqual(2, root.children[0].children[0].weight)
 
         hh.print_tree(root)
 
@@ -75,14 +75,14 @@ class TestHistogramHandler(unittest.TestCase):
         hh.print_tree(root)
         self.assertListEqual([hh.Node('a', 0)], root.children)
         self.assertListEqual([hh.Node('b', 3)], root.children[0].children)
-        self.assertEqual(3, root.children[0].children[0].value)
+        self.assertEqual(3, root.children[0].children[0].weight)
 
         hh.print_tree(root)
 
         hh.insert(['/', 'a'], 1, root, 1)
         self.assertListEqual([hh.Node('a', 1)], root.children)
         self.assertListEqual([hh.Node('b', 3)], root.children[0].children)
-        self.assertEqual(3, root.children[0].children[0].value)
+        self.assertEqual(3, root.children[0].children[0].weight)
 
         hh.print_tree(root)
 
@@ -112,12 +112,47 @@ class TestHistogramHandler(unittest.TestCase):
 
         hh.print_tree(root)
 
+    def test_compare_tree(self):
+        root1 = hh.Node('', 0)
+        hh.insert(hh.split_path('/a0/b0/c0'), 0, root1)
+        hh.insert(hh.split_path('/a1/b1'), 0, root1)
+        hh.insert(hh.split_path('/a2'), 0, root1)
+
+        root2 = hh.Node('', 0)
+        hh.insert(hh.split_path('/a0/b0/c0'), 0, root2)
+        hh.insert(hh.split_path('/a1/b1'), 0, root2)
+        hh.insert(hh.split_path('/a2'), 0, root2)
+
+        result, _ = root1.compare_subtree(root2)
+        self.assertTrue(result)
+
+        root3 = hh.Node('/',0)
+        result, _ = root1.compare_subtree(root3)
+        self.assertFalse(result)
+
+        root4 = hh.Node('',0)
+        hh.insert(hh.split_path('/a0/b0/c2'), 0, root4)
+        hh.insert(hh.split_path('/a1/b1'), 0, root4)
+        hh.insert(hh.split_path('/a2'), 0, root4)
+
+        result, _ = root1.compare_subtree(root4)
+        print(root1.compare_subtree(root4))
+        self.assertFalse(result)
+
+        root5 = hh.Node('', 0)
+        hh.insert(hh.split_path('/a0/b0/'), 0, root5)
+        hh.insert(hh.split_path('/a1/b1'), 0, root5)
+        hh.insert(hh.split_path('/a2'), 0, root5)
+
+        result, _ = root1.compare_subtree(root5)
+        print(root1.compare_subtree(root5))
+        self.assertFalse(result)
 
     def test_clone(self):
         node = hh.Node('x',7)
         clone = node.clone()
         self.assertEqual(node.key, clone.key)
-        self.assertEqual(node.value, clone.value)
+        self.assertEqual(node.weight, clone.weight)
 
         node.children.append(hh.Node('a',1))
 
@@ -136,15 +171,15 @@ class TestHistogramHandler(unittest.TestCase):
                 for b1, b2 in zip(item1.children, item2.children):
                     print('b')
                     self.assertEqual(b1.key, b2.key)
-                    self.assertEqual(b1.value, b2.value)
+                    self.assertEqual(b1.weight, b2.weight)
                     if 'm' == b1.key:
                         for m1, m2 in zip(b1.children, b2.children):
                             print('m')
                             self.assertEqual(m1.key, m2.key)
-                            self.assertEqual(m1.value, m2.value)
+                            self.assertEqual(m1.weight, m2.weight)
 
             self.assertEqual(item1.key, item2.key)
-            self.assertEqual(item1.value, item2.value)
+            self.assertEqual(item1.weight, item2.weight)
 
 
         hh.print_tree(node)
