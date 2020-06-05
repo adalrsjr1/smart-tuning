@@ -1,6 +1,7 @@
 import unittest
 
 from prometheus_pandas import query
+import pandas as pd
 import sampler
 
 class TestPrometheusSampling(unittest.TestCase):
@@ -13,8 +14,10 @@ class TestPrometheusSampling(unittest.TestCase):
         self.assertGreater(future_sample.result().size, 0)
         
     def test_throughput(self):
-        future_sample = sampler.throughput("acmeair-.*", 600)
-        print(future_sample.result())
+        future_sample1 = sampler.throughput("acmeair-tuning.*", 600)
+        future_sample2 = sampler.throughput("acmeair-tuningprod.*", 600)
+        print(future_sample1.result())
+        print(future_sample2.result())
 
     def test_latency(self):
         future_sample = sampler.latency("acmeair-.*", 600)
@@ -26,6 +29,8 @@ class TestPrometheusSampling(unittest.TestCase):
 
     def test_cpu(self):
         future_sample = sampler.cpu("acmeair-tuning.*", 600)
+        print(future_sample.result())
+        future_sample = sampler.cpu("acmeair-tuningprod.*", 600)
         print(future_sample.result())
 
     def test_hist(self):

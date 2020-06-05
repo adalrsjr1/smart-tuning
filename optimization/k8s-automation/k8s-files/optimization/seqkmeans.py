@@ -1,10 +1,12 @@
 from __future__ import annotations
+from typing import Union
 import numpy as np
 from dataclasses import dataclass
 from collections import Counter
 import pandas as pd
 import numbers
 import uuid
+import copy
 import dataclasses
 
 import config
@@ -51,6 +53,9 @@ class Metric:
 
         raise TypeError(f'other is {type(other)} should be a scalar or a Metric type')
 
+    def serialize(self):
+        return copy.deepcopy(self.__dict__)
+
     def __add__(self, other):
         return self.__operation__(other, lambda a, b: a + b)
 
@@ -69,8 +74,20 @@ class Metric:
     def __divmod__(self, other):
         return self.__operation__(other, lambda a, b: a.__divmod__(b))
 
-    def objective(self, expresssion:str) -> float:
-        return eval(expresssion, globals(), self.__dict__) if expresssion else 0
+    def __lt__(self, other):
+        return self.objective() < (other.objective() if isinstance(other, Metric) else other)
+
+    def __le__(self, other):
+        return self.objective() <= (other.objective() if isinstance(other, Metric) else other)
+
+    def __gt__(self, other):
+        return self.objective() > (other.objective() if isinstance(other, Metric) else other)
+
+    def __ge__(self, other):
+        return self.objective() >= (other.objective() if isinstance(other, Metric) else other)
+
+    def objective(self) -> float:
+        return eval(config.OBJECTIVE, globals(), self.__dict__) if config.OBJECTIVE else float('inf')
 
 
 class Container:
@@ -78,7 +95,7 @@ class Container:
                  similarity_threshold=config.URL_SIMILARITY_THRESHOULD):
 
         self.label = label
-        self.content = content
+        self.content:pd.Series = content
         self.content.name = label
         self.metric = metric
         self.similarity_threshold = similarity_threshold
@@ -93,31 +110,41 @@ class Container:
     def __str__(self):
         return f'label:{self.label}, classification:{self.classification.id if self.classification else ""}, config:{self.configuration}'
 
+    def __lt__(self, other):
+        return self.metric < other.metric
+
     def serialize(self):
-        container_dict = self.__dict__
-        # casting np.array to list
-        container_dict['content'] = list(self.content)
+        container_dict = copy.deepcopy(self.__dict__)
+        container_dict['content_labels'] = self.content.index.to_list()
+        container_dict['content'] = self.content.to_list()
+        container_dict['metric'] = self.metric.serialize()
+
         if isinstance(self.classification, Cluster):
             container_dict['classification'] = self.classification.id
-        elif isinstance(self.classification, str):
-            container_dict['classification'] = self.classification
+        # elif isinstance(self.classification, str):
+        #     container_dict['classification'] = self.classification
         return container_dict
 
-    def distance(self, other:Container):
-        u, v, _ = __merge_data__(self.content, other.content)
+    def distance(self, other:Union[pd.Series, Container]):
+        if isinstance(other, Container):
+            other = other.content
+        u, v, _ = __merge_data__(self.content, other)
         return __distance__(u, v)
 
 class Cluster:
     # todo: merge clusters they have save name
-    def __init__(self):
+    def __init__(self, container:Container=None):
         self.id = str(uuid.uuid1())
         self.hits = 0
         self.len = 0
         self.counter = Counter()
         self.center = pd.Series(name=self.id, dtype=np.float)
 
+        if container:
+            self.add(container)
+
     def __str__(self):
-        return f'[{len(self):04d}] {self.name()}: {self.counter}'
+        return f'[{len(self):04d}] {self.name()}: {len(self.counter)}'
 
     def __len__(self):
         return self.len
@@ -170,8 +197,8 @@ class KmeansContext:
         # return self.clusters[np.random.randint(0, len(self.clusters))]
         return None
 
-    def cluster(self, sample:Container):
-
+    def cluster(self, sample:Container)->(Cluster, int):
+        assert isinstance(sample, Container)
         if len(self.clusters) < self.k:
             self.clusters.append(self.cluster_type(sample))
 
@@ -195,8 +222,8 @@ class KmeansContext:
                     self.most_common_cluster = cluster
 
         self.closest_cluster.add(sample)
-        best_cluster = self.closest_cluster
+        best_cluster:Cluster = self.closest_cluster
 
         best_cluster.inc()
 
-        return best_cluster
+        return best_cluster, best_cluster.hits

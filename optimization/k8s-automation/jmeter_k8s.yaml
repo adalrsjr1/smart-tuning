@@ -8,7 +8,7 @@ data:
   JUSERS: '5'
   # max value user id
   JUSER: '4'
-  JTHREAD: '100'
+  JTHREAD: '10'
   JDURATION: '14400'
   JURL: 'acmeair-webapp'
   JPORT: '8888'

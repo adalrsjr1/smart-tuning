@@ -1,13 +1,12 @@
-import json
-import os
 import time
 
 import pymongo
-
+import heapq
 import config
 import configsampler as cs
+from concurrent.futures import Future
 import sampler as wh
-from seqkmeans import Container, KmeansContext
+from seqkmeans import Container, KmeansContext, Metric, Cluster
 
 def update_config(last_metric)->dict:
     if config.MOCK:
@@ -46,17 +45,34 @@ def save_config_applied(config_applied):
 def save_prod_metric(timestamp, prod_metric, metric):
     db = config.client[config.MONGO_DB]
     collection = db.prod_metric_collection
-    return collection.insert_one({'time': timestamp, 'prod_metric':prod_metric, 'tuning_metric':metric})
 
-def best_tuning(classification=None)->Container:
-    db = config.client[config.MONGO_DB]
-    collection = db.tuning_collection
-    print('finding best tuning')
-    best_item = next(collection.find({'classification':classification}).sort("metric", pymongo.DESCENDING).limit(1))
+    return collection.insert_one({'time': timestamp, 'prod_metric':prod_metric.serialize(), 'tuning_metric':metric.serialize()})
 
-    return best_item['classification'], best_item['configuration'], best_item['metric']
+def best_tuning(classification:Cluster, tuning_candidates:list)->Container:
+    for container in tuning_candidates:
+        if container.classification == classification:
+            return container.classification, container.configuration, container.metric
+
+    return None
+
+def metrics_result(cpu:Future, memory:Future, throughput:Future, latency:Future):
+    metric = Metric()
+    cpu = cpu.result().replace(float('NaN'), 0)
+    metric.cpu = cpu[0] if not cpu.empty else 0
+
+    memory = memory.result().replace(float('NaN'), 0)
+    metric.memory = memory[0] if not memory.empty else 0
+
+    throughput = throughput.result().replace(float('NaN'), 0)
+    metric.throughput = throughput[0] if not throughput.empty else 0
+
+    latency = latency.result().replace(float('NaN'), 0)
+    metric.latency = latency[0] if not latency.empty else 0
+
+    return metric
 
 def main():
+    tuning_candidates = []
     last_config, last_type, last_prod_metric = None, None, 0
     last_train_matric = None
     configMapHandler = cs.ConfigMap()
@@ -82,40 +98,74 @@ def main():
         time.sleep(config.WAITING_TIME)
 
         print(' *** sampling workloads *** ')
-        print('\tsampling training workload')
-        workload = wh.workload(config.POD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE)).result()
-        # workload = wh.workload_and_metric(config.POD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
+        print('Training workload:')
+        workload = wh.workload(pod_regex=config.POD_REGEX,
+                               interval=int(config.WAITING_TIME * config.SAMPLE_SIZE))
+
+        print('\nTraining metrics')
+        latency = wh.latency(pod_regex=config.POD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                             quantile=config.QUANTILE)
+
+        throughput = wh.throughput(pod_regex=config.POD_REGEX,
+                                   interval=int(config.WAITING_TIME * config.SAMPLE_SIZE), quantile=config.QUANTILE)
+
+        memory = wh.memory(pod_regex=config.POD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                           quantile=config.QUANTILE)
+
+        cpu = wh.cpu(pod_regex=config.POD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                     quantile=config.QUANTILE)
+
+        workload = Container(str(int(time.time())), workload.result())
+        workload.metric = metrics_result(cpu, memory, throughput, latency)
 
         print('classifying workload ', workload.label)
         workload.classification, workload.hits = classificationCtx.cluster(workload)
-        print(f'workload {workload.label} classified as {workload.classification.id} -- {workload.hits}th hit')
-
+        print(f'\tworkload {workload.label} classified as {workload.classification.id} -- {workload.hits}th hit')
 
         workload.configuration = configuration
 
         last_train_matric = workload.metric
 
-        print('\tsampling production workload')
-        workload_prod = wh.workload_and_metric(config.POD_PROD_REGEX, int(config.WAITING_TIME * config.SAMPLE_SIZE), config.MOCK)
+        print('Production workload:')
+        workload_prod = wh.workload(pod_regex=config.POD_PROD_REGEX,
+                                    interval=int(config.WAITING_TIME * config.SAMPLE_SIZE))
+
+        print('\nTraining metrics:')
+        latency_prod = wh.latency(pod_regex=config.POD_PROD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                             quantile=config.QUANTILE)
+
+        throughput_prod = wh.throughput(pod_regex=config.POD_PROD_REGEX,
+                                   interval=int(config.WAITING_TIME * config.SAMPLE_SIZE), quantile=config.QUANTILE)
+
+        memory_prod = wh.memory(pod_regex=config.POD_PROD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                           quantile=config.QUANTILE)
+
+        cpu_prod = wh.cpu(pod_regex=config.POD_PROD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                     quantile=config.QUANTILE)
+
+        workload_prod = Container(str(int(time.time())), workload_prod.result())
+        workload_prod.metric = metrics_result(cpu_prod, memory_prod, throughput_prod, latency_prod)
+
         workload_prod.classification = last_type
         workload_prod.configuration = last_config
 
-        print(f'\t\t[T] throughput: {workload.metric}')
-        print(f'\t\t[P] throughput: {workload_prod.metric}')
+        print(f'\t\t[T] metrics: {workload.metric}')
+        print(f'\t\t[P] metrics: {workload_prod.metric}')
 
-        if first_loop:
-            first_loop = False
-            print(f'smarttuning loop took {time.time() - start}s')
-            continue
+        # if first_loop:
+        #     first_loop = False
+        #     print(f'smarttuning loop took {time.time() - start}s')
+        #     continue
 
         print(' *** saving data ***')
+        heapq.heappush(tuning_candidates, workload)
         save(workload)
         save_prod_metric(workload.start, workload_prod.metric, workload.metric)
         save_workload(workload_prod, workload)
 
 
         print(' *** sampling the best tuning *** ')
-        best_type, best_config, best_metric = best_tuning(workload.classification)
+        best_type, best_config, best_metric = best_tuning(workload.classification, tuning_candidates)
         print('\tbest type: ', best_type, '\n\tlast type: ', last_type)
         print('\tbest conf: ', best_config, '\n\tlast config: ', last_config)
         print('\tbest metric: ', best_metric, '\n\tlast metric: ', last_prod_metric)

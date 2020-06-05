@@ -1,5 +1,6 @@
 from queue import Queue
 import numpy as np
+import traceback
 from hyperopt import fmin, tpe, rand
 import config
 
@@ -16,8 +17,9 @@ def objective(params):
         chn_out.put(params)
         metric = chn_in.get(True)
     except Exception as e:
+        traceback.print_exc()
         print(e)
-    return -metric
+    return metric.objective()
 
 def sample(metric):
     parameters = chn_out.get(True)

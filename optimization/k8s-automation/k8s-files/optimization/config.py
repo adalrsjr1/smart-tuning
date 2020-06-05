@@ -9,7 +9,7 @@ def print_config(toPrint=False):
         print('\n *** loading config ***\n')
         for item in globals().items():
             if item[0].isupper():
-                print(item)
+                print('\t', item)
         print('\n *** config loaded *** \n')
 
 # test config
@@ -36,12 +36,13 @@ BAYESIAN = eval(os.environ.get('OPTIMIZATION_METHOD', default='True'))
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
-
+OBJECTIVE = os.environ.get('OBJECTIVE', default='memory')
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='1.0'))
 WAITING_TIME = int(os.environ.get('WAITING_TIME', default='2'))
-POD_REGEX = os.environ.get('POD_REGEX', '.*tuning.*')
-POD_PROD_REGEX = os.environ.get('POD_PROD_REGEX', '.*tuningprod.*')
+POD_REGEX = os.environ.get('POD_REGEX', default='.*tuning.*')
+POD_PROD_REGEX = os.environ.get('POD_PROD_REGEX', default='.*tuningprod.*')
+QUANTILE = float(os.environ.get('QUANTILE', default='1.0'))
 
 # actuator config
 CONFIGMAP_NAME = os.environ.get('CONFIGMAP_NAME', default='tuning-config')
