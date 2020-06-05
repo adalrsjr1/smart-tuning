@@ -254,7 +254,8 @@ class TestHistogramHandler(unittest.TestCase):
 
     def test_pandasseries_to_tree(self):
         prometheus = query.Prometheus(f'http://localhost:30090')
-        hist = sampler.workload('acmeair-tuning.*', 6000)
+        hist = sampler.workload('acmeair-tuning.*', 600)
+        # print(hist.result())
         hh.pandas_to_tree(hist.result())
 
 if __name__ == '__main__':

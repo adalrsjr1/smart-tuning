@@ -117,7 +117,7 @@ class Container:
         self.label = label
         # self.content_labels = content_labels
         # self.content = content
-        self.node = hh.pandas_to_tree(histogram, similarityThreshold) if histogram else None
+        self.node = hh.pandas_to_tree(histogram, similarityThreshold) if histogram is not None else None
         self.metric = metric
 
         self.configuration = None
@@ -129,7 +129,7 @@ class Container:
         self.hits = 0
 
     def __str__(self):
-        return f'label:{self.label}, classification:{self.classification.id}, config:{self.configuration}'
+        return f'label:{self.label}, classification:{self.classification.id if self.classification else ""}, config:{self.configuration}'
 
     def __add__(self, other:Container):
         c = Container('', None, None)

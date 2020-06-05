@@ -12,6 +12,8 @@ class Node():
 
         self.children = []
 
+    
+
     def is_endpoint(self):
         return 0 == len(self.children) or self.value > 0
 
@@ -68,33 +70,6 @@ def insert(path:list, value:float, node:Node, threshould=0):
     node.value += value
     return node
 
-# def expands_tree(node:Node, root:Node):
-#     if node == root:
-#         same_key, diff_key = [], []
-#         for child in node.children:
-#             if child in root.children:
-#                 index = root.children.index(child)
-#                 same_key.append((child, root.children[index]))
-#             else:
-#                 diff_key.append(child)
-#
-#
-#         for item in diff_key:
-#             heapq.heappush(root.children, item.clone())
-#
-#         queue = []
-#         for src, dst in same_key:
-#             queue.append(expands_tree(src, dst))
-#
-#         return root
-#
-#     if node != root:
-#         new_root = Node('', 0)
-#         heapq.heappush(new_root.children, root)
-#         heapq.heappush(new_root.children, node)
-#
-#         return new_root
-
 def compare_trees(tree1, tree2):
     if tree1 != tree2:
         return False
@@ -123,6 +98,16 @@ def print_tree(node:Node, space=0):
     print('\t' * (space + 1), node)
     for child in node.children:
         print_tree(child, space=space+1)
+
+def merge_trees(node1:Node, node2:Node) -> Node:
+    new_node = node1.clone(mark=False)
+
+    aux = [node2]
+
+    while aux:
+        item = aux.pop(0)
+
+        insert(item.)
 
 def expand_trees(root1:Node, root2:Node, merge=True):
 

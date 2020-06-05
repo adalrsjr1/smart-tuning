@@ -32,7 +32,7 @@ def memory(pod_regex, interval, quantile=1.0, endpoint=_prometheus) -> Future:
         :param quantile a value 0.0 - 1.0
     """
     print(f' >>> sampling memory at {pod_regex}')
-    query = f'sum(quantile_over_time({quantile},container_memory_usage_bytes{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))'
+    query = f'sum(quantile_over_time({quantile},container_memory_working_set_bytes{{pod=~"{pod_regex}"}}[{timeinterval.second(interval)}s]))'
 
     return do_sample(query, endpoint=endpoint)
 
