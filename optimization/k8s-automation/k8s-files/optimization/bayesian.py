@@ -33,13 +33,16 @@ def get():
 def put(metric):
     chn_in.put(metric)
 
-surrogate = rand.suggest
-if config.BAYESIAN:
-    surrogate = tpe.suggest
+
 
 def init(search_space):
     global space
     space = search_space
+
+    surrogate = rand.suggest
+    if config.BAYESIAN:
+        surrogate = tpe.suggest
+
     config.executor.submit(fmin, fn=objective, space=space, algo=surrogate, max_evals=int(1e15), verbose=False, show_progressbar=False, rstate= np.random.RandomState(config.RANDOM_SEED))
 # done = wait([o], timeout=None, return_when=FUTURE_ALL_COMPLETED)
 
