@@ -3,29 +3,41 @@ kind: ConfigMap
 metadata:
   name: smarttuning-config
 data:
+  # test config
+  MOCK: "False"
+  PRINT_CONFIG: "True"
+  # mongo config
   MONGO_ADDR: 'mongo-workload-service.default.svc.cluster.local'
   MONGO_PORT: '27017'
   MONGO_DB: 'smarttuning'
+  # prometheus config
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
-  NAMESPACE: 'default'
-  NAMESPACE_PROD: 'default'
+  # classification config
+  K: '1'
+  DISTANCE_METHOD: "hellinger"
+  URL_SIMILARITY_THRESHOULD: "0.8" # not being used
+  # optimization config
+  SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
+  BAYESIAN: 'True'
+  NUMBER_ITERATIONS: '0'
+  METRIC_THRESHOLD: '0.3334'
+  RANDOM_SEED: '31'
+  ## the objective is always to minimize
+  ## 2 ** 20 transforms bytes to megabytes
+  OBJECTIVE: '((memory / (2 ** 20)) * latency) / throughput'
+  SAMPLE_SIZE: '1.0'
+  WAITING_TIME: '30'
   POD_REGEX: 'acmeair-tuning-.*'
   POD_PROD_REGEX: 'acmeair-tuningprod-.*'
-  WAITING_TIME: '30'
-  SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
-#  CONFIGMAP_NAME: 'jvm-config-train'
-#  CONFIGMAP_PROD_NAME: 'jvm-config-prod'
+  QUANTILE: '1.0'
+  # actuator config
+  #  CONFIGMAP_NAME: 'jvm-config-train'
+  #  CONFIGMAP_PROD_NAME: 'jvm-config-prod'
   CONFIGMAP_NAME: 'acmeair-config-train'
   CONFIGMAP_PROD_NAME: 'acmeair-config-prod'
-  MOCK: 'False'
-  BAYESIAN: 'True'
-  RANDOM_SEED: '31'
-  K: '1'
-  SAMPLE_SIZE: '1.0'
-  #'0.3334'
-  NUMBER_ITERATIONS: '0'
-  METRIC_THRESHOLD: '0.0'
+  NAMESPACE: 'default'
+  NAMESPACE_PROD: 'default'
 ---
 apiVersion: apps/v1
 kind: Deployment

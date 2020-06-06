@@ -7,6 +7,7 @@ import pandas as pd
 import numbers
 import uuid
 import copy
+import math
 import dataclasses
 
 import config
@@ -86,9 +87,15 @@ class Metric:
     def __ge__(self, other):
         return self.objective() >= (other.objective() if isinstance(other, Metric) else other)
 
-    def objective(self) -> float:
-        return eval(config.OBJECTIVE, globals(), self.__dict__) if config.OBJECTIVE else float('inf')
+    def __repr__(self):
+        return f'Metric(cpu={self.cpu}, memory={self.memory}, throughput={self.throughput}, ' \
+               f'latency={self.latency}, objective={self.objective()})'
 
+    def objective(self) -> float:
+        result = eval(config.OBJECTIVE, globals(), self.__dict__) if config.OBJECTIVE else float('inf')
+        if math.isnan(result):
+            return float('inf')
+        return result
 
 class Container:
     def __init__(self, label, content:pd.Series=None, metric=Metric(cpu=0,memory=0,throughput=0,latency=0),
