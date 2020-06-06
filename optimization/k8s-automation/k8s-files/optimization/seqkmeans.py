@@ -99,7 +99,7 @@ class Metric:
 
 class Container:
     def __init__(self, label, content:pd.Series=None, metric=Metric(cpu=0,memory=0,throughput=0,latency=0),
-                 similarity_threshold=config.URL_SIMILARITY_THRESHOULD):
+                 similarity_threshold=config.URL_SIMILARITY_THRESHOLD):
 
         self.label = label
         self.content:pd.Series = content
