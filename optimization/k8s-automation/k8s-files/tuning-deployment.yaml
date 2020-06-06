@@ -16,7 +16,7 @@ data:
   # classification config
   K: '1'
   DISTANCE_METHOD: "hellinger"
-  URL_SIMILARITY_THRESHOULD: "0.8" # not being used
+  URL_SIMILARITY_THRESHOLD: "0.8" # not being used
   # optimization config
   SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
   BAYESIAN: 'True'

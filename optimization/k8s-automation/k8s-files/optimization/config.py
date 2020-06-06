@@ -28,7 +28,7 @@ PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', default='30090')
 # classification config
 K = int(os.environ.get('K', default='3'))
 DISTANCE_METHOD = os.environ.get('DISTANCE_METHOD', default='hellinger')
-URL_SIMILARITY_THRESHOULD = float(os.environ.get('URL_SIMILARITY_THRESHOULD', default='0.8'))
+URL_SIMILARITY_THRESHOLD = float(os.environ.get('URL_SIMILARITY_THRESHOLD', default='0.8'))
 
 # optimization config
 SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH',default='')
