@@ -16,6 +16,10 @@ spec:
         - name: proxy
           image: smarttuning-proxy
           imagePullPolicy: Never
+          resources:
+            limits:
+#              cpu: "3"
+              memory: "100Mi"
           envFrom:
             - configMapRef:
                 name: proxy-config-train
@@ -46,6 +50,10 @@ spec:
         - name: service
           image: liberty-acmeair-k8s
           imagePullPolicy: Never
+          resources:
+            limits:
+#              cpu: "15"
+              memory: "512Mi"
           readinessProbe:
             httpGet:
               port: 80

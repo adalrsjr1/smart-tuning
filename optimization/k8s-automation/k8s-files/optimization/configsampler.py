@@ -52,6 +52,45 @@ class ConfigMap:
 
         return api_instance.patch_namespaced_config_map(name, namespace, body, pretty=pretty)
 
+    def patch_deployment(self, deployment_name, deployment_namespace, data):
+        api_instance = k8s.client.AppsV1Api(k8s.client.ApiClient())
+
+        name = deployment_name
+        namespace = deployment_namespace
+        pretty = 'true'
+
+        body = {
+            "kind": "Deployment",
+            "apiVersion": "v1",
+            "metadata": {"labels": {"date": str(int(time.time()))}},
+            "spec": {"template": {"spec": {"containers": [
+                {
+                    "name": "proxy",
+                    "resources": {
+                        "limits": {
+                            "cpu": "0.1",
+                            "memory": "256Mi"
+                        }
+                    }
+                },
+                {
+                    "name": "service",
+                    "resources": {
+                        "limits": {
+                            "cpu": "0.1",
+                            "memory": "256Mi"
+                        }
+                    }
+                }
+            ]}}}
+        }
+        api_instance.list_namespaced_deployment('default')
+        api_instance.patch_namespaced_deployment(name, namespace, body)
+
+        return api_instance.patch_namespaced_config_map(name, namespace, body, pretty=pretty)
+
+
+
 def load_search_space(search_space_path):
     search_space = SearchSpace({})
 

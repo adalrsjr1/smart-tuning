@@ -5,7 +5,7 @@ metadata:
 data:
   jvm.options: |-
     -Xtune:virtualized
-    -Xmx64m
+    -XX:+UseContainerSupport
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -14,7 +14,7 @@ metadata:
 data:
   jvm.options: |-
     -Xtune:virtualized
-    -Xmx64m
+    -XX:+UseContainerSupport
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -51,9 +51,9 @@ data:
   # default 60
   HTTP_WRITE_TIMEOUT: "60"
   # default -1
-  EXECUTOR_CORE_THREADS: "4"
+  EXECUTOR_CORE_THREADS: "-1"
   # default -1
-  EXECUTOR_MAX_THREADS: "4"
+  EXECUTOR_MAX_THREADS: "-1"
   # default 60
   EXECUTOR_KEEP_ALIVE: "60"
   # default LOCAL, other STRIC NEVER
@@ -96,9 +96,9 @@ data:
   # default 60
   HTTP_WRITE_TIMEOUT: "60"
   # default -1
-  EXECUTOR_CORE_THREADS: "4"
+  EXECUTOR_CORE_THREADS: "-1"
   # default -1
-  EXECUTOR_MAX_THREADS: "4"
+  EXECUTOR_MAX_THREADS: "-1"
   # default 60
   EXECUTOR_KEEP_ALIVE: "60"
   # default LOCAL, other STRIC NEVER
@@ -172,18 +172,18 @@ data:
   search-space.json: |
     [
       {
-          "key": "EXECUTOR_MAX_THREADS",
+          "key": "MONGO_CONNECTION_TIMEOUT",
           "type": "int",
-          "lower": 4,
-          "upper": 100,
-          "step" : 10,
+          "lower": 10,
+          "upper": 30,
+          "step" : 1,
           "options": null
       },
       {
           "key": "MONGO_MAX_CONNECTIONS",
           "type": "int",
           "lower": 4,
-          "upper": 100,
+          "upper": 300,
           "step" : 10,
           "options": null
       },
@@ -191,7 +191,7 @@ data:
           "key": "HTTP_MAX_KEEP_ALIVE_REQUESTS",
           "type": "int",
           "lower": 4,
-          "upper": 100,
+          "upper": 300,
           "step" : 10,
           "options": null
       }

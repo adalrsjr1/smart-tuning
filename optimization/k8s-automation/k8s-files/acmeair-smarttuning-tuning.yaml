@@ -24,6 +24,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: proxy-config-train
+          resources:
+            #            requests:
+            #              cpu: "1"
+            #              memory: "2048Mi"
+            limits:
+              cpu: "2"
+              memory: "4096Mi"
           env:
             - name: NODE_NAME
               valueFrom:
@@ -51,9 +58,12 @@ spec:
         - name: service
           image: liberty-acmeair-k8s
           resources:
+            #            requests:
+            #              cpu: "1"
+            #              memory: "2048Mi"
             limits:
-              cpu: "1"
-              memory: "256Mi"
+              cpu: "2"
+              memory: "4096Mi"
           imagePullPolicy: Never
           readinessProbe:
             httpGet:

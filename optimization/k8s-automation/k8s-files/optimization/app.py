@@ -78,7 +78,7 @@ def main():
     configMapHandler = cs.ConfigMap()
 
     start = time.time()
-    print(f' *** waiting {config.WAITING_TIME}s for application warm up *** ')
+    print(f' *** waiting {config.WAITING_TIME * config.SAMPLE_SIZE}s for application warm up *** ')
     while time.time() - start < config.WAITING_TIME:
         print('.', end='')
         time.sleep(10)
@@ -152,10 +152,10 @@ def main():
         print(f'\t\t[T] metrics: {workload.metric}')
         print(f'\t\t[P] metrics: {workload_prod.metric}')
 
-        # if first_loop:
-        #     first_loop = False
-        #     print(f'smarttuning loop took {time.time() - start}s')
-        #     continue
+        if first_loop:
+            first_loop = False
+            print(f'smarttuning loop tooks {time.time() - start}s')
+            continue
 
         print(' *** saving data ***')
         heapq.heappush(tuning_candidates, workload)
@@ -179,8 +179,9 @@ def main():
         print('\n *** deciding about update the application *** \n')
         print(f'\tis the best config stable? {workload.hits > config.NUMBER_ITERATIONS}')
         if workload.hits >= config.NUMBER_ITERATIONS:
-            print(f'\tis best metric > current prod metric? {best_metric > workload_prod.metric * (1+config.METRIC_THRESHOLD)}')
-            if best_metric > workload_prod.metric * (1+config.METRIC_THRESHOLD):
+            is_min = best_metric < workload_prod.metric * (1+config.METRIC_THRESHOLD)
+            print(f'\tminimization: is best metric < current prod metric? {is_min}')
+            if is_min:
                 print(f'\tis last config != best config? ', last_config != best_config)
                 if last_config != best_config:
                     print(f'setting config: {best_config}')
@@ -193,7 +194,7 @@ def main():
         last_type = workload.classification
         last_prod_metric = workload_prod.metric
 
-        print(f' *** smarttuning loop [{iteration_counter}] took {time.time() - start}s *** \n\n')
+        print(f' *** smarttuning loop [{iteration_counter}] tooks {time.time() - start}s *** \n\n')
         iteration_counter += 1
 
 

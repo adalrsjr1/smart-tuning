@@ -21,13 +21,13 @@ data:
   SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
   BAYESIAN: 'True'
   NUMBER_ITERATIONS: '0'
-  METRIC_THRESHOLD: '0.3334'
+  METRIC_THRESHOLD: '0.0'
   RANDOM_SEED: '31'
   ## the objective is always to minimize
   ## 2 ** 20 transforms bytes to megabytes
-  OBJECTIVE: '((memory / (2 ** 20)) * latency) / throughput'
-  SAMPLE_SIZE: '1.0'
-  WAITING_TIME: '30'
+  OBJECTIVE: '-(throughput / (memory / (2 ** 20))'
+  SAMPLE_SIZE: '0.3334'
+  WAITING_TIME: '900'
   POD_REGEX: 'acmeair-tuning-.*'
   POD_PROD_REGEX: 'acmeair-tuningprod-.*'
   QUANTILE: '1.0'
