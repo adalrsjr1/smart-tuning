@@ -78,8 +78,9 @@ def main():
     configMapHandler = cs.ConfigMap()
 
     start = time.time()
-    print(f' *** waiting {config.WAITING_TIME * config.SAMPLE_SIZE}s for application warm up *** ')
-    while time.time() - start < config.WAITING_TIME:
+    waiting_time = config.WAITING_TIME * config.SAMPLE_SIZE
+    print(f' *** waiting {waiting_time}s for application warm up *** ')
+    while time.time() - start < waiting_time:
         print('.', end='')
         time.sleep(10)
     print()
