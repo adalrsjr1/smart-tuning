@@ -19,6 +19,15 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: jvm-config-default
+data:
+  jvm.options: |-
+    -Xtune:virtualized
+    -XX:+UseContainerSupport
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: acmeair-config-train
   labels:
     date: "0"
@@ -106,6 +115,52 @@ data:
   # default ABORT, other CALLER_RUNS
   EXECUTOR_REJECTED_WORK_POLICY: "CALLER_RUNS"
 ---
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: acmeair-config-default
+  labels:
+    date: "0"
+data:
+  MONGO_HOST: acmeair-db.default.svc.cluster.local
+  MONGO_PORT: "27017"
+  MONGO_DBNAME: acmeair
+  OVERHEAD_ACTIVATE: "false"
+  OVERHEAD_CHANCE: "0.3"
+  CPU_LOAD: "0.1"
+  MEMORY_LOAD: "131072"
+  SERVER_PORT: "80"
+  USE_FLIGHT_DATA_RELATED_CACHING: "false"
+  LOG_DIR: "/logs"
+  WLP_LOGGING_CONSOLE_FORMAT: "basic"
+  WLP_LOGGING_CONSOLE_LOGLEVEL: "info"
+  # default max connectionPoolSize MONGO_MAX_CONNECTIONS=100
+  MONGO_MAX_CONNECTIONS: "100"
+  # default 10
+  MONGO_MIN_CONNECTIONS: "10"
+  # default 10
+  MONGO_CONNECTION_TIMEOUT: "10"
+  # Openliberty specific
+  # default 100
+  HTTP_MAX_KEEP_ALIVE_REQUESTS: "100"
+  # default 30
+  HTTP_PERSIST_TIMEOUT: "30"
+  # default 60
+  HTTP_READ_TIMEOUT: "60"
+  # default 60
+  HTTP_WRITE_TIMEOUT: "60"
+  # default -1
+  EXECUTOR_CORE_THREADS: "-1"
+  # default -1
+  EXECUTOR_MAX_THREADS: "-1"
+  # default 60
+  EXECUTOR_KEEP_ALIVE: "60"
+  # default LOCAL, other STRIC NEVER
+  EXECUTOR_STEAL_POLICY: "LOCAL"
+  # default ABORT, other CALLER_RUNS
+  EXECUTOR_REJECTED_WORK_POLICY: "CALLER_RUNS"
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -127,6 +182,23 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: proxy-config-prod
+data:
+  MAX_CONNECTIONS: "10000"
+  READ_BUFFER_SIZE: "4096"
+  WRITE_BUFFER_SIZE: "4096"
+  READ_TIMEOUT: "30"
+  WRITE_TIMEOUT: "30"
+  MAX_IDLE_CONNECTION_DURATION: "60"
+  MAX_CONNECTION_TIMEOUT: "30"
+  RESOURCE_USAGE: "FALSE"
+  PROXY_PORT: "8888"
+  SERVICE_PORT: "80"
+  METRICS_PORT: "9090"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: proxy-config-default
 data:
   MAX_CONNECTIONS: "10000"
   READ_BUFFER_SIZE: "4096"

@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1591317369034,
+  "iteration": 1591545897545,
   "links": [],
   "panels": [
     {
@@ -40,108 +40,6 @@
         "y": 0
       },
       "hiddenSeries": false,
-      "id": 14,
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": true,
-        "max": true,
-        "min": true,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "dataLinks": []
-      },
-      "percentage": false,
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "(quantile($percentile,rate(smarttuning_http_latency_seconds_sum{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval])) / quantile($percentile,rate(smarttuning_http_latency_seconds_count{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval]))) / quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval])) ",
-          "interval": "",
-          "legendFormat": "reqs train",
-          "refId": "A"
-        },
-        {
-          "expr": "(quantile($percentile,rate(smarttuning_http_latency_seconds_sum{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\"}[$sampling_interval])) / quantile($percentile,rate(smarttuning_http_latency_seconds_count{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\"}[$sampling_interval]))) / quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\"}[$sampling_interval])) ",
-          "interval": "",
-          "legendFormat": "reqs prod",
-          "refId": "B"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Latency (s) / Throughput(req/s)",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": "reqs",
-          "logBase": 10,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 7
-      },
-      "hiddenSeries": false,
       "id": 12,
       "legend": {
         "alignAsTable": true,
@@ -151,7 +49,7 @@
         "min": false,
         "rightSide": true,
         "show": true,
-        "sideWidth": 250,
+        "sideWidth": 350,
         "total": false,
         "values": true
       },
@@ -171,16 +69,22 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval])) / (quantile($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning.*\", name!~\".*POD.*\",container_name=~\".*service.*\"})/1024/1024)",
+          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval])) / (quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning-.*\", name!~\".*POD.*\",container_name=~\".*service.*\"}[$sampling_interval]))/1024/1024)",
           "interval": "",
           "legendFormat": "rps / byte train",
           "refId": "A"
         },
         {
-          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\"}[$sampling_interval])) / (quantile($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningprod.*\", name!~\".*POD.*\",container_name=~\".*service.*\"})/1024/1024)",
+          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\"}[$sampling_interval])) / (quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningprod-.*\", name!~\".*POD.*\",container_name=~\".*service.*\"}[$sampling_interval]))/1024/1024)",
           "interval": "",
           "legendFormat": "rps / byte prod",
           "refId": "B"
+        },
+        {
+          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningdefault-.*\",name!~\".*POD.*\"}[$sampling_interval])) / (quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningdefault-.*\", name!~\".*POD.*\",container_name=~\".*service.*\"}[$sampling_interval]))/1024/1024)",
+          "interval": "",
+          "legendFormat": "rps / byte default",
+          "refId": "C"
         }
       ],
       "thresholds": [],
@@ -239,10 +143,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 7
       },
       "hiddenSeries": false,
       "id": 8,
@@ -254,7 +158,7 @@
         "min": false,
         "rightSide": true,
         "show": true,
-        "sideWidth": 300,
+        "sideWidth": 350,
         "total": false,
         "values": true
       },
@@ -274,37 +178,51 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile($percentile,rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\", container_name=~\".*service.*\"}[$sampling_interval]))",
+          "expr": "quantile($percentile,rate(container_cpu_usage_seconds_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\", container_name=~\".*service.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "app train",
           "refId": "A"
         },
         {
-          "expr": " quantile($percentile, rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\",container_name=~\".*service.*\"}[$sampling_interval]))",
+          "expr": " quantile($percentile, rate(container_cpu_usage_seconds_total{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\",container_name=~\".*service.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "app prod",
           "refId": "B"
         },
         {
-          "expr": "quantile($percentile, rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\",container_name=~\".*proxy.*\"}[$sampling_interval]))",
+          "expr": "quantile($percentile,rate(container_cpu_usage_seconds_total{pod=~\"acmeair-tuningdefault-.*\",name!~\".*POD.*\",container_name=~\".*service.*\"}[$sampling_interval]))",
+          "interval": "",
+          "legendFormat": "app default",
+          "refId": "J"
+        },
+        {
+          "expr": "quantile($percentile, rate(container_cpu_usage_seconds_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\",container_name=~\".*proxy.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "proxy train",
           "refId": "C"
         },
         {
-          "expr": "quantile($percentile,rate(container_cpu_system_seconds_total{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\",container_name=~\".*proxy.*\"}[$sampling_interval]))",
+          "expr": "quantile($percentile,rate(container_cpu_usage_seconds_total{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\",container_name=~\".*proxy.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "proxy prod",
           "refId": "D"
         },
         {
-          "expr": "quantile($percentile,rate(container_cpu_system_seconds_total{pod=~\"jmeter-train\",name!~\".*POD.*\",}[$sampling_interval]))",
+          "expr": "quantile($percentile,rate(container_cpu_usage_seconds_total{pod=~\"acmeair-tuningdefault-.*\",name!~\".*POD.*\",container_name=~\".*proxy.*\"}[$sampling_interval]))",
+          "interval": "",
+          "legendFormat": "proxy default",
+          "refId": "K"
+        },
+        {
+          "expr": "quantile($percentile,rate(container_cpu_usage_seconds_total{pod=~\"jmeter-train\",name!~\".*POD.*\",}[$sampling_interval]))",
+          "hide": false,
           "interval": "",
           "legendFormat": "jmeter train",
           "refId": "F"
         },
         {
-          "expr": "quantile($percentile,rate(container_cpu_system_seconds_total{pod=~\"jmeter-prod\",name!~\".*POD.*\",}[$sampling_interval]))",
+          "expr": "quantile($percentile,rate(container_cpu_usage_seconds_total{pod=~\"jmeter-prod\",name!~\".*POD.*\",}[$sampling_interval]))",
+          "hide": false,
           "interval": "",
           "legendFormat": "jmeter prod",
           "refId": "G"
@@ -314,6 +232,20 @@
           "interval": "",
           "legendFormat": "mongo",
           "refId": "E"
+        },
+        {
+          "expr": "quantile($percentile,rate(container_cpu_usage_seconds_total{pod=~\"jmeter-default\",name!~\".*POD.*\",}[$sampling_interval]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "jmeter default",
+          "refId": "H"
+        },
+        {
+          "expr": "quantile($percentile,rate(container_cpu_usage_seconds_total[$sampling_interval]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "total",
+          "refId": "I"
         }
       ],
       "thresholds": [],
@@ -372,10 +304,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 15
       },
       "hiddenSeries": false,
       "id": 4,
@@ -387,7 +319,7 @@
         "min": false,
         "rightSide": true,
         "show": true,
-        "sideWidth": 500,
+        "sideWidth": 350,
         "total": false,
         "values": true
       },
@@ -407,35 +339,49 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning.*\", name!~\".*POD.*\",container_name=~\".*service.*\"})",
+          "expr": "quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning-.*\", name!~\".*POD.*\",container_name=~\".*service.*\"}[$sampling_interval]))",
           "hide": false,
           "interval": "",
           "legendFormat": "app train",
           "refId": "A"
         },
         {
-          "expr": "quantile($percentile, container_memory_working_set_bytes{pod=~\"acmeair-tuningprod.*\", name!~\".*POD.*\", container_name=~\".*service.*\"})",
+          "expr": "quantile($percentile, quantile_over_time($percentile, container_memory_working_set_bytes{pod=~\"acmeair-tuningprod-.*\", name!~\".*POD.*\", container_name=~\".*service.*\"}[$sampling_interval]))",
           "hide": false,
           "interval": "",
           "legendFormat": "app prod",
           "refId": "B"
         },
         {
-          "expr": "quantile($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning.*\", name!~\".*POD.*\", container_name=~\".*proxy.*\"})",
+          "expr": "quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningdefault-.*\", name!~\".*POD.*\", container_name=~\".*service.*\"}[$sampling_interval]) )",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "app default",
+          "refId": "F"
+        },
+        {
+          "expr": "quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning-.*\", name!~\".*POD.*\", container_name=~\".*proxy.*\"}[$sampling_interval]))",
           "hide": false,
           "interval": "",
           "legendFormat": "proxy train",
           "refId": "C"
         },
         {
-          "expr": "quantile($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningprod.*\", name!~\".*POD.*\", container_name=~\".*proxy.*\"}) ",
+          "expr": "quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningprod-.*\", name!~\".*POD.*\", container_name=~\".*proxy.*\"}[$sampling_interval]) )",
           "hide": false,
           "interval": "",
           "legendFormat": "proxy prod",
           "refId": "D"
         },
         {
-          "expr": "quantile($percentile,container_memory_working_set_bytes{pod=~\"acmeair-db.*\", name!~\".*POD.*\"})          ",
+          "expr": "quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningdefault-.*\", name!~\".*POD.*\", container_name=~\".*proxy.*\"}[$sampling_interval]) )",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "proxy default",
+          "refId": "G"
+        },
+        {
+          "expr": "quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-db.*\", name!~\".*POD.*\"}[$sampling_interval]) )         ",
           "hide": false,
           "interval": "",
           "legendFormat": "mongo",
@@ -502,7 +448,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 22
       },
       "hiddenSeries": false,
       "id": 10,
@@ -514,7 +460,7 @@
         "min": false,
         "rightSide": true,
         "show": true,
-        "sideWidth": 300,
+        "sideWidth": 350,
         "total": false,
         "values": true
       },
@@ -544,6 +490,12 @@
           "interval": "",
           "legendFormat": "prod",
           "refId": "B"
+        },
+        {
+          "expr": "quantile($percentile,rate(smarttuning_http_latency_seconds_sum{pod=~\"acmeair-tuningdefault-.*\",name!~\".*POD.*\"}[$sampling_interval])) / quantile($percentile,rate(smarttuning_http_latency_seconds_count{pod=~\"acmeair-tuningdefault-.*\",name!~\".*POD.*\"}[$sampling_interval]))",
+          "interval": "",
+          "legendFormat": "default",
+          "refId": "C"
         }
       ],
       "thresholds": [],
@@ -605,7 +557,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 27
       },
       "hiddenSeries": false,
       "id": 6,
@@ -637,7 +589,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval]))",
+          "expr": "\nquantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval]))",
           "interval": "",
           "legendFormat": "train",
           "refId": "A"
@@ -647,6 +599,12 @@
           "interval": "",
           "legendFormat": "prod",
           "refId": "B"
+        },
+        {
+          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningdefault-.*\",name!~\".*POD.*\"}[$sampling_interval]))",
+          "interval": "",
+          "legendFormat": "default",
+          "refId": "C"
         }
       ],
       "thresholds": [],
@@ -794,7 +752,7 @@
     ]
   },
   "time": {
-    "from": "now-3h",
+    "from": "2020-06-07T17:19:43.000Z",
     "to": "now"
   },
   "timepicker": {
@@ -813,5 +771,5 @@
   "timezone": "",
   "title": "SmartTuning",
   "uid": "8RkJTIzGz",
-  "version": 6
+  "version": 15
 }

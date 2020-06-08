@@ -25,12 +25,8 @@ spec:
             - configMapRef:
                 name: proxy-config-train
           resources:
-            #            requests:
-            #              cpu: "1"
-            #              memory: "2048Mi"
             limits:
-              cpu: "2"
-              memory: "4096Mi"
+              memory: "100Mi"
           env:
             - name: NODE_NAME
               valueFrom:
@@ -58,19 +54,17 @@ spec:
         - name: service
           image: liberty-acmeair-k8s
           resources:
-            #            requests:
-            #              cpu: "1"
-            #              memory: "2048Mi"
+            requests:
+              memory: "512Mi"
             limits:
-              cpu: "2"
-              memory: "4096Mi"
+              memory: "512Mi"
           imagePullPolicy: Never
           readinessProbe:
             httpGet:
               port: 80
               path: /acmeair-webapp/
-            initialDelaySeconds: 30
-            failureThreshold: 3
+            initialDelaySeconds: 60
+            failureThreshold: 2
             periodSeconds: 10
           ports:
             - containerPort: 80

@@ -47,3 +47,29 @@ spec:
   selector:
     app: "acmeair"
     tuning: "true"
+---
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: acmeair-default
+  labels:
+    app: acmeair-default
+spec:
+  type: NodePort
+  ports:
+    # prometheus proxy
+    - port: 9090
+      targetPort: 9090
+      name: smarttuning
+    - port: 9093
+      targetPort: 493
+      name: https
+      protocol: TCP
+    - #nodePort: 30088
+      port: 8888
+      targetPort: 8888
+      name: http
+  selector:
+    app: "acmeair-default"
+    tuning: "false"

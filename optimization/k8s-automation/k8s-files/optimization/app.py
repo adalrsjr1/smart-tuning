@@ -153,10 +153,10 @@ def main():
         print(f'\t\t[T] metrics: {workload.metric}')
         print(f'\t\t[P] metrics: {workload_prod.metric}')
 
-        if first_loop:
-            first_loop = False
-            print(f'smarttuning loop tooks {time.time() - start}s')
-            continue
+        # if first_loop:
+        #     first_loop = False
+        #     print(f'smarttuning loop tooks {time.time() - start}s')
+        #     continue
 
         print(' *** saving data ***')
         heapq.heappush(tuning_candidates, workload)
