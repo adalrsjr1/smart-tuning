@@ -69,20 +69,20 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval]))  / (quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning-.*\", name!~\".*POD.*\",container=~\"service\"}[$sampling_interval])) / 1024 / 1024)",
+          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval]))  / (quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning-.*\", name!~\".*POD.*\"}[$sampling_interval])) / 1024 / 1024)",
           "interval": "",
           "legendFormat": "rps / byte train",
           "refId": "A"
         },
         {
-          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\"}[$sampling_interval])) / (quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningprod-.*\", name!~\".*POD.*\",container=~\"service\"}[$sampling_interval]))/1024/1024)",
+          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\"}[$sampling_interval])) / (quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningprod-.*\", name!~\".*POD.*\"}[$sampling_interval]))/1024/1024)",
           "hide": false,
           "interval": "",
           "legendFormat": "rps / byte prod",
           "refId": "B"
         },
         {
-          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningdefault-.*\",name!~\".*POD.*\"}[$sampling_interval])) / (quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningdefault-.*\", name!~\".*POD.*\",container=~\"service\"}[$sampling_interval]))/1024/1024)",
+          "expr": "quantile($percentile,rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningdefault-.*\",name!~\".*POD.*\"}[$sampling_interval])) / (quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningdefault-.*\", name!~\".*POD.*\"}[$sampling_interval]))/1024/1024)",
           "hide": false,
           "interval": "",
           "legendFormat": "rps / byte default",

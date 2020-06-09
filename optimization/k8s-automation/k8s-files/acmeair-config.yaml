@@ -237,7 +237,7 @@ spec:
         - name: "memory"
           number:
             lower: 256
-            upper: 512
+            upper: 1024
             step: 16
             continuous: false
     - name: "jvm-config-train"

@@ -18,6 +18,9 @@ def load_rawdata(filepath:str, default:dict) -> (pd.DataFrame, pd.DataFrame):
             for key, value in train.items():
                 data_t[key].append(value)
 
+    del(data_p['cpu'])
+    del(data_t['cpu'])
+    del(default['cpu'])
 
     data_p, data_t = pd.DataFrame(data_p), pd.DataFrame(data_t)
     data_p['memory'] /= 2 ** 20
@@ -30,11 +33,10 @@ def load_rawdata(filepath:str, default:dict) -> (pd.DataFrame, pd.DataFrame):
         data_d[k] = col * len(data_p)
 
     data_d = pd.DataFrame(data_d)
-    data_d['objective'] = data_d['throughput'] / data_d['memory']
 
     return data_p, data_t, data_d
 
-def plot(data_p: pd.DataFrame, data_t: pd.DataFrame, data_d: pd.DataFrame):
+def plot(filename, data_p: pd.DataFrame, data_t: pd.DataFrame, data_d: pd.DataFrame):
     n_cols = data_p.count(axis=1)[1]
     n_rows = data_p.count(axis=0)[1]
     fig, axs = plt.subplots(nrows=n_cols, ncols=1, figsize=(12, 8), sharex='col')
@@ -43,11 +45,13 @@ def plot(data_p: pd.DataFrame, data_t: pd.DataFrame, data_d: pd.DataFrame):
     data_t.plot(ax=axs, linewidth=0.7, drawstyle='steps-post', style=['r-']*n_cols, subplots=True)
     data_d.plot(ax=axs, linewidth=0.7, drawstyle='steps-post', style=['g--']*n_cols, subplots=True)
 
-    labels = ['cpu - millicores', 'memory - MB', 'throughput - req/s', 'latency - s', 'req/s / MB']
+    labels = ['cpu - millicores', 'memory - MB', 'throughput - req/s', 'latency - ms', 'req/s / MB']
+    labels.pop(0)
     max_y_values = [6, 512, 12000, -1, 30]
+    max_y_values.pop(0)
     for i, ax in enumerate(axs):
         max_value = max_y_values.pop(0)
-        max_value = max_value if max_value > 0 else max(data_p.iloc[:, i].max(), data_t.iloc[:, i].max())
+        max_value = max_value if max_value > 0 else max(data_p.iloc[:, i].max(), data_t.iloc[:, i].max(), data_d.iloc[:, i].max())
         ax.set_yticks(np.linspace(0, max_value, 5, dtype=float))
         # ax.set_yticks(np.linspace(0, max(data_p.iloc[:, i].max(), data_t.iloc[:, i].max()), 5, dtype=float))
         ax.margins(x=0)
@@ -57,8 +61,9 @@ def plot(data_p: pd.DataFrame, data_t: pd.DataFrame, data_d: pd.DataFrame):
 
         ax2 = ax.twinx()
         ax.set_ylabel(labels.pop(0))
-        ax2.set_yticks(np.linspace(0, max_value, 5, dtype=float))
+        ax2.set_yticks(np.linspace(0, max_value, 10, dtype=float))
         ax.set_yticks([])
+        ax.xaxis.set_ticks(np.arange(0, n_rows, 1))
         # ax.legend(frameon=False, loc='lower right')
     ax.set_xlabel('iterations')
     ax.xaxis.set_ticks(np.arange(0, n_rows, 1))
@@ -67,13 +72,15 @@ def plot(data_p: pd.DataFrame, data_t: pd.DataFrame, data_d: pd.DataFrame):
     axs[0].legend(handles, ['production', 'training', 'default'], bbox_to_anchor=(0., 1.3, 1., .102), loc='upper center',
            ncol=2,  borderaxespad=0., frameon=False, )
 
-    plt.show()
+    plt.savefig(filename)
+    # plt.show()
 
 if __name__ == '__main__':
     data_p, data_t, data_d = load_rawdata('volume/multi-node/20200608-041757/mongo_metrics.json',
-                                  {'cpu': [5.5], 'memory': [458], 'throughput': [6430], 'latency': [25]})
-    plot(data_p, data_t, data_d)
+                                  {'cpu': [5.5], 'memory': [455], 'throughput': [5008], 'latency': [34], 'objective':[14.10]})
+    plot('single-level',data_p, data_t, data_d)
 
     data_p, data_t, data_d = load_rawdata('volume/multi-node/20200609-111012/mongo_metrics.json',
-                                          {'cpu': [5.5], 'memory': [458], 'throughput': [6430], 'latency': [25]})
-    plot(data_p, data_t, data_d)
+                                          {'cpu': [5.5], 'memory': [417], 'throughput': [7890], 'latency': [22], 'objective':[23.5]})
+    plot('multi-level',data_p, data_t, data_d)
+    # print(data_p)
