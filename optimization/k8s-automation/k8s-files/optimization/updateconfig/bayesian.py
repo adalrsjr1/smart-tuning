@@ -33,8 +33,6 @@ def get():
 def put(metric):
     chn_in.put(metric)
 
-
-
 def init(search_space):
     global space
     space = search_space

@@ -1,7 +1,7 @@
 import hyperopt.hp
 import hyperopt.pyll.stochastic
 import kubernetes as k8s
-import bayesian
+from updateconfig import bayesian
 import json
 import time
 

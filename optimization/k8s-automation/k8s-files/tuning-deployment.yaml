@@ -18,7 +18,8 @@ data:
   DISTANCE_METHOD: "hellinger"
   URL_SIMILARITY_THRESHOLD: "0.8" # not being used
   # optimization config
-  SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
+#  SEARCHSPACE_PATH: '/etc/tuning-search-space/search-space.json'
+  SEARCH_SPACE_NAME: 'acmeair-searchspace'
   BAYESIAN: 'True'
   NUMBER_ITERATIONS: '0'
   METRIC_THRESHOLD: '0.0'
@@ -27,7 +28,7 @@ data:
   ## 2 ** 20 transforms bytes to megabytes
   OBJECTIVE: '-(throughput / (memory / (2 ** 20)))'
   SAMPLE_SIZE: '0.3334'
-  WAITING_TIME: '900'
+  WAITING_TIME: '75'
   POD_REGEX: 'acmeair-tuning-.*'
   POD_PROD_REGEX: 'acmeair-tuningprod-.*'
   QUANTILE: '1.0'
@@ -66,16 +67,16 @@ spec:
           volumeMounts:
             - mountPath: /etc/smart-tuning
               name: smarttuning-config
-            - mountPath: /etc/tuning-search-space/search-space.json
-              name: tuning-search-space
-              subPath: search-space.json
+#            - mountPath: /etc/tuning-search-space/search-space.json
+#              name: tuning-search-space
+#              subPath: search-space.json
       volumes:
         - name: smarttuning-config
           configMap:
             name: smarttuning-config
-        - name: tuning-search-space
-          configMap:
-            name: tuning-search-space
+#        - name: tuning-search-space
+#          configMap:
+#            name: tuning-search-space
   selector:
     matchLabels:
       app: smarttuning

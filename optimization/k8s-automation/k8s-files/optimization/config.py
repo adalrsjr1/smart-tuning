@@ -31,7 +31,7 @@ DISTANCE_METHOD = os.environ.get('DISTANCE_METHOD', default='hellinger')
 URL_SIMILARITY_THRESHOLD = float(os.environ.get('URL_SIMILARITY_THRESHOLD', default='0.8'))
 
 # optimization config
-SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH',default='')
+SEARCH_SPACE_NAME = os.environ.get('SEARCH_SPACE_NAME', default='default')
 BAYESIAN = eval(os.environ.get('OPTIMIZATION_METHOD', default='True'))
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
@@ -48,9 +48,10 @@ QUANTILE = float(os.environ.get('QUANTILE', default='1.0'))
 CONFIGMAP_NAME = os.environ.get('CONFIGMAP_NAME', default='tuning-config')
 CONFIGMAP_PROD_NAME = os.environ.get('CONFIGMAP_PROD_NAME', default='tuning-config')
 NAMESPACE = os.environ.get('NAMESPACE', 'default')
-NAMESPACE_PROD = os.environ.get('NAMESPACE_PROD', 'default')
 
 # deprecated -- to remove
+NAMESPACE_PROD = os.environ.get('NAMESPACE_PROD', 'default')
+SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH',default='')
 # CONFIG_PATH = os.environ.get('CONFIG_PATH', default='/etc')
 # REGISTER_SERVER_PORT = int(os.environ.get('REGISTER_SERVER_PORT', default='5000'))
 # REGISTER_SERVER_ADDR = os.environ.get('REGISTER_SERVER_ADDR', default='0.0.0.0')

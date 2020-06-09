@@ -1,61 +1,73 @@
-import time
-
-import pymongo
 import heapq
+import time
+from concurrent.futures import Future
+
 import config
 import configsampler as cs
-from concurrent.futures import Future
 import sampler as wh
 from seqkmeans import Container, KmeansContext, Metric, Cluster
+from updateconfig import bayesian, searchspace
 
-def update_config(last_metric)->dict:
-    if config.MOCK:
-        return {}
 
-    search_space = cs.load_search_space(config.SEARCHSPACE_PATH)
+def update_config(last_metric) -> dict:
+    manifests, search_space = searchspace.init(cdr_search_space_name=config.SEARCH_SPACE_NAME, namespace=config.NAMESPACE)
+
+    bayesian.init(search_space)
     if last_metric:
-        search_space.update_model(last_metric)
+        bayesian.put(last_metric)
 
-    config_map = cs.ConfigMap()
-
+    # update manifests
     print('sampling new configuration')
-    configuration = search_space.sampling()
-    print('new config >>> ', configuration)
+    configuration = bayesian.get().items()
+    do_patch(manifests, configuration, production=False)
 
-    print('patching new config')
-    config_map.patch(config.CONFIGMAP_NAME, config.NAMESPACE, configuration)
-    # config_map.patch_jvm(config.CONFIGMAP_NAME, config.NAMESPACE, configuration)
-    return configuration
+    return list(configuration), manifests
 
-def save(workload:Container)->str:
+
+def do_patch(manifests, configuration, production=False):
+    for key, value in configuration:
+        for manifest in manifests:
+            if key == manifest.name:
+                print('patching new config at ', manifest.name)
+                manifest.patch(value, production=production)
+
+
+def save(workload: Container) -> str:
     db = config.client[config.MONGO_DB]
     collection = db.tuning_collection
     return collection.insert_one(workload.serialize())
 
+
 def save_workload(workload_prod, workload_training):
     db = config.client[config.MONGO_DB]
     collection = db.workloads_collection
-    return collection.insert_one({'prod_workload': workload_prod.serialize(), 'training_workload': workload_training.serialize()})
+    return collection.insert_one(
+        {'prod_workload': workload_prod.serialize(), 'training_workload': workload_training.serialize()})
+
 
 def save_config_applied(config_applied):
     db = config.client[config.MONGO_DB]
     collection = db.configs_applied_collection
     return collection.insert_one(config_applied)
 
+
 def save_prod_metric(timestamp, prod_metric, metric):
     db = config.client[config.MONGO_DB]
     collection = db.prod_metric_collection
 
-    return collection.insert_one({'time': timestamp, 'prod_metric':prod_metric.serialize(), 'tuning_metric':metric.serialize()})
+    return collection.insert_one(
+        {'time': timestamp, 'prod_metric': prod_metric.serialize(), 'tuning_metric': metric.serialize()})
 
-def best_tuning(classification:Cluster, tuning_candidates:list)->Container:
+
+def best_tuning(classification: Cluster, tuning_candidates: list) -> Container:
     for container in tuning_candidates:
         if container.classification == classification:
             return container.classification, container.configuration, container.metric
 
     return None
 
-def metrics_result(cpu:Future, memory:Future, throughput:Future, latency:Future):
+
+def metrics_result(cpu: Future, memory: Future, throughput: Future, latency: Future):
     metric = Metric()
     cpu = cpu.result().replace(float('NaN'), 0)
     metric.cpu = cpu[0] if not cpu.empty else 0
@@ -71,19 +83,20 @@ def metrics_result(cpu:Future, memory:Future, throughput:Future, latency:Future)
 
     return metric
 
+
 def main():
     tuning_candidates = []
     last_config, last_type, last_prod_metric = None, None, 0
-    last_train_matric = None
+    last_train_metric = None
     configMapHandler = cs.ConfigMap()
 
     start = time.time()
     waiting_time = config.WAITING_TIME * config.SAMPLE_SIZE
     print(f' *** waiting {waiting_time}s for application warm up *** ')
-    while time.time() - start < waiting_time:
-        print('.', end='')
-        time.sleep(10)
-    print()
+    # while time.time() - start < waiting_time:
+    #     print('.', end='')
+    #     time.sleep(10)
+    # print()
 
     print(f'*** starting SmartTuning loop ***')
     first_loop = True
@@ -93,7 +106,7 @@ def main():
 
     while True:
         start = time.time()
-        configuration = update_config(last_train_matric)
+        configuration, manifests = update_config(last_train_metric)
 
         print(f' *** waiting {config.WAITING_TIME}s for a new workload *** ')
         time.sleep(config.WAITING_TIME)
@@ -125,24 +138,26 @@ def main():
 
         workload.configuration = configuration
 
-        last_train_matric = workload.metric
+        last_train_metric = workload.metric
 
         print('Production workload:')
         workload_prod = wh.workload(pod_regex=config.POD_PROD_REGEX,
                                     interval=int(config.WAITING_TIME * config.SAMPLE_SIZE))
 
         print('\nTraining metrics:')
-        latency_prod = wh.latency(pod_regex=config.POD_PROD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
-                             quantile=config.QUANTILE)
+        latency_prod = wh.latency(pod_regex=config.POD_PROD_REGEX,
+                                  interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                                  quantile=config.QUANTILE)
 
         throughput_prod = wh.throughput(pod_regex=config.POD_PROD_REGEX,
-                                   interval=int(config.WAITING_TIME * config.SAMPLE_SIZE), quantile=config.QUANTILE)
+                                        interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                                        quantile=config.QUANTILE)
 
         memory_prod = wh.memory(pod_regex=config.POD_PROD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
-                           quantile=config.QUANTILE)
+                                quantile=config.QUANTILE)
 
         cpu_prod = wh.cpu(pod_regex=config.POD_PROD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
-                     quantile=config.QUANTILE)
+                          quantile=config.QUANTILE)
 
         workload_prod = Container(str(int(time.time())), workload_prod.result())
         workload_prod.metric = metrics_result(cpu_prod, memory_prod, throughput_prod, latency_prod)
@@ -164,7 +179,6 @@ def main():
         save_prod_metric(workload.start, workload_prod.metric, workload.metric)
         save_workload(workload_prod, workload)
 
-
         print(' *** sampling the best tuning *** ')
         best_type, best_config, best_metric = best_tuning(workload.classification, tuning_candidates)
         print('\tbest type: ', best_type, '\n\tlast type: ', last_type)
@@ -180,13 +194,16 @@ def main():
         print('\n *** deciding about update the application *** \n')
         print(f'\tis the best config stable? {workload.hits > config.NUMBER_ITERATIONS}')
         if workload.hits >= config.NUMBER_ITERATIONS:
-            is_min = best_metric < workload_prod.metric * (1+config.METRIC_THRESHOLD)
+            is_min = best_metric < workload_prod.metric * (1 + config.METRIC_THRESHOLD)
             print(f'\tminimization: is best metric < current prod metric? {is_min}')
             if is_min:
                 print(f'\tis last config != best config? ', last_config != best_config)
                 if last_config != best_config:
                     print(f'setting config: {best_config}')
-                    configMapHandler.patch(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
+
+                    do_patch(manifests, best_config, production=True)
+
+                    # configMapHandler.patch(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
                     # configMapHandler.patch_jvm(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
 
                     last_config = best_config
