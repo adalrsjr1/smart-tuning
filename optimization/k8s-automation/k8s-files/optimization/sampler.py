@@ -40,7 +40,7 @@ def cpu(pod_regex, interval, quantile=1.0, endpoint=_prometheus) -> Future:
     """ return a concurrent.futures.Future<pandas.Series> with the CPU (milicores) rate over time of an specific pod
     """
     print(f' >>> sampling cpu at {pod_regex}')
-    query = f'quantile({quantile},rate(container_cpu_system_seconds_total{{pod=~"{pod_regex}",name!~".*POD.*"}}[{timeinterval.second(interval)}s]))'
+    query = f'quantile({quantile},rate(container_cpu_usage_seconds_total{{pod=~"{pod_regex}",name!~".*POD.*"}}[{timeinterval.second(interval)}s]))'
     return do_sample(query, endpoint=endpoint)
 
 def workload(pod_regex, interval, endpoint=_prometheus) -> Future:
