@@ -130,6 +130,7 @@ def main():
                      quantile=config.QUANTILE)
 
         workload = Container(str(int(time.time())), workload.result())
+        workload.start = int(time.time() - config.WAITING_TIME)
         workload.metric = metrics_result(cpu, memory, throughput, latency)
 
         print('classifying workload ', workload.label)
