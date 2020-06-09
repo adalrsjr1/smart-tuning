@@ -60,7 +60,6 @@ class ManifestDeployment:
         total_memory = new_config.get('memory', None)
 
         for container in containers:
-            print(container)
             container['resources'] = {}
             limits = {}
             if total_cpu:
@@ -267,8 +266,8 @@ if __name__ == '__main__':
 
     # update manifests
     configuration = list(bayesian.get().items())
-    print(configuration)
-    for key, value in configuration:
-        for manifest in manifests:
-            if key == manifest.name:
-                manifest.patch(value)
+    print('>>>', dict(configuration).items())
+    # for key, value in configuration:
+    #     for manifest in manifests:
+    #         if key == manifest.name:
+    #             manifest.patch(value)

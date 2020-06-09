@@ -28,7 +28,7 @@ data:
   ## 2 ** 20 transforms bytes to megabytes
   OBJECTIVE: '-(throughput / (memory / (2 ** 20)))'
   SAMPLE_SIZE: '0.3334'
-  WAITING_TIME: '75'
+  WAITING_TIME: '900'
   POD_REGEX: 'acmeair-tuning-.*'
   POD_PROD_REGEX: 'acmeair-tuningprod-.*'
   QUANTILE: '1.0'

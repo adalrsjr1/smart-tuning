@@ -115,7 +115,6 @@ data:
   # default ABORT, other CALLER_RUNS
   EXECUTOR_REJECTED_WORK_POLICY: "CALLER_RUNS"
 ---
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -225,15 +224,15 @@ spec:
         deployment: true
         containers:
           - name: "proxy"
-            ratio: 0.1
+            ratio: 0.25
           - name: "service"
-            ratio: 0.9
+            ratio: 0.75
       params:
         - name: "cpu"
           number:
-            lower: 0.1
-            upper: 1
-            step: 0.1
+            lower: 1
+            upper: 15
+            step: 1
             continuous: true
         - name: "memory"
           number:
@@ -302,6 +301,7 @@ rules:
     resources:
       - configmaps
       - deployments
+      - searchspaces
     verbs: ["get","list","watch","create","update","patch","delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

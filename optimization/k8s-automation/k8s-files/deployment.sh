@@ -1,4 +1,5 @@
 #!/bin/bash
+kubectl --kubeconfig=remote-config apply -f manifests/search-space/
 # https://github.com/stakater/Reloader
 kubectl --kubeconfig=remote-config apply -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
 sleep 10

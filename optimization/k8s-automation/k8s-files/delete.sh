@@ -12,3 +12,4 @@ kubectl --kubeconfig=remote-config delete -f acmeair-smarttuning-tuning.yaml
 kubectl --kubeconfig=remote-config delete -f ../jmeter_k8s.yaml
 # https://github.com/stakater/Reloader
 kubectl --kubeconfig=remote-config delete -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
+kubectl --kubeconfig=remote-config delete -f manifests/search-space/

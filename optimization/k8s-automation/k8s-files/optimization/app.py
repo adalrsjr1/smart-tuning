@@ -18,14 +18,14 @@ def update_config(last_metric) -> dict:
 
     # update manifests
     print('sampling new configuration')
-    configuration = bayesian.get().items()
+    configuration = dict(bayesian.get().items())
     do_patch(manifests, configuration, production=False)
 
-    return list(configuration), manifests
+    return configuration, manifests
 
 
 def do_patch(manifests, configuration, production=False):
-    for key, value in configuration:
+    for key, value in configuration.items():
         for manifest in manifests:
             if key == manifest.name:
                 print('patching new config at ', manifest.name)
@@ -88,15 +88,15 @@ def main():
     tuning_candidates = []
     last_config, last_type, last_prod_metric = None, None, 0
     last_train_metric = None
-    configMapHandler = cs.ConfigMap()
+    # configMapHandler = cs.ConfigMap()
 
     start = time.time()
     waiting_time = config.WAITING_TIME * config.SAMPLE_SIZE
     print(f' *** waiting {waiting_time}s for application warm up *** ')
-    # while time.time() - start < waiting_time:
-    #     print('.', end='')
-    #     time.sleep(10)
-    # print()
+    while time.time() - start < waiting_time:
+        print('.', end='')
+        time.sleep(10)
+    print()
 
     print(f'*** starting SmartTuning loop ***')
     first_loop = True
