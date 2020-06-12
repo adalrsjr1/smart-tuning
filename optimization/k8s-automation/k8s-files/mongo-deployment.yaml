@@ -29,6 +29,7 @@ spec:
       labels:
         app: mongo-workload
     spec:
+      nodeName: kind-worker
       containers:
         - name: mongo-admin-workload
           image: mongo-express
@@ -67,6 +68,7 @@ spec:
       volumes:
         - name: mongo-home
           hostPath:
+            type: DirectoryOrCreate
             path: /smarttuning/mongo
   selector:
     matchLabels:

@@ -51,12 +51,18 @@ def save_config_applied(config_applied):
     return collection.insert_one(config_applied)
 
 
-def save_prod_metric(timestamp, prod_metric, metric):
+def save_metrics(timestamp, prod_metric, train_metric, def_metric):
     db = config.client[config.MONGO_DB]
     collection = db.prod_metric_collection
 
     return collection.insert_one(
-        {'time': timestamp, 'prod_metric': prod_metric.serialize(), 'tuning_metric': metric.serialize()})
+        {
+            'time': timestamp,
+            'prod_metric': prod_metric.serialize(),
+            'train_metric': train_metric.serialize(),
+            'def_metric': def_metric.serialize()
+         }
+    )
 
 
 def best_tuning(classification: Cluster, tuning_candidates: list) -> Container:
@@ -83,6 +89,22 @@ def metrics_result(cpu: Future, memory: Future, throughput: Future, latency: Fut
 
     return metric
 
+def default_metrics(podname:str) -> Metric:
+    latency = wh.latency(pod_regex=podname,
+                              interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                              quantile=config.QUANTILE)
+
+    throughput = wh.throughput(pod_regex=podname,
+                                    interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                                    quantile=config.QUANTILE)
+
+    memory = wh.memory(pod_regex=podname, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                            quantile=config.QUANTILE)
+
+    cpu = wh.cpu(pod_regex=podname, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
+                      quantile=config.QUANTILE)
+
+    return cpu, memory, throughput, latency
 
 def main():
     tuning_candidates = []
@@ -133,6 +155,8 @@ def main():
         workload.start = int(time.time() - config.WAITING_TIME)
         workload.metric = metrics_result(cpu, memory, throughput, latency)
 
+        def_metrics = default_metrics('acmeair-tuningdefault-.*')
+
         print('classifying workload ', workload.label)
         workload.classification, workload.hits = classificationCtx.cluster(workload)
         print(f'\tworkload {workload.label} classified as {workload.classification.id} -- {workload.hits}th hit')
@@ -177,7 +201,7 @@ def main():
         print(' *** saving data ***')
         heapq.heappush(tuning_candidates, workload)
         save(workload)
-        save_prod_metric(workload.start, workload_prod.metric, workload.metric)
+        save_metrics(workload.start, workload_prod.metric, workload.metric, metrics_result(*def_metrics))
         save_workload(workload_prod, workload)
 
         print(' *** sampling the best tuning *** ')

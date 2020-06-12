@@ -39,7 +39,11 @@ def init(search_space):
 
     surrogate = rand.suggest
     if config.BAYESIAN:
-        surrogate = tpe.suggest
+        from functools import partial
+        # n_startup_jobs: # of jobs doing random search at begining of optimization
+        # n_EI_candidades: number of config samples draw before select the best
+        # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
+        surrogate = partial(tpe.suggest, n_startup_jobs=20, n_EI_candidates=24, gamma=0.25)
 
     config.executor.submit(fmin, fn=objective, space=space, algo=surrogate, max_evals=int(1e15), verbose=False, show_progressbar=False, rstate= np.random.RandomState(config.RANDOM_SEED))
 # done = wait([o], timeout=None, return_when=FUTURE_ALL_COMPLETED)

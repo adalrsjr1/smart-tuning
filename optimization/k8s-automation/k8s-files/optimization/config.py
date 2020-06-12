@@ -33,6 +33,9 @@ URL_SIMILARITY_THRESHOLD = float(os.environ.get('URL_SIMILARITY_THRESHOLD', defa
 # optimization config
 SEARCH_SPACE_NAME = os.environ.get('SEARCH_SPACE_NAME', default='default')
 BAYESIAN = eval(os.environ.get('OPTIMIZATION_METHOD', default='True'))
+N_STARTUP_JOBS = int(os.environ.get('N_STARTUP_JOBS', default=20))
+N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
+GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))

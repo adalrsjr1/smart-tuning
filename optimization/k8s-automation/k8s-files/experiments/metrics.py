@@ -18,10 +18,6 @@ def load_rawdata(filepath:str, default:dict) -> (pd.DataFrame, pd.DataFrame):
             for key, value in train.items():
                 data_t[key].append(value)
 
-    del(data_p['cpu'])
-    del(data_t['cpu'])
-    del(default['cpu'])
-
     data_p, data_t = pd.DataFrame(data_p), pd.DataFrame(data_t)
     data_p['memory'] /= 2 ** 20
     data_p['objective'] = data_p['throughput'] / data_p['memory']
@@ -46,9 +42,7 @@ def plot(filename, data_p: pd.DataFrame, data_t: pd.DataFrame, data_d: pd.DataFr
     data_d.plot(ax=axs, linewidth=0.7, drawstyle='steps-post', style=['g--']*n_cols, subplots=True)
 
     labels = ['cpu - millicores', 'memory - MB', 'throughput - req/s', 'latency - ms', 'req/s / MB']
-    labels.pop(0)
     max_y_values = [6, 512, 12000, -1, 30]
-    max_y_values.pop(0)
     for i, ax in enumerate(axs):
         max_value = max_y_values.pop(0)
         max_value = max_value if max_value > 0 else max(data_p.iloc[:, i].max(), data_t.iloc[:, i].max(), data_d.iloc[:, i].max())
@@ -76,11 +70,11 @@ def plot(filename, data_p: pd.DataFrame, data_t: pd.DataFrame, data_d: pd.DataFr
     # plt.show()
 
 if __name__ == '__main__':
-    data_p, data_t, data_d = load_rawdata('volume/multi-node/20200608-041757/mongo_metrics.json',
-                                  {'cpu': [5.5], 'memory': [455], 'throughput': [5008], 'latency': [34], 'objective':[14.10]})
+    data_p, data_t, data_d = load_rawdata('volume/multi-node/20200610-215754/mongo_metrics.json',
+                                  {'cpu': [9.85], 'memory': [450], 'throughput': [7470], 'latency': [86], 'objective':[14.10]})
     plot('single-level',data_p, data_t, data_d)
 
-    data_p, data_t, data_d = load_rawdata('volume/multi-node/20200609-111012/mongo_metrics.json',
-                                          {'cpu': [5.5], 'memory': [417], 'throughput': [7890], 'latency': [22], 'objective':[23.5]})
+    data_p, data_t, data_d = load_rawdata('volume/multi-node/20200610-174907/mongo_metrics.json',
+                                          {'cpu': [10.98], 'memory': [439], 'throughput': [8030], 'latency': [21], 'objective':[16.68]})
     plot('multi-level',data_p, data_t, data_d)
     # print(data_p)

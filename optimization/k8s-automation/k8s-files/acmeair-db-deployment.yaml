@@ -12,6 +12,7 @@ spec:
       labels:
         app: acmeair-db
     spec:
+      nodeName: kind-worker
       containers:
         - name: acmeair-db
           image: mongo

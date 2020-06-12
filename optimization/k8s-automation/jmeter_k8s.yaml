@@ -9,7 +9,7 @@ data:
   # max value user id
   JUSER: '4'
   JTHREAD: '200'
-  JDURATION: '14400'
+  JDURATION: '93600'
   JURL: 'acmeair-webapp'
   JPORT: '8888'
   JMIN_SESSION_DURATION: '0'
@@ -30,6 +30,7 @@ metadata:
   labels:
     app: jmeter
 spec:
+  nodeName: kind-worker5
   containers:
     - name: jmeter
       image: jmeter_acmeair
@@ -73,6 +74,7 @@ metadata:
   labels:
     app: jmeter
 spec:
+  nodeName: kind-worker5
   containers:
     - name: jmeter
       image: jmeter_acmeair
@@ -116,6 +118,7 @@ metadata:
   labels:
     app: jmeter
 spec:
+  nodeName: kind-worker5
   containers:
     - name: jmeter
       image: jmeter_acmeair

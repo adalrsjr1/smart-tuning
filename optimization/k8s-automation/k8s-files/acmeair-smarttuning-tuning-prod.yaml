@@ -17,6 +17,7 @@ spec:
         app: "acmeair"
         tuning: "false"
     spec:
+      nodeName: kind-worker3
       containers:
         - name: proxy
           image: smarttuning-proxy
@@ -110,6 +111,7 @@ spec:
         app: "acmeair-default"
         tuning: "false"
     spec:
+      nodeName: kind-worker4
       containers:
         - name: proxy
           image: smarttuning-proxy
