@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-proxy
+  labels:
+    app: proxy
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: test-proxy
+      labels:
+        app: test-proxy
+    spec:
+      containers:
+        - name: proxy
+          image: smarttuning-proxy
+          imagePullPolicy: Never
+          env:
+            - name: METRIC_ID
+              value: smarttuning
+            - name: MEASURING_TRAFFIC
+              value: "true"
+            - name: MAX_CONNECTIONS
+              value: "100"
+            - name: READ_BUFFER_SIZE
+              value: "4096"
+            - name: WRITE_BUFFER_SIZE
+              value: "4096"
+            - name: READ_TIMEOUT
+              value: "30"
+            - name: WRITE_TIMEOUT
+              value: "30"
+            - name: MAX_IDLE_CONNECTION_DURATION
+              value: "60"
+            - name: MAX_CONNECTION_TIMEOUT
+              value: "30"
+            - name: RESOURCE_USAGE
+              value: "FALSE"
+            - name: PROXY_PORT
+              value: "8888"
+            - name: SERVICE_PORT
+              value: "80"
+            - name: METRICS_PORT
+              value: "9090"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+          ports:
+            - containerPort: 8888
+            - containerPort: 9090
+        - name: service
+          image: nginx
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+  selector:
+    matchLabels:
+      app: test-proxy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-proxy
+spec:
+  selector:
+    app: test-proxy
+  ports:
+    - port: 8888
+      targetPort: 8888
+      nodePort: 30080
+      name: app
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30091
+      name: smarttuning
+  type: NodePort

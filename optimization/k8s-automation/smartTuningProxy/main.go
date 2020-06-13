@@ -6,6 +6,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -16,6 +17,10 @@ import (
 )
 
 var (
+	// create helper function to get env var or fallback
+	metricID = os.Getenv("METRIC_ID")
+	measuringTraffic, _ = strconv.ParseBool(os.Getenv("MEASURING_TRAFFIC"))
+
 	proxyPort, _    = strconv.Atoi(os.Getenv("PROXY_PORT"))
 	metricsPort, _  = strconv.Atoi(os.Getenv("METRICS_PORT"))
 	upstreamPort, _ = strconv.Atoi(os.Getenv("SERVICE_PORT"))
@@ -52,15 +57,20 @@ var (
 
 	httpRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		// when change this name also update prometheus config file
-		Name: "smarttuning_http_requests_total",
+		Name: metricID + "_http_requests_total",
 		Help: "Count of all HTTP requests",
 	}, []string{"node", "pod", "namespace", "code", "path"})
 
 	httpLatencyHist = promauto.NewSummaryVec(prometheus.SummaryOpts{
-		Name: "smarttuning_http_latency_seconds",
+		Name: metricID + "_http_latency_seconds",
 		Help: "Server time latency",
 		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001, 1.00: 0.00},
 	}, []string{"node", "pod", "namespace", "code"})
+
+	httpSize = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: metricID + "_http_size",
+		Help: "Traffic between nodes",
+	}, []string{"node", "pod", "namespace", "code", "src", "dst"})
 
 	promChan = make(chan PromMetric, maxConn)
 )
@@ -69,11 +79,18 @@ type PromMetric struct {
 	path []byte
 	statusCode int
 	startTime time.Time
+	requestsSize int
+	responseSize int
+	client net.IP
+	podIP string
 }
 
 func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	req := &ctx.Request
+
 	resp := &ctx.Response
+	client := ctx.RemoteIP()
+	requestSize := len(req.Body()) + len(req.URI().QueryString())
 
 	tStart := time.Now()
 	prepareRequest(req)
@@ -81,22 +98,29 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 		resp.SetStatusCode(fasthttp.StatusBadGateway)
 		ctx.Logger().Printf("error when proxying the request: %s", err)
 	}
+	responseSize := resp.Header.ContentLength()
 	postprocessResponse(resp)
+
 
 	// fix inconsistent URL with channels
 	promChan <- PromMetric{
 		path: req.RequestURI(),
 		statusCode: resp.StatusCode(),
 		startTime: tStart,
+		requestsSize: requestSize,
+		responseSize: responseSize,
+		client: client,
+		podIP: podIP,
 	}
 
 	go func(promChan chan PromMetric) {
 		metric := <- promChan
+		code := strconv.Itoa(metric.statusCode)
 		httpRequestsTotal.With(prometheus.Labels{
 			"node":      nodeName,
 			"pod":       podName,
 			"namespace": podNamespace,
-			"code":      strconv.Itoa(metric.statusCode),
+			"code":      code,
 			"path":      string(metric.path), //+ p.sanitizeURLQuery(req.URL.RawQuery)
 		}).Inc()
 
@@ -104,8 +128,32 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 			"node":      nodeName,
 			"pod":       podName,
 			"namespace": podNamespace,
-			"code":      strconv.Itoa(metric.statusCode),
+			"code":      code,
 		}).Observe(time.Since(metric.startTime).Seconds())
+
+		if measuringTraffic {
+			// src -> dst
+			httpSize.With(prometheus.Labels{
+				"node":      nodeName,
+				"pod":       podName,
+				"namespace": podNamespace,
+				"code":      code,
+				//"size":      strconv.Itoa(metric.requestsSize),
+				"src":       metric.client.String(),
+				"dst":       metric.podIP,
+			}).Add(float64(metric.requestsSize))
+			// dst -> src
+			httpSize.With(prometheus.Labels{
+				"node":      nodeName,
+				"pod":       podName,
+				"namespace": podNamespace,
+				"code":      code,
+				//"size":      strconv.Itoa(metric.responseSize),
+				"src":       metric.podIP,
+				"dst":       metric.client.String(),
+			}).Add(float64(metric.responseSize))
+		}
+
 	}(promChan)
 }
 
