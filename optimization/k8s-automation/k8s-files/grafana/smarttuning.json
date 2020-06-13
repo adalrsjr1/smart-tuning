@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1591811550207,
+  "iteration": 1591999347192,
   "links": [],
   "panels": [
     {
@@ -359,6 +359,13 @@
       "steppedLine": false,
       "targets": [
         {
+          "expr": "quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning-.*\", name!~\".*POD.*\"}[$sampling_interval]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "train",
+          "refId": "H"
+        },
+        {
           "expr": "quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuningprod-.*\", name!~\".*POD.*\"}[$sampling_interval]))",
           "hide": false,
           "interval": "",
@@ -371,13 +378,6 @@
           "interval": "",
           "legendFormat": "default",
           "refId": "J"
-        },
-        {
-          "expr": "quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning-.*\", name!~\".*POD.*\"}[$sampling_interval]))",
-          "hide": false,
-          "interval": "",
-          "legendFormat": "train",
-          "refId": "H"
         },
         {
           "expr": "quantile($percentile, quantile_over_time($percentile,container_memory_working_set_bytes{pod=~\"acmeair-tuning-.*\", name!~\".*POD.*\",container=~\"service\"}[$sampling_interval]))",
@@ -793,7 +793,7 @@
     ]
   },
   "time": {
-    "from": "2020-06-10T17:52:15.000Z",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {
@@ -812,5 +812,5 @@
   "timezone": "",
   "title": "SmartTuning",
   "uid": "8RkJTIzGz",
-  "version": 6
+  "version": 2
 }

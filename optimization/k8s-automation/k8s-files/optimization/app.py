@@ -5,6 +5,8 @@ from concurrent.futures import Future
 import config
 import configsampler as cs
 import sampler as wh
+import pandas as pd
+import numpy as np
 from seqkmeans import Container, KmeansContext, Metric, Cluster
 from updateconfig import bayesian, searchspace
 
@@ -53,7 +55,7 @@ def save_config_applied(config_applied):
 
 def save_metrics(timestamp, prod_metric, train_metric, def_metric):
     db = config.client[config.MONGO_DB]
-    collection = db.prod_metric_collection
+    collection = db.metric_collection
 
     return collection.insert_one(
         {
@@ -72,20 +74,46 @@ def best_tuning(classification: Cluster, tuning_candidates: list) -> Container:
 
     return None
 
+def remove_candidate(classification: Cluster, tuning_candidates: list):
+    selected = None
+    for container in tuning_candidates:
+        if container.classification == classification:
+            selected = container
+            break
+
+    if selected:
+        tuning_candidates.remove(selected)
+
 
 def metrics_result(cpu: Future, memory: Future, throughput: Future, latency: Future):
     metric = Metric()
-    cpu = cpu.result().replace(float('NaN'), 0)
-    metric.cpu = cpu[0] if not cpu.empty else 0
+    try:
+        cpu = cpu.result(timeout=15).replace(float('NaN'), 0)
+        metric.cpu = cpu[0] if not cpu.empty else 0
+    except TimeoutError as e:
+        print(' ### Timeout when sampling cpu ### ')
+        metric.cpu = float('inf')
 
-    memory = memory.result().replace(float('NaN'), 0)
-    metric.memory = memory[0] if not memory.empty else 0
+    try:
+        memory = memory.result(timeout=15).replace(float('NaN'), 0)
+        metric.memory = memory[0] if not memory.empty else 0
+    except TimeoutError as e:
+        print(' ### Timeout when sampling memory ### ')
+        metric.memory = float('inf')
 
-    throughput = throughput.result().replace(float('NaN'), 0)
-    metric.throughput = throughput[0] if not throughput.empty else 0
+    try:
+        throughput = throughput.result(timeout=15).replace(float('NaN'), 0)
+        metric.throughput = throughput[0] if not throughput.empty else 0
+    except TimeoutError as e:
+        print(' ### Timeout when sampling throuhgput ### ')
+        metric.throughput = 0
 
-    latency = latency.result().replace(float('NaN'), 0)
-    metric.latency = latency[0] if not latency.empty else 0
+    try:
+        latency = latency.result(timeout=15).replace(float('NaN'), 0)
+        metric.latency = latency[0] if not latency.empty else 0
+    except TimeoutError as e:
+        print(' ### Timeout when sampling latency ### ')
+        metric.throughput = float('inf')
 
     return metric
 
@@ -151,10 +179,17 @@ def main():
         cpu = wh.cpu(pod_regex=config.POD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
                      quantile=config.QUANTILE)
 
-        workload = Container(str(int(time.time())), workload.result())
+        print('sampling training workload')
+        try:
+            workload = Container(str(int(time.time())), workload.result(timeout=15))
+        except TimeoutError as e:
+            print(' ### Timeout when sampling workload ### ')
+            workload = Container(str(int(time.time())), pd.Series(dtype=np.float))
+
         workload.start = int(time.time() - config.WAITING_TIME)
         workload.metric = metrics_result(cpu, memory, throughput, latency)
 
+        print('sampling default metrics')
         def_metrics = default_metrics('acmeair-tuningdefault-.*')
 
         print('classifying workload ', workload.label)
@@ -184,7 +219,12 @@ def main():
         cpu_prod = wh.cpu(pod_regex=config.POD_PROD_REGEX, interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
                           quantile=config.QUANTILE)
 
-        workload_prod = Container(str(int(time.time())), workload_prod.result())
+        print('sampling production workload')
+        try:
+            workload_prod = Container(str(int(time.time())), workload_prod.result(timeout=15))
+        except TimeoutError as e:
+            print(' ### Timeout when sampling prod workload ### ')
+            workload = Container(str(int(time.time())), pd.Series(dtype=np.float))
         workload_prod.metric = metrics_result(cpu_prod, memory_prod, throughput_prod, latency_prod)
 
         workload_prod.classification = last_type
@@ -224,15 +264,22 @@ def main():
             if is_min:
                 print(f'\tis last config != best config? ', last_config != best_config)
                 if last_config != best_config:
-                    print(f'setting config: {best_config}')
+                    print(f'setting best global config: {best_config}')
 
                     do_patch(manifests, best_config, production=True)
 
-                    # configMapHandler.patch(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
-                    # configMapHandler.patch_jvm(config.CONFIGMAP_PROD_NAME, config.NAMESPACE_PROD, best_config)
-
                     last_config = best_config
                     save_config_applied(best_config or {})
+                elif workload.metric < workload_prod.metric * (1 + config.METRIC_THRESHOLD):
+                    print('removing old best tuning')
+                    remove_candidate(workload.classification, tuning_candidates)
+                    print(f'setting best local config: {workload.configuration}')
+
+                    do_patch(manifests, workload.configuration, production=True)
+
+                    last_config = workload.configuration
+                    save_config_applied(workload.configuration or {})
+
 
         last_type = workload.classification
         last_prod_metric = workload_prod.metric
