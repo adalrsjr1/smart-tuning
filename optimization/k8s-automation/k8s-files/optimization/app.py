@@ -84,7 +84,6 @@ def remove_candidate(classification: Cluster, tuning_candidates: list):
     if selected:
         tuning_candidates.remove(selected)
 
-
 def metrics_result(cpu: Future, memory: Future, throughput: Future, latency: Future):
     metric = Metric()
     try:
@@ -156,7 +155,7 @@ def main():
 
     while True:
         start = time.time()
-        configuration, manifests = update_config(last_train_metric)
+        local_configuration, manifests = update_config(last_train_metric)
 
         print(f' *** waiting {config.WAITING_TIME}s for a new workload *** ')
         time.sleep(config.WAITING_TIME)
@@ -181,30 +180,30 @@ def main():
 
         print('sampling training workload')
         try:
-            workload = Container(str(int(time.time())), workload.result(timeout=15))
+            workload_train = Container(str(int(time.time())), workload.result(timeout=15))
         except TimeoutError as e:
             print(' ### Timeout when sampling workload ### ')
-            workload = Container(str(int(time.time())), pd.Series(dtype=np.float))
+            workload_train = Container(str(int(time.time())), pd.Series(dtype=np.float))
 
-        workload.start = int(time.time() - config.WAITING_TIME)
-        workload.metric = metrics_result(cpu, memory, throughput, latency)
+        workload_train.start = int(time.time() - config.WAITING_TIME)
+        workload_train.metric = metrics_result(cpu, memory, throughput, latency)
 
         print('sampling default metrics')
         def_metrics = default_metrics('acmeair-tuningdefault-.*')
 
-        print('classifying workload ', workload.label)
-        workload.classification, workload.hits = classificationCtx.cluster(workload)
-        print(f'\tworkload {workload.label} classified as {workload.classification.id} -- {workload.hits}th hit')
+        print('classifying workload ', workload_train.label)
+        workload_train.classification, workload_train.hits = classificationCtx.cluster(workload_train)
+        print(f'\tworkload {workload_train.label} classified as {workload_train.classification.id} -- {workload_train.hits}th hit')
 
-        workload.configuration = configuration
+        workload_train.configuration = local_configuration
 
-        last_train_metric = workload.metric
+        last_train_metric = workload_train.metric
 
         print('Production workload:')
         workload_prod = wh.workload(pod_regex=config.POD_PROD_REGEX,
                                     interval=int(config.WAITING_TIME * config.SAMPLE_SIZE))
 
-        print('\nTraining metrics:')
+        print('\nProduction metrics:')
         latency_prod = wh.latency(pod_regex=config.POD_PROD_REGEX,
                                   interval=int(config.WAITING_TIME * config.SAMPLE_SIZE),
                                   quantile=config.QUANTILE)
@@ -224,13 +223,13 @@ def main():
             workload_prod = Container(str(int(time.time())), workload_prod.result(timeout=15))
         except TimeoutError as e:
             print(' ### Timeout when sampling prod workload ### ')
-            workload = Container(str(int(time.time())), pd.Series(dtype=np.float))
+            workload_prod = Container(str(int(time.time())), pd.Series(dtype=np.float))
         workload_prod.metric = metrics_result(cpu_prod, memory_prod, throughput_prod, latency_prod)
 
-        workload_prod.classification = last_type
+        workload_prod.classification = workload_train.classification
         workload_prod.configuration = last_config
 
-        print(f'\t\t[T] metrics: {workload.metric}')
+        print(f'\t\t[T] metrics: {workload_train.metric}')
         print(f'\t\t[P] metrics: {workload_prod.metric}')
 
         # if first_loop:
@@ -239,17 +238,18 @@ def main():
         #     continue
 
         print(' *** saving data ***')
-        heapq.heappush(tuning_candidates, workload)
-        save(workload)
-        save_metrics(workload.start, workload_prod.metric, workload.metric, metrics_result(*def_metrics))
-        save_workload(workload_prod, workload)
+        heapq.heappush(tuning_candidates, workload_train)
+        save(workload_train)
+        save_metrics(workload_train.start, workload_prod.metric, workload_train.metric, metrics_result(*def_metrics))
+        save_workload(workload_prod, workload_train)
 
         print(' *** sampling the best tuning *** ')
-        best_type, best_config, best_metric = best_tuning(workload.classification, tuning_candidates)
+        best_type, best_config, best_metric = best_tuning(workload_train.classification, tuning_candidates)
         print('\tbest type: ', best_type, '\n\tlast type: ', last_type)
         print('\tbest conf: ', best_config, '\n\tlast config: ', last_config)
         print('\tbest metric: ', best_metric, '\n\tlast metric: ', last_prod_metric)
 
+        # to remove this on next housekeeping
         if best_config and '_id' in best_config:
             del (best_config['_id'])
 
@@ -257,8 +257,8 @@ def main():
             del (last_config['_id'])
 
         print('\n *** deciding about update the application *** \n')
-        print(f'\tis the best config stable? {workload.hits > config.NUMBER_ITERATIONS}')
-        if workload.hits >= config.NUMBER_ITERATIONS:
+        print(f'\tis the best config stable? {workload_train.hits >= config.NUMBER_ITERATIONS}')
+        if workload_train.hits >= config.NUMBER_ITERATIONS:
             is_min = best_metric < workload_prod.metric * (1 + config.METRIC_THRESHOLD)
             print(f'\tminimization: is best metric < current prod metric? {is_min}')
             if is_min:
@@ -270,18 +270,21 @@ def main():
 
                     last_config = best_config
                     save_config_applied(best_config or {})
-                elif workload.metric < workload_prod.metric * (1 + config.METRIC_THRESHOLD):
-                    print('removing old best tuning')
-                    remove_candidate(workload.classification, tuning_candidates)
-                    print(f'setting best local config: {workload.configuration}')
+                else:
+                    is_local_min = workload_train.metric < workload_prod.metric * (1 + config.METRIC_THRESHOLD)
+                    print(f'\tis training metric < prod metric? ', is_local_min)
+                    if is_local_min:
+                        print('removing old best tuning')
+                        remove_candidate(workload_train.classification, tuning_candidates)
+                        print(f'setting best local config: {local_configuration}')
 
-                    do_patch(manifests, workload.configuration, production=True)
+                        do_patch(manifests, local_configuration, production=True)
 
-                    last_config = workload.configuration
-                    save_config_applied(workload.configuration or {})
+                        last_config = local_configuration
+                        save_config_applied(local_configuration or {})
 
 
-        last_type = workload.classification
+        last_type = workload_prod.classification
         last_prod_metric = workload_prod.metric
 
         print(f' *** smarttuning loop [{iteration_counter}] tooks {time.time() - start}s *** \n\n')
