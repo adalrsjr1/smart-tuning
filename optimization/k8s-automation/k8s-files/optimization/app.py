@@ -84,6 +84,20 @@ def remove_candidate(classification: Cluster, tuning_candidates: list):
     if selected:
         tuning_candidates.remove(selected)
 
+def add_candidate(candidate: Container, tuning_candidates: list) -> Container:
+    """ add candidate avoid repetions"""
+    equals = [candidate]
+    for container in tuning_candidates:
+        if container.configuration == candidate.configuration and container.classification == candidate.classification:
+            heapq.heappush(equals, container)
+
+    best = heapq.heappop(equals)
+    for container in equals:
+        tuning_candidates.remove(container)
+
+    heapq.heappush(tuning_candidates, best)
+    return best
+
 def metrics_result(cpu: Future, memory: Future, throughput: Future, latency: Future):
     metric = Metric()
     try:
@@ -156,6 +170,7 @@ def main():
     while True:
         start = time.time()
         local_configuration, manifests = update_config(last_train_metric)
+        print('local config: ', local_configuration)
 
         print(f' *** waiting {config.WAITING_TIME}s for a new workload *** ')
         time.sleep(config.WAITING_TIME)
@@ -238,7 +253,7 @@ def main():
         #     continue
 
         print(' *** saving data ***')
-        heapq.heappush(tuning_candidates, workload_train)
+        workload_train = add_candidate(workload_train, tuning_candidates)
         save(workload_train)
         save_metrics(workload_train.start, workload_prod.metric, workload_train.metric, metrics_result(*def_metrics))
         save_workload(workload_prod, workload_train)
