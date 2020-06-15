@@ -92,10 +92,14 @@ class Metric:
                f'latency={self.latency}, objective={self.objective()})'
 
     def objective(self) -> float:
-        result = eval(config.OBJECTIVE, globals(), self.__dict__) if config.OBJECTIVE else float('inf')
-        if math.isnan(result):
+        try:
+            result = eval(config.OBJECTIVE, globals(), self.__dict__) if config.OBJECTIVE else float('inf')
+            if math.isnan(result):
+                return float('inf')
+            return result
+        except ZeroDivisionError:
+            print('error metric division by 0')
             return float('inf')
-        return result
 
 class Container:
     def __init__(self, label, content:pd.Series=None, metric=Metric(cpu=0,memory=0,throughput=0,latency=0),

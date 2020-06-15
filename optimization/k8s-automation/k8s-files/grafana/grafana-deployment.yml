@@ -53,6 +53,16 @@ spec:
       labels:
         app: grafana-server
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - kind-worker
+                      - docker-desktop
       containers:
         - name: grafana
           image: grafana/grafana:7.0.1

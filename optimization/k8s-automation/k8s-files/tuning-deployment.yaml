@@ -57,7 +57,16 @@ spec:
       labels:
         app: smarttuning
     spec:
-      nodeName: kind-worker
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - kind-worker
+                      - docker-desktop
       containers:
         - name: smarttuning
           image: smarttuning

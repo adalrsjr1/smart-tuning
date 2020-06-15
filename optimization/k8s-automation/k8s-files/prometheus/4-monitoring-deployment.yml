@@ -10,6 +10,16 @@ spec:
       labels:
         app: prometheus-server
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - kind-worker
+                      - docker-desktop
       containers:
         - name: prometheus
           image: prom/prometheus:v2.2.1

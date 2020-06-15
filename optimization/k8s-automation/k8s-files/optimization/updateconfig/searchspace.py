@@ -5,6 +5,7 @@ from pprint import pprint
 
 import hyperopt.hp
 import hyperopt.pyll.stochastic
+from hyperopt.pyll.base import scope
 import kubernetes as k8s
 
 from updateconfig import bayesian
@@ -199,10 +200,11 @@ class NumberParam:
 
     def get_hyper_interval(self):
         step = self.get_step()
+        to_int = lambda x: scope.int(x) if not self.continuous else x
         if step:
-            return {self.name: hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step())}
+            return {self.name: to_int(hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step()))}
         else:
-            return {self.name: hyperopt.hp.uniform(self.name, self.get_lower(), self.get_upper())}
+            return {self.name: to_int(hyperopt.hp.uniform(self.name, self.get_lower(), self.get_upper()))}
 
     def __repr__(self):
         return f'(lower: {self.get_lower()}, upper: {self.get_upper()}, step:{self.get_step()})'

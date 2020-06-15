@@ -17,7 +17,16 @@ spec:
         app: "acmeair"
         tuning: "false"
     spec:
-      nodeName: kind-worker3
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - kind-worker3
+                      - docker-desktop
       containers:
         - name: proxy
           image: smarttuning-proxy
@@ -111,7 +120,16 @@ spec:
         app: "acmeair-default"
         tuning: "false"
     spec:
-      nodeName: kind-worker4
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - kind-worker4
+                      - docker-desktop
       containers:
         - name: proxy
           image: smarttuning-proxy

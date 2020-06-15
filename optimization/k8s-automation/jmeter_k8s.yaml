@@ -30,7 +30,16 @@ metadata:
   labels:
     app: jmeter
 spec:
-  nodeName: kind-worker5
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - kind-worker5
+                  - docker-desktop
   containers:
     - name: jmeter
       image: jmeter_acmeair
@@ -74,7 +83,16 @@ metadata:
   labels:
     app: jmeter
 spec:
-  nodeName: kind-worker5
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - kind-worker5
+                  - docker-desktop
   containers:
     - name: jmeter
       image: jmeter_acmeair
@@ -118,7 +136,16 @@ metadata:
   labels:
     app: jmeter
 spec:
-  nodeName: kind-worker5
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - kind-worker5
+                  - docker-desktop
   containers:
     - name: jmeter
       image: jmeter_acmeair

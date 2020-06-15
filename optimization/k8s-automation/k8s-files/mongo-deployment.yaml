@@ -29,7 +29,16 @@ spec:
       labels:
         app: mongo-workload
     spec:
-      nodeName: kind-worker
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - kind-worker
+                      - docker-desktop
       containers:
         - name: mongo-admin-workload
           image: mongo-express
