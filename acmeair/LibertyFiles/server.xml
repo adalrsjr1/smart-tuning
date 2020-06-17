@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<server description="new server">
+
+    <!-- Enable features -->
+    <featureManager>
+         <feature>jaxrs-2.0</feature>
+         <feature>managedBeans-1.0</feature>
+         <feature>cdi-1.2</feature>
+         <feature>websocket-1.1</feature>
+         <feature>mpMetrics-2.0</feature>
+         <feature>mpHealth-2.0</feature>
+         <feature>monitor-1.0</feature>
+       </featureManager>
+
+    <!-- credentials for ibm/api, doesn't work with plain kernel image -->
+    <keyStore id="defaultKeyStore" password="Liberty"/>
+    <basicRegistry id="basic" realm="ibm/api">
+        <user name="admin" password="admin" />
+    </basicRegistry>
+
+    <mpMetrics authentication="false"/>
+    <!-- To access this server from a remote client add a host attribute to the following element, e.g. host="*" -->
+    <httpEndpoint id="defaultHttpEndpoint"
+                  host="*"
+                  httpPort="80"
+                  httpsPort="493" />
+
+    <!-- Compile acmeair from: https://github.com/blueperf/acmeair-monolithic-java  -->
+    <!-- Be careful with dates in com.acmeair.web.FlightsREST.java -->
+    <!-- Could be necessary to update Api params from Date to String and make all necessary changes -->
+    <!--
+      DateFormat dateFormat = new SimpleDateFormat("EEE. MMM. d HH:mm:ss zzz yyyy");
+      Date parsedDate = dateFormat.parse(fromDate);
+    -->
+    <application
+        id="acmeair-webapp"
+        name="acmeair-webapp"
+        type="war"
+        location="acmeair-webapp-2.0.0-SNAPSHOT.war">
+    </application>
+
+    <logging
+      traceFilename="${LOG_DIR}/acmeair"
+      traceSpecification="*=info:com.acmeair.util.*=finest"/>
+
+    <jndiEntry jndiName="com/acmeair/repository/type" value="mongo"/>
+
+    <executor
+        name="LargeThreadPool"
+        id="default"
+        coreThreads="${EXECUTOR_CORE_THREADS}"
+        maxThreads="${EXECUTOR_MAX_THREADS}"
+        keepAlive="${EXECUTOR_KEEP_ALIVE}"
+        stealPolicy="${EXECUTOR_STEAL_POLICY}"
+        rejectedWorkPolicy="${EXECUTOR_REJECTED_WORK_POLICY}"/>
+
+    <httpOptions
+      persistTimeout="${HTTP_PERSIST_TIMEOUT}"
+      maxKeepAliveRequests="${HTTP_MAX_KEEP_ALIVE_REQUESTS}"
+      readTimeout="${HTTP_READ_TIMEOUT}"
+      writeTimeout="${HTTP_WRITE_TIMEOUT}"/>
+
+  </server>
+

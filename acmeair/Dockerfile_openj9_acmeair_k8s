@@ -1,0 +1,23 @@
+# Dockerfile used for creating a container capable to run AcmeAir monolithic
+# Must be running on the same network as the mongodb container
+# mongo.properties file must contain the machine where mongo is going to be run
+FROM open-liberty:19.0.0.9-webProfile7
+USER root
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl iputils-ping less net-tools && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY LibertyFiles/server-k8s.xml /config/server.xml
+COPY LibertyFiles/jvm.options /config/jvm.options
+#COPYLibertyFiles/mongo.properties /config/mongo.properties
+COPY LibertyFiles/acmeair-webapp-2.0.0-SNAPSHOT.war /config/apps
+#ENV ACMEAIR_PROPERTIES=/config/mongo.properties
+
+# In order to avoid the full configuration
+#
+RUN /opt/ol/helpers/build/configure.sh
+#
+# just start/stop the server to populate the /output/workaread and make
+# subsequent server starts faster
+#RUN /opt/ol/wlp/bin/server start && /opt/ol/wlp/bin/server stop && rm -rf /output/messaging /logs/* $WLP_OUTPUT_DIR/.classCache && chmod -R g+rwx /opt/ol/wlp/output/*

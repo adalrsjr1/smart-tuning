@@ -1,0 +1,3 @@
+#-Xms256M
+#-Xmx256M
+#-verbose:gc
