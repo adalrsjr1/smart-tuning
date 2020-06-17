@@ -1,29 +1,4 @@
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: jmeter-config
-data:
-  JLOAD_BOOKINGS: 'false'
-  # total users id
-  JUSERS: '5'
-  # max value user id
-  JUSER: '4'
-  JTHREAD: '200'
-  JDURATION: '28800'
-  JURL: 'acmeair-webapp'
-  JPORT: '8888'
-  JMIN_SESSION_DURATION: '0'
-  JMAX_SESSION_DURATION: '60'
-  JMIN_THINK: '0'
-  JMAX_THINK: '0'
-  JREPEAT: '1'
-  JRAMPUP: '10'
-  THREAD_GROUP: 'workload-uniform'
-  JTARGET_THROUGHPUT: '360000'
-#  THREAD_GROUP: 'workload-uniformconst'
-  TEST_PLAN: 'tuning-workloads.jmx'
----
-apiVersion: v1
 kind: Pod
 metadata:
   name: jmeter-prod
@@ -51,9 +26,6 @@ spec:
               - "-c"
               - |
                 shutdown.sh
-#                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
-#                mkdir -p /output/prometheus/$FOLDER_NAME
-#                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
       imagePullPolicy: Never
       env:
         - name: LIBERTYHOST
@@ -104,9 +76,6 @@ spec:
               - "-c"
               - |
                 shutdown.sh
-#                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
-#                mkdir -p /output/prometheus/$FOLDER_NAME
-#                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
       imagePullPolicy: Never
       env:
         - name: LIBERTYHOST
@@ -157,9 +126,6 @@ spec:
               - "-c"
               - |
                 shutdown.sh
-      #                FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
-      #                mkdir -p /output/prometheus/$FOLDER_NAME
-      #                curl prometheus-service.kube-monitoring.svc.cluster.local:9090/api/v1/query?query=remap_http_requests_total > /output/prometheus/$FOLDER_NAME/prometheus.json
       imagePullPolicy: Never
       env:
         - name: LIBERTYHOST
