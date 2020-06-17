@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from collections import Counter
 import pandas as pd
 import numbers
+import logging
 import uuid
 import copy
 import math
@@ -52,7 +53,7 @@ class Metric:
                           throughput=op(self.throughput, other),
                           latency=op(self.latency, other))
 
-        raise TypeError(f'other is {type(other)} should be a scalar or a Metric type')
+        raise TypeError(f'other is {type(other)} and it should be a scalar or a Metric type')
 
     def serialize(self):
         return copy.deepcopy(self.__dict__)
@@ -98,7 +99,7 @@ class Metric:
                 return float('inf')
             return result
         except ZeroDivisionError:
-            print('error metric division by 0')
+            logging.exception('error metric division by 0')
             return float('inf')
 
 class Container:
@@ -206,6 +207,7 @@ class KmeansContext:
             if id == cluster.id:
                 return cluster
         # return self.clusters[np.random.randint(0, len(self.clusters))]
+        logging.warning('returning None cluster')
         return None
 
     def cluster(self, sample:Container)->(Cluster, int):

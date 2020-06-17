@@ -3,7 +3,6 @@ import time
 from concurrent.futures import Future
 
 import config
-import configsampler as cs
 import logging
 import sampler as wh
 import pandas as pd
@@ -347,3 +346,4 @@ if __name__ == '__main__':
         main()
     except Exception:
         logging.exception('main loop error')
+        config.shutdown()
