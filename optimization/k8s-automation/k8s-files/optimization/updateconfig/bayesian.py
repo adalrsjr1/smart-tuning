@@ -15,6 +15,8 @@ trials = Trials()
 running = False
 
 def objective(params):
+    # follow this hint for implement multiple workload types
+    # https://github.com/hyperopt/hyperopt/issues/181
     try:
         # search space
         # time.sleep(1)
@@ -69,7 +71,7 @@ def init(search_space):
         if config.BAYESIAN:
             from functools import partial
             # n_startup_jobs: # of jobs doing random search at begining of optimization
-            # n_EI_candidades: number of config samples draw before select the best
+            # n_EI_candidades: number of config samples draw before select the best. lower number encourages exploration
             # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
             surrogate = partial(tpe.suggest, n_startup_jobs=20, n_EI_candidates=24, gamma=0.25)
 

@@ -59,13 +59,13 @@ var (
 		// when change this name also update prometheus config file
 		Name: metricID + "_http_requests_total",
 		Help: "Count of all HTTP requests",
-	}, []string{"node", "pod", "namespace", "code", "path"})
+	}, []string{"node", "pod", "namespace", "code", "path", "src", "dst"})
 
 	httpLatencyHist = promauto.NewSummaryVec(prometheus.SummaryOpts{
 		Name: metricID + "_http_latency_seconds",
 		Help: "Server time latency",
 		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001, 1.00: 0.00},
-	}, []string{"node", "pod", "namespace", "code"})
+	}, []string{"node", "pod", "namespace", "code", "src", "dst"})
 
 	httpSize = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: metricID + "_http_size",
@@ -122,6 +122,8 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 			"namespace": podNamespace,
 			"code":      code,
 			"path":      string(metric.path), //+ p.sanitizeURLQuery(req.URL.RawQuery)
+			"src":       metric.client.String(),
+			"dst":       metric.podIP,
 		}).Inc()
 
 		httpLatencyHist.With(prometheus.Labels{
@@ -129,6 +131,8 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 			"pod":       podName,
 			"namespace": podNamespace,
 			"code":      code,
+			"src":       metric.client.String(),
+			"dst":       metric.podIP,
 		}).Observe(time.Since(metric.startTime).Seconds())
 
 		if measuringTraffic {

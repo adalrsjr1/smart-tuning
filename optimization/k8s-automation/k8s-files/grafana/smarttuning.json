@@ -16,9 +16,178 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1592236207463,
+  "iteration": 1592407657492,
   "links": [],
   "panels": [
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": null
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Field"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 1013
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 18,
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "7.0.1",
+      "targets": [
+        {
+          "expr": "quantile($percentile, rate(smarttuning_http_size[$sampling_interval])) by (src,dst,pod,instance) / (1024*1024)\n",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Traffic MB/s",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "sum"
+            ]
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 16,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "sideWidth": 350,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "quantile($percentile, rate(smarttuning_http_size{pod=\"$podname\"}[$sampling_interval])) by (src,dst,pod,instance)\n",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Link's traffic",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
     {
       "aliasColors": {},
       "bars": false,
@@ -37,7 +206,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 15
       },
       "hiddenSeries": false,
       "id": 12,
@@ -148,7 +317,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 7
+        "y": 22
       },
       "hiddenSeries": false,
       "id": 8,
@@ -327,7 +496,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 30
       },
       "hiddenSeries": false,
       "id": 4,
@@ -488,7 +657,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 37
       },
       "hiddenSeries": false,
       "id": 14,
@@ -598,7 +767,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 29
+        "y": 44
       },
       "hiddenSeries": false,
       "id": 10,
@@ -707,7 +876,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 49
       },
       "hiddenSeries": false,
       "id": 6,
@@ -799,7 +968,7 @@
       }
     }
   ],
-  "refresh": "10s",
+  "refresh": "",
   "schemaVersion": 25,
   "style": "dark",
   "tags": [],
@@ -898,11 +1067,43 @@
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "acmeair-tuning-868f78466-m6fsg",
+          "value": "acmeair-tuning-868f78466-m6fsg"
+        },
+        "datasource": "prometheus",
+        "definition": "smarttuning_http_size",
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "podname",
+        "options": [
+          {
+            "selected": true,
+            "text": "acmeair-tuning-868f78466-m6fsg",
+            "value": "acmeair-tuning-868f78466-m6fsg"
+          }
+        ],
+        "query": "smarttuning_http_size",
+        "refresh": 0,
+        "regex": "/.*pod=\"([-a-zA-Z0-9._ ]+)\".*/",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       }
     ]
   },
   "time": {
-    "from": "2020-06-15T18:47:18.000Z",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
@@ -921,5 +1122,5 @@
   "timezone": "",
   "title": "SmartTuning",
   "uid": "8RkJTIzGz",
-  "version": 2
+  "version": 7
 }
