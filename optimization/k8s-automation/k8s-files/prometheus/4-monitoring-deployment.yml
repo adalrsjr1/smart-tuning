@@ -65,4 +65,4 @@ spec:
   ports:
     - port: 9090
       targetPort: 9090
-      nodePort: 30090
+      nodePort: 30099

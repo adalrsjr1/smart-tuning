@@ -1,8 +1,9 @@
+proxy:
+	docker build -t smarttuning-proxy -f Dockerfile .
+
+init:
+	docker build -t smarttuning-init -f init/Dockerfile .
+
 all:
-	./build-proxy.sh
-
-deploy:
-	kubectl apply -f deployment.yaml
-
-delete:
-	kubectl delete -f deployment.yaml
+	proxy
+	init
