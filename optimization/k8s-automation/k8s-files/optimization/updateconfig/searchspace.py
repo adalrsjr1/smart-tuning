@@ -1,12 +1,11 @@
 import copy
 import os
 import time
-from pprint import pprint
 
 import hyperopt.hp
 import hyperopt.pyll.stochastic
-from hyperopt.pyll.base import scope
 import kubernetes as k8s
+from hyperopt.pyll.base import scope
 
 from updateconfig import bayesian
 
@@ -54,7 +53,6 @@ class ManifestDeployment:
         api_instance = k8s.client.AppsV1Api(k8s.client.ApiClient())
         name = self.parent.nameProd if production else self.parent.name
         namespace = self.parent.namespace
-        pretty = 'true'
 
         containers = copy.deepcopy(self.containers)
         total_cpu = new_config.get('cpu', None)
@@ -82,7 +80,7 @@ class ManifestDeployment:
             "spec": {"template": {"spec": {"containers": containers}}}
         }
 
-        return api_instance.patch_namespaced_deployment(name, namespace, body)
+        return api_instance.patch_namespaced_deployment(name, namespace, body, pretty='true')
 
 
 class ManifestConfigMap:
@@ -122,9 +120,8 @@ class ManifestConfigMap:
         }
 
         api_instance = k8s.client.CoreV1Api(k8s.client.ApiClient())
-        pretty = 'true'
 
-        return api_instance.patch_namespaced_config_map(name, namespace, body, pretty=pretty)
+        return api_instance.patch_namespaced_config_map(name, namespace, body, pretty='true')
 
     def patch_jvm(self, new_config, production=False):
         name = self.parent.nameProd if production else self.parent.name
@@ -150,9 +147,8 @@ class ManifestConfigMap:
         }
 
         api_instance = k8s.client.CoreV1Api(k8s.client.ApiClient())
-        pretty = 'true'
 
-        return api_instance.patch_namespaced_config_map(name, namespace, body, pretty=pretty)
+        return api_instance.patch_namespaced_config_map(name, namespace, body, pretty='true')
 
 
 class BaseParam:
@@ -202,7 +198,8 @@ class NumberParam:
         step = self.get_step()
         to_int = lambda x: scope.int(x) if not self.continuous else x
         if step:
-            return {self.name: to_int(hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step()))}
+            return {
+                self.name: to_int(hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step()))}
         else:
             return {self.name: to_int(hyperopt.hp.uniform(self.name, self.get_lower(), self.get_upper()))}
 
@@ -253,7 +250,6 @@ def init(cdr_search_space_name, namespace):
 
 
 if __name__ == '__main__':
-
     import random
 
 

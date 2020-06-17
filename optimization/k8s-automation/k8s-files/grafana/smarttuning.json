@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1591999347192,
+  "iteration": 1592236207463,
   "links": [],
   "panels": [
     {
@@ -155,7 +155,7 @@
       "legend": {
         "alignAsTable": true,
         "avg": true,
-        "current": false,
+        "current": true,
         "max": true,
         "min": false,
         "rightSide": true,
@@ -334,7 +334,7 @@
       "legend": {
         "alignAsTable": true,
         "avg": true,
-        "current": false,
+        "current": true,
         "max": true,
         "min": false,
         "rightSide": true,
@@ -476,6 +476,115 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "hiddenSeries": false,
+      "id": 14,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "sideWidth": 350,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "quantile($percentile, rate(smarttuning_http_requests_total{code=~\"5..\",pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval]))/quantile($percentile, rate(smarttuning_http_requests_total{pod=~\"acmeair-tuning-.*\",name!~\".*POD.*\"}[$sampling_interval]))",
+          "interval": "",
+          "legendFormat": "train",
+          "refId": "A"
+        },
+        {
+          "expr": "quantile($percentile, rate(smarttuning_http_requests_total{code=~\"5..\",pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\"}[$sampling_interval]))/quantile($percentile, rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningprod-.*\",name!~\".*POD.*\"}[$sampling_interval]))",
+          "interval": "",
+          "legendFormat": "prod",
+          "refId": "B"
+        },
+        {
+          "expr": "quantile($percentile, rate(smarttuning_http_requests_total{code=~\"5..\",pod=~\"acmeair-tuningdefault-.*\",name!~\".*POD.*\"}[$sampling_interval]))/quantile($percentile, rate(smarttuning_http_requests_total{pod=~\"acmeair-tuningdefault-.*\",name!~\".*POD.*\"}[$sampling_interval]))",
+          "interval": "",
+          "legendFormat": "default",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Error (5xx) rate",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
       "description": "proxy/app round-trip",
       "fieldConfig": {
         "defaults": {
@@ -489,7 +598,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 29
       },
       "hiddenSeries": false,
       "id": 10,
@@ -598,7 +707,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 34
       },
       "hiddenSeries": false,
       "id": 6,
@@ -793,7 +902,7 @@
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "2020-06-15T18:47:18.000Z",
     "to": "now"
   },
   "timepicker": {

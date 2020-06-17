@@ -7,6 +7,8 @@ import json
 def load_rawdata(filepath:str, default:dict) -> (pd.DataFrame, pd.DataFrame):
     data_p = {'cpu': [], 'memory': [], 'throughput': [], 'latency': []}
     data_t = {'cpu': [], 'memory': [], 'throughput': [], 'latency': []}
+    data_d = {'cpu': [], 'memory': [], 'throuhgput': [], 'latency': []}
+
     with open(filepath) as f:
         for doc in f:
             doc_parsed = json.loads(doc)
@@ -67,7 +69,7 @@ def plot(filename, data_p: pd.DataFrame, data_t: pd.DataFrame, data_d: pd.DataFr
            ncol=2,  borderaxespad=0., frameon=False, )
 
     plt.savefig(filename)
-    # plt.show()
+    plt.show()
 
 if __name__ == '__main__':
     data_p, data_t, data_d = load_rawdata('volume/multi-node/20200610-215754/mongo_metrics.json',

@@ -65,9 +65,9 @@ spec:
           image: liberty-acmeair-k8s
           resources:
             requests:
-              memory: "512Mi"
+              memory: "256Mi"
             limits:
-              memory: "512Mi"
+              memory: "256Mi"
           imagePullPolicy: Never
           readinessProbe:
             httpGet:
