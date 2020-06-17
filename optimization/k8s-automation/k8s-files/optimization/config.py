@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 from concurrent.futures import ThreadPoolExecutor, wait as ThreadWait, ALL_COMPLETED as FUTURE_ALL_COMPLETED
 
 from pymongo import MongoClient
@@ -12,9 +13,11 @@ def print_config(toPrint=False):
                 print('\t', item)
         print('\n *** config loaded *** \n')
 
-# test config
+# debug config
 MOCK = eval(os.environ.get('MOCK', default='True'))
 PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='False'))
+LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='DEBUG').upper()
+logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # mongo config
 MONGO_ADDR = os.environ.get('MONGO_ADDR', default='127.0.0.1')
@@ -24,6 +27,7 @@ MONGO_DB = os.environ.get('MONGO_DB', default='smarttuning')
 # prometheus config
 PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', default='localhost')
 PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', default='30090')
+SAMPLING_METRICS_TIMEOUT = int(os.environ.get('SAMPLING_METRICS_TIMEOUT', default=15))
 
 # classification config
 K = int(os.environ.get('K', default='3'))

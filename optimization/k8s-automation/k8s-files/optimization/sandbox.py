@@ -42,9 +42,14 @@ def objective(args:dict):
         }
 
 if __name__ == '__main__':
+    import logging
+
+    logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logging.debug('this is an error')
+
     trials=Trials()
     surrogate = partial(tpe.suggest, n_startup_jobs=4, n_EI_candidates=24, gamma=0.25)
-    best = fmin(objective, space, trials=trials, algo=surrogate, max_evals=100, verbose=True, rstate=np.random.RandomState(31))
+    best = fmin(objective, space, trials=trials, algo=surrogate, max_evals=100, verbose=False, rstate=np.random.RandomState(31))
     print(best)
 
     # pprint(trials.trials)
@@ -52,7 +57,7 @@ if __name__ == '__main__':
     #     print(pickle.loads(trials.trial_attachments(t)['time_module']), type(pickle.loads(trials.trial_attachments(t)['time_module'])))
     #     print(t)
        # print(t['misc']['vals'])
-    pprint(trials.results)
+    # pprint(trials.results)
     # pprint(trials.losses())
 
     # for _ in range(30):
