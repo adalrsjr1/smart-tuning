@@ -18,7 +18,7 @@ import (
 
 var (
 	// create helper function to get env var or fallback
-	metricID = os.Getenv("METRIC_ID")
+	metricID            = os.Getenv("METRIC_ID")
 	measuringTraffic, _ = strconv.ParseBool(os.Getenv("MEASURING_TRAFFIC"))
 
 	proxyPort, _    = strconv.Atoi(os.Getenv("PROXY_PORT"))
@@ -30,28 +30,28 @@ var (
 	podName           = os.Getenv("POD_NAME")
 	nodeName          = os.Getenv("NODE_NAME")
 	podNamespace      = os.Getenv("POD_NAMESPACE")
-	svcName			  = os.Getenv("HOST_IP")
+	svcName           = os.Getenv("HOST_IP")
 	podIP             = os.Getenv("POD_IP")
 	podServiceAccount = os.Getenv("POD_SERVICE_ACCOUNT")
 
-	maxConn, _ = strconv.Atoi(os.Getenv("MAX_CONNECTIONS"))
-	readBuffer, _ = strconv.Atoi(os.Getenv("READ_BUFFER_SIZE"))
-	writeBuffer, _ = strconv.Atoi(os.Getenv("WRITE_BUFFER_SIZE"))
-	readTimeout, _ = strconv.Atoi(os.Getenv("READ_TIMEOUT"))
+	maxConn, _      = strconv.Atoi(os.Getenv("MAX_CONNECTIONS"))
+	readBuffer, _   = strconv.Atoi(os.Getenv("READ_BUFFER_SIZE"))
+	writeBuffer, _  = strconv.Atoi(os.Getenv("WRITE_BUFFER_SIZE"))
+	readTimeout, _  = strconv.Atoi(os.Getenv("READ_TIMEOUT"))
 	writeTimeout, _ = strconv.Atoi(os.Getenv("WRITE_TIMEOUT"))
 	connDuration, _ = strconv.Atoi(os.Getenv("MAX_IDLE_CONNECTION_DURATION"))
-	connTimeout, _ = strconv.Atoi(os.Getenv("MAX_CONNECTION_TIMEOUT"))
+	connTimeout, _  = strconv.Atoi(os.Getenv("MAX_CONNECTION_TIMEOUT"))
 
 	proxyClient = &fasthttp.HostClient{
 		Addr:                          upstreamAddr,
 		NoDefaultUserAgentHeader:      true, // Don't send: User-Agent: fasthttp
 		MaxConns:                      maxConn,
-		ReadBufferSize:                readBuffer, // Make sure to set this big enough that your whole request can be read at once.
+		ReadBufferSize:                readBuffer,  // Make sure to set this big enough that your whole request can be read at once.
 		WriteBufferSize:               writeBuffer, // Same but for your response.
 		ReadTimeout:                   time.Duration(readTimeout) * time.Second,
 		WriteTimeout:                  time.Duration(writeTimeout) * time.Second,
 		MaxIdleConnDuration:           time.Duration(connDuration) * time.Second,
-		MaxConnWaitTimeout: 		   time.Duration(connTimeout) * time.Second,
+		MaxConnWaitTimeout:            time.Duration(connTimeout) * time.Second,
 		DisableHeaderNamesNormalizing: true, // If you set the case on your headers correctly you can enable this.
 	}
 
@@ -62,8 +62,8 @@ var (
 	}, []string{"node", "pod", "namespace", "code", "path", "src", "dst"})
 
 	httpLatencyHist = promauto.NewSummaryVec(prometheus.SummaryOpts{
-		Name: metricID + "_http_latency_seconds",
-		Help: "Server time latency",
+		Name:       metricID + "_http_latency_seconds",
+		Help:       "Server time latency",
 		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001, 1.00: 0.00},
 	}, []string{"node", "pod", "namespace", "code", "src", "dst"})
 
@@ -76,13 +76,13 @@ var (
 )
 
 type PromMetric struct {
-	path []byte
-	statusCode int
-	startTime time.Time
+	path         []byte
+	statusCode   int
+	startTime    time.Time
 	requestsSize int
 	responseSize int
-	client net.IP
-	podIP string
+	client       net.IP
+	podIP        string
 }
 
 func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
@@ -101,20 +101,19 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	responseSize := resp.Header.ContentLength()
 	postprocessResponse(resp)
 
-
 	// fix inconsistent URL with channels
 	promChan <- PromMetric{
-		path: req.RequestURI(),
-		statusCode: resp.StatusCode(),
-		startTime: tStart,
+		path:         req.RequestURI(),
+		statusCode:   resp.StatusCode(),
+		startTime:    tStart,
 		requestsSize: requestSize,
 		responseSize: responseSize,
-		client: client,
-		podIP: podIP,
+		client:       client,
+		podIP:        podIP,
 	}
 
 	go func(promChan chan PromMetric) {
-		metric := <- promChan
+		metric := <-promChan
 		code := strconv.Itoa(metric.statusCode)
 		httpRequestsTotal.With(prometheus.Labels{
 			"node":      nodeName,
@@ -143,8 +142,8 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 				"namespace": podNamespace,
 				"code":      code,
 				//"size":      strconv.Itoa(metric.requestsSize),
-				"src":       metric.client.String(),
-				"dst":       metric.podIP,
+				"src": metric.client.String(),
+				"dst": metric.podIP,
 			}).Add(float64(metric.requestsSize))
 			// dst -> src
 			httpSize.With(prometheus.Labels{
@@ -153,8 +152,8 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 				"namespace": podNamespace,
 				"code":      code,
 				//"size":      strconv.Itoa(metric.responseSize),
-				"src":       metric.podIP,
-				"dst":       metric.client.String(),
+				"src": metric.podIP,
+				"dst": metric.client.String(),
 			}).Add(float64(metric.responseSize))
 		}
 
@@ -169,7 +168,6 @@ func prepareRequest(req *fasthttp.Request) {
 	// strip other unneeded headers.
 
 	// alter other request params before sending them to upstream host
-
 
 }
 
