@@ -1,9 +1,0 @@
-smarttuning
-smarttuning-proxy
-smart-tuning-init
-configsamples
-workload-handler
-tuning
-mongo-express
-mongo
-liberty-acmeair-k8s

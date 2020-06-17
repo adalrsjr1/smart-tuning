@@ -1,2 +1,4 @@
+manifests
+**/*manifests
 .venv
 **/*.venv

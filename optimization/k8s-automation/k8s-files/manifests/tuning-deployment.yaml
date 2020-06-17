@@ -79,16 +79,10 @@ spec:
           volumeMounts:
             - mountPath: /etc/smart-tuning
               name: smarttuning-config
-#            - mountPath: /etc/tuning-search-space/search-space.json
-#              name: tuning-search-space
-#              subPath: search-space.json
       volumes:
         - name: smarttuning-config
           configMap:
             name: smarttuning-config
-#        - name: tuning-search-space
-#          configMap:
-#            name: tuning-search-space
   selector:
     matchLabels:
       app: smarttuning
