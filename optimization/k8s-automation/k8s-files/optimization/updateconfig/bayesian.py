@@ -3,6 +3,7 @@ import numpy as np
 import traceback
 from hyperopt import fmin, tpe, rand, Trials, STATUS_OK
 import pickle
+import logging
 import time
 import config
 
@@ -21,8 +22,7 @@ def objective(params):
         chn_out.put(params)
         metric = chn_in.get(True)
     except Exception as e:
-        traceback.print_exc()
-        print(e)
+        logging.exception('at bayesian core')
     return {
         'loss': metric.objective(),
         'status': STATUS_OK,
