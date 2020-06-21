@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+# import kubernetes as k8s
 from concurrent.futures import ThreadPoolExecutor, wait as ThreadWait, ALL_COMPLETED as FUTURE_ALL_COMPLETED
 
 from pymongo import MongoClient
@@ -18,6 +19,10 @@ MOCK = eval(os.environ.get('MOCK', default='True'))
 PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='False'))
 LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='DEBUG').upper()
 logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# proxy config
+PROXY_PORT = int(os.environ.get('PROXY_PORT', default=80))
+METRICS_PORT = int(os.environ.get('METRICS_PORT', default=9090))
 
 # mongo config
 MONGO_ADDR = os.environ.get('MONGO_ADDR', default='127.0.0.1')
@@ -63,7 +68,6 @@ SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH',default='')
 # REGISTER_SERVER_PORT = int(os.environ.get('REGISTER_SERVER_PORT', default='5000'))
 # REGISTER_SERVER_ADDR = os.environ.get('REGISTER_SERVER_ADDR', default='0.0.0.0')
 # SYNC_PORT = int(os.environ.get('SYNC_PORT', default='5000'))
-
 
 print_config(PRINT_CONFIG)
 

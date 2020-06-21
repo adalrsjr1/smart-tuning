@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from seqkmeans import Container, KmeansContext, Metric, Cluster
 from updateconfig import bayesian, searchspace
-
+from controllers import smarttuninginjector
 
 def init_bayesian():
     if not bayesian.running:
@@ -232,6 +232,8 @@ def sample_prod_workload(classification, last_config, timeout=config.SAMPLING_ME
     return workload_prod
 
 def main():
+    smarttuninginjector.init()
+
     tuning_candidates = []
     last_config, last_type, last_prod_metric = None, None, 0
     last_train_metric = None
@@ -346,4 +348,5 @@ if __name__ == '__main__':
         main()
     except Exception:
         logging.exception('main loop error')
+    finally:
         config.shutdown()

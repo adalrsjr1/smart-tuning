@@ -23,7 +23,6 @@ var (
 
 	proxyPort, _    = strconv.Atoi(os.Getenv("PROXY_PORT"))
 	metricsPort, _  = strconv.Atoi(os.Getenv("METRICS_PORT"))
-	upstreamPort, _ = strconv.Atoi(os.Getenv("SERVICE_PORT"))
 	upstreamAddr    = "127.0.0.1:" + os.Getenv("SERVICE_PORT")
 
 	// https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/

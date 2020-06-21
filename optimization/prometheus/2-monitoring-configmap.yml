@@ -117,6 +117,7 @@ data:
         - source_labels: [__meta_kubernetes_service_name]
           action: replace
           target_label: kubernetes_name
+
       # https://blog.sebastian-daschner.com/entries/prometheus-kubernetes-discovery
       - job_name: 'smarttuning-services'
         metrics_path: /metrics

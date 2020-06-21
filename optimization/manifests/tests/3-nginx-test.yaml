@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-test-cm
+data:
+  nginx.conf: |-
+    user                            root;
+    worker_processes                auto;
+
+    error_log                       /var/log/nginx/error.log warn;
+
+    events {
+        worker_connections          1024;
+    }
+
+    http {
+        include                     /etc/nginx/mime.types;
+        default_type                application/octet-stream;
+        sendfile                    off;
+        access_log                  off;
+        keepalive_timeout           3000;
+        server {
+            listen                  8080;
+            root                    /usr/share/nginx/html;
+            index                   index.html;
+            server_name             localhost;
+            client_max_body_size    16m;
+        }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test
+  labels:
+    app: nginx-test
+  annotations:
+    injection.smarttuning.ibm.com: "true"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: nginx-test
+      labels:
+        app: nginx-test
+    spec:
+      containers:
+        - name: nginx-test
+          image: nginx
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              name: nginx-test-vm
+      volumes:
+        - name: nginx-test-vm
+          configMap:
+            name: nginx-test-cm
+      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: nginx-test

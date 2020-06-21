@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-test-svc
+  annotations:
+    injection.smarttuning.ibm.com: "true"
+spec:
+  selector:
+    app: nginx-test
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
+      name: http
+#    - port: 9090
+#      targetPort: 9090
+#      nodePort: 30090
+#      name: smarttuning
+  type: NodePort

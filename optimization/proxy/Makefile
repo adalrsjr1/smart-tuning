@@ -1,8 +1,12 @@
 proxy:
 	docker build -t smarttuning-proxy -f Dockerfile .
+	docker build -t smarttuning/proxy -f Dockerfile .
+	docker push smarttuning/proxy
 
-init:
+iproxy:
 	docker build -t smarttuning-init -f init/Dockerfile .
+	docker build -t smarttuning/init-proxy -f init/Dockerfile .
+	docker push smarttuning/init-proxy
 
 deploy:
 	kubectl apply -f manifests/proxy-cm.yaml -f manifests/proxy-test-dp.yaml
@@ -10,6 +14,11 @@ deploy:
 remove:
 	kubectl delete -f manifests/proxy-cm.yaml -f manifests/proxy-test-dp.yaml
 
-all:
-	proxy
-	init
+clean:
+	docker rmi smarttuning-proxy
+	docker rmi smarttuning/proxy
+	docker rmi smarttuning-init
+	docker rmi smarttuning/init-proxy
+
+all: proxy iproxy
+.PHONY: all
