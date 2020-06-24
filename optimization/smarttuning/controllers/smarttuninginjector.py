@@ -171,6 +171,7 @@ def update_deployment(event):
     annotations: dict = parsed_object['metadata']['annotations']
     to_inject = annotations.get('injection.smarttuning.ibm.com', 'false').lower()
     revision = int(annotations.get('service.smarttuning.ibm.com/revision', '1'))
+
     return 'true' == to_inject and 1 >= revision
 
 
@@ -196,7 +197,10 @@ def inject_proxy_to_deployment(event):
     patch_body = {
         "kind": deployment.kind,
         "apiVersion": deployment.api_version,
-        "metadata": {"labels": {"has_proxy": "true", config.PROXY_TAG: "false"}},
+        "metadata": {
+            "labels": {"has_proxy": "true", config.PROXY_TAG: "false"},
+            "annotations": {"configmap.reloader.stakater.com/reload": ','.join(extract_configs_names(deployment).union({config.PROXY_CONFIG_MAP}))}
+        },
         "spec": {
             "template": {
                 "metadata": {
@@ -243,6 +247,26 @@ def init_proxy_container(proxy_port: int, service_port: int):
     }
 
 
+def container_dict_to_model(c:dict)->V1Container:
+    env_var = lambda name, path: V1EnvVar(name=name,
+                                          value_from=V1EnvVarSource(field_ref=V1ObjectFieldSelector(field_path=path)))
+
+    return V1Container(name=c['name'], image=c['image'], image_pull_policy=c['imagePullPolicy'],
+                       ports=[V1ContainerPort(container_port=p['containerPort']) for p in c['ports']],
+                       env=[
+                           V1EnvVar(name='PROXY_PORT', value=c['env'][0]),
+                           V1EnvVar(name='METRICS_PORT', value=c['env'][1]),
+                           V1EnvVar(name='SERVICE_PORT', value=c['env'][2]),
+                           env_var('NODE_NAME', 'spec.nodeName'),
+                           env_var('POD_NAME', 'metadata.name'),
+                           env_var('POD_NAMESPACE', 'metadata.namespace'),
+                           env_var('POD_IP', 'status.podIP'),
+                           env_var('POD_SERVICE_ACCOUNT', 'spec.serviceAccountName'),
+                       ],
+                       env_from=[V1EnvFromSource(config_map_ref=V1ConfigMapEnvSource(name=config.PROXY_CONFIG_MAP))]
+                       )
+
+
 def proxy_container(proxy_port: int, metrics_port: int, service_port: int):
     env_var = lambda name, path: {
         'name': name,
@@ -252,6 +276,7 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int):
             }
         }
     }
+
     return {
         'env': [
             {'name': 'PROXY_PORT', 'value': str(proxy_port)},
@@ -265,15 +290,14 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int):
         ],
         'envFrom': [{
             'configMapRef': {
-                'name': 'smarttuning-proxy-config'
+                'name': config.PROXY_CONFIG_MAP
             }
         }],
-        'image': 'smarttuning/proxy',
+        'image': config.PROXY_IMAGE,
         'imagePullPolicy': 'IfNotPresent',
         'name': config.PROXY_NAME,
         'ports': [{'containerPort': proxy_port}, {'containerPort': metrics_port}],
     }
-
 
 def duplicate_deployment_for_training(deployment: V1Deployment):
     if deployment.metadata.name.endswith(f'-{config.PROXY_TAG}'):
@@ -285,35 +309,12 @@ def duplicate_deployment_for_training(deployment: V1Deployment):
     deployment.metadata.labels.update({config.PROXY_TAG: 'true'})
     deployment.spec.template.metadata.labels.update({config.PROXY_TAG: 'true'})
     deployment.spec.selector.match_labels.update({config.PROXY_TAG: 'true'})
-    spec: V1PodSpec = deployment.spec.template.spec
-    containers = spec.containers
 
-    config_maps = set()
-    container: V1Container
-    for container in containers:
-        if config.PROXY_NAME == container.name:
-            continue
+    duplicating_deployment_configs(extract_configs_names(deployment))
 
-        for var in container.env:
-            value_from = var.value_from
-            if value_from:
-                config_map_key_ref = value_from.config_map_key_ref
-                if config_map_key_ref:
-                    config_maps.add(config_map_key_ref.name)
-                    config_map_key_ref.name += f'-{config.PROXY_TAG}'
+    config_maps = append_suffix_to_configs_names(deployment, suffix=config.PROXY_TAG)
+    deployment.metadata.annotations.update({"configmap.reloader.stakater.com/reload": ','.join(config_maps.union({config.PROXY_CONFIG_MAP}))})
 
-        for var in container.env_from:
-            config_map_ref = var.config_map_ref
-            if config_map_ref:
-                config_maps.add(config_map_ref.name)
-
-    for volume in spec.volumes:
-        config_map = volume.config_map
-        if config_map:
-            config_maps.add(config_map.name)
-            config_map.name += f'-{config.PROXY_TAG}'
-
-    duplication_deployment_configs(config_maps)
     duplicate_deployment(deployment)
 
     try:
@@ -323,8 +324,74 @@ def duplicate_deployment_for_training(deployment: V1Deployment):
         if 409 == e.status:
             logger.warning(f'deployment {deployment.metadata.name} is already deployed')
 
+def extract_configs_names(deployment:V1Deployment) -> set:
+    spec: V1PodSpec = deployment.spec.template.spec
+    containers = spec.containers
 
-def duplication_deployment_configs(config_maps):
+    config_maps_to_return = set()
+    container: V1Container
+    for container in containers:
+        if isinstance(container, dict):
+            container = container_dict_to_model(container)
+
+        if config.PROXY_NAME == container.name:
+            continue
+
+        for var in container.env:
+            value_from = var.value_from
+            if value_from:
+                config_map_key_ref = value_from.config_map_key_ref
+                if config_map_key_ref:
+                    config_maps_to_return.add(config_map_key_ref.name)
+
+        for var in container.env_from:
+            config_map_ref = var.config_map_ref
+            if config_map_ref:
+                config_maps_to_return.add(config_map_ref.name)
+
+    for volume in spec.volumes:
+        config_map = volume.config_map
+        if config_map:
+            config_maps_to_return.add(config_map.name)
+
+    return config_maps_to_return
+
+def append_suffix_to_configs_names(deployment:V1Deployment, suffix=config.PROXY_TAG):
+    spec: V1PodSpec = deployment.spec.template.spec
+    containers = spec.containers
+
+    config_maps_to_return = set()
+    container: V1Container
+    for container in containers:
+        if isinstance(container, dict):
+            container = container_dict_to_model(container)
+
+        if config.PROXY_NAME == container.name:
+            continue
+
+        for var in container.env:
+            value_from = var.value_from
+            if value_from:
+                config_map_key_ref = value_from.config_map_key_ref
+                if config_map_key_ref:
+                    config_map_key_ref.name += f'-{suffix}'
+                    config_maps_to_return.add(config_map_key_ref.name)
+
+        for var in container.env_from:
+            config_map_ref = var.config_map_ref
+            if config_map_ref:
+                config_map_ref.name += f'-{suffix}'
+                config_maps_to_return.add(config_map_ref.name)
+
+    for volume in spec.volumes:
+        config_map = volume.config_map
+        if config_map:
+            config_map.name += f'-{suffix}'
+            config_maps_to_return.add(config_map.name)
+
+    return config_maps_to_return
+
+def duplicating_deployment_configs(config_maps):
     config_map: V1ConfigMap
     for config_map in v1.list_namespaced_config_map(namespace=config.NAMESPACE).items:
         if config_map.metadata.name in config_maps and not config_map.metadata.name.endswith(f'-{config.PROXY_TAG}'):
@@ -354,21 +421,46 @@ def duplicate_deployment(deployment: V1Deployment):
 
 
 def event_loop(list_to_watch, handler):
-    # while True:
     w = watch.Watch()
     for event in w.stream(list_to_watch, config.NAMESPACE):
-        logger.info("Event: %s %s %s %s" % (event['type'], kind(event['object']), name(event['object']), resource_version(event['object'])))
+        logger.info("Event: %s %s %s %s" % (event_type(event), kind(event['object']), name(event['object']), resource_version(event['object'])))
         try:
             handler(event)
         except Exception:
             logger.exception('error at event loop')
             w.stop()
 
+def event_type(event):
+    return event['type']
 
-## how to do garbage collection on training CMs and DEPs
+def namespace(k8s_object):
+    return k8s_object.metadata.namespace
+
+def delete_services(event:V1Event):
+    delete_object(event, duplicated_svc, v1.delete_namespaced_service)
+
+def delete_configs_maps(event:V1Event):
+    delete_object(event, duplicated_cm, v1.delete_namespaced_config_map)
+
+def delete_deployments(event:V1Event):
+    delete_object(event, duplicated_dep, v1Apps.delete_namespaced_deployment)
+
+def delete_object(event:V1Event, duplicates:dict, listing_fn):
+    k8s_object = event['object']
+    if 'DELETED' == event_type(event):
+        k8s_object_name = duplicates.get(name(k8s_object), '')
+        if k8s_object_name:
+            logger.info(f'deleting {kind(k8s_object)}: {k8s_object_name}')
+            listing_fn(name=k8s_object_name, namespace=namespace(k8s_object))
+            del (duplicates[name(k8s_object)])
+
 def init():
     config.executor.submit(event_loop, v1.list_namespaced_service, update_service)
     config.executor.submit(event_loop, v1Apps.list_namespaced_deployment, update_deployment)
+
+    config.executor.submit(event_loop, v1.list_namespaced_service, delete_services)
+    config.executor.submit(event_loop, v1.list_namespaced_config_map, delete_configs_maps)
+    config.executor.submit(event_loop, v1Apps.list_namespaced_deployment, delete_deployments)
 
 
 if __name__ == '__main__':
