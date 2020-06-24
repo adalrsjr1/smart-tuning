@@ -1,6 +1,5 @@
 import logging
 import os
-import random
 import kubernetes as k8s
 from kubernetes import client, watch
 from kubernetes.client.rest import ApiException
@@ -41,8 +40,9 @@ def evaluate_event(event: dict) -> bool:
         logger.debug(f'will inject proxy into {kind(event["object"])}: {name(event["object"])}?')
         return is_to_inject(event['object'])
 
-    if 'Deployment' == event['object'].kind and event['type'] in ['ADDED', 'MODIFIED']:
-        return True
+    if 'Deployment' == event['object'].kind and event['type'] in ['ADDED']:
+        logger.debug(f'will inject proxy into {kind(event["object"])}: {name(event["object"])}?')
+        return is_to_inject(event['object'])
 
 
     return False
@@ -73,7 +73,7 @@ def resource_version(k8s_object):
 
 def inject_proxy_into_service(event: dict):
     service: V1Service = event['object']
-    if is_service_proxied(service):
+    if is_object_proxied(service):
         logger.info(f'proxy is present at {kind(service)}: {name(service)} -- version {resource_version(service)}')
         return service
 
@@ -86,9 +86,6 @@ def inject_proxy_into_service(event: dict):
         "protocol": "TCP",
         "targetPort": config.METRICS_PORT
     }
-
-    if check_if_is_node_port(service):
-        update_node_port(port)
 
     ports.append(port)
 
@@ -109,46 +106,30 @@ def inject_proxy_into_service(event: dict):
             logger.exception(f'service {name(service)} conflict')
 
 
-def is_service_proxied(service:V1Service):
-    if service and service.metadata.labels:
-        return service.metadata.labels.get('has_proxy', 'false') == 'true'
+def is_object_proxied(k8s_object):
+    if k8s_object and k8s_object.metadata.labels:
+        return k8s_object.metadata.labels.get('has_proxy', 'false') == 'true'
 
 
 def check_if_is_node_port(service: V1Service):
     return 'NodePort' == service.spec.type
 
 
-def update_node_port(port_spec, set_as_none=False):
-    value = random_node_port() if not set_as_none else None
+def update_node_port(port_spec, set_value=30999, set_as_none=False):
+    value = set_value if not set_as_none else None
     if isinstance(port_spec, dict):
         port_spec.update({'nodePort': value})
     elif isinstance(port_spec, V1ServicePort):
         port_spec.node_port = value
 
-__used_node_ports = set()
-
-
-def random_node_port():
-    lower = 31900
-    upper = 31999
-    port = random.randint(lower, upper)
-
-    while port in __used_node_ports:
-        port = random.randint(lower, upper)
-
-    return port
-
-
 def duplicate_service_for_training(service: V1Service):
     if service is None:
-        print('service is None')
         return None
 
     if name(service).endswith(f'-{config.PROXY_TAG}'):
-        print(service)
         return None
-    # print(service)
-    # service = last_applied_svc_configuration(service)
+
+    logger.info(f'dupplicating {kind(service)}: {name(service)}')
 
     old_name = name(service)
     service.metadata.name += f'-{config.PROXY_TAG}'
@@ -200,6 +181,11 @@ def extracts_annotations(event):
 
 def inject_proxy_to_deployment(event):
     deployment: V1Deployment = event['object']
+
+    if is_object_proxied(deployment):
+        logger.info(f'proxy is present at {kind(deployment)}: {name(deployment)} -- version {resource_version(deployment)}')
+        return deployment
+
     containers = deployment.spec.template.spec.containers
     first_container: V1Container = containers[0]
     first_port: V1ContainerPort = first_container.ports[0]
@@ -210,12 +196,12 @@ def inject_proxy_to_deployment(event):
     patch_body = {
         "kind": deployment.kind,
         "apiVersion": deployment.api_version,
-        "metadata": {"labels": {"has_proxy": "true", "smt": "false"}},
+        "metadata": {"labels": {"has_proxy": "true", config.PROXY_TAG: "false"}},
         "spec": {
             "template": {
-                # "metadata": {
-                #     "labels": {"smt":"false"}
-                # },
+                "metadata": {
+                    "labels": {config.PROXY_TAG:"false"}
+                },
                 "spec": {
                     "initContainers": [init_proxy_container(proxy_port=config.PROXY_PORT, service_port=service_port)],
                     "containers": containers
@@ -223,7 +209,7 @@ def inject_proxy_to_deployment(event):
             },
             # https://github.com/kubernetes/client-go/issues/508
             # "selector": {
-            #     "matchLabels": {"smt":"false"}
+            #     "matchLabels": {config.PROXY_TAG:"false"}
             # }
         }
     }
@@ -294,11 +280,10 @@ def duplicate_deployment_for_training(deployment: V1Deployment):
         return None
 
     old_name = deployment.metadata.name
+    deployment.spec.replicas = 1
     deployment.metadata.name += f'-{config.PROXY_TAG}'
     deployment.metadata.labels.update({config.PROXY_TAG: 'true'})
     deployment.spec.template.metadata.labels.update({config.PROXY_TAG: 'true'})
-    print(deployment.spec.template.metadata.labels)
-    print(deployment.spec.selector.match_labels)
     deployment.spec.selector.match_labels.update({config.PROXY_TAG: 'true'})
     spec: V1PodSpec = deployment.spec.template.spec
     containers = spec.containers
@@ -383,7 +368,7 @@ def event_loop(list_to_watch, handler):
 ## how to do garbage collection on training CMs and DEPs
 def init():
     config.executor.submit(event_loop, v1.list_namespaced_service, update_service)
-    # config.executor.submit(event_loop, v1Apps.list_namespaced_deployment, update_deployment)
+    config.executor.submit(event_loop, v1Apps.list_namespaced_deployment, update_deployment)
 
 
 if __name__ == '__main__':
