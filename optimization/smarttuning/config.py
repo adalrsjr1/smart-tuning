@@ -14,12 +14,27 @@ def print_config(toPrint=False):
                 print('\t', item)
         print('\n *** config loaded *** \n')
 
+## to disable loggers
+INJECTOR_LOGGER = 'injector.smarttuning.ibm'
+# logging.getLogger('INJECTOR_LOGGER').addHandler(logging.NullHandler())
+# logging.getLogger('INJECTOR_LOGGER').propagate = False
+#
+# logging.getLogger('kubernetes.client.rest').addHandler(logging.NullHandler())
+# logging.getLogger('kubernetes.client.rest').propagate = False
+#
+SAMPLER_LOGGER = 'sapler.smarttuning.ibm'
+# logging.getLogger(SAMPLER_LOGGER).addHandler(logging.NullHandler())
+# logging.getLogger(SAMPLER_LOGGER).propagate = False
+#
+APP_LOGGER = 'app.smarttuning.ibm'
+# logging.getLogger(APP_LOGGER).addHandler(logging.NullHandler())
+# logging.getLogger(APP_LOGGER).propagate = False
+
 # debug config
 MOCK = eval(os.environ.get('MOCK', default='True'))
 PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='False'))
 LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='DEBUG').upper()
 logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
 # proxy config
 PROXY_PORT = int(os.environ.get('PROXY_PORT', default=80))
 METRICS_PORT = int(os.environ.get('METRICS_PORT', default=9090))

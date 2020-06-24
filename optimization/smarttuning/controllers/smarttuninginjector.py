@@ -12,8 +12,10 @@ if 'KUBERNETES_SERVICE_HOST' in os.environ:
 else:
     k8s.config.load_kube_config()
 
-logger = logging.getLogger('smarttuning_injector')
+logger = logging.getLogger(config.INJECTOR_LOGGER)
 logger.setLevel(logging.DEBUG)
+
+
 
 v1 = client.CoreV1Api()
 v1Apps = client.AppsV1Api()
