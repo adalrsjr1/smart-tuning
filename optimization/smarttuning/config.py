@@ -23,6 +23,8 @@ logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format='%(asctime
 # proxy config
 PROXY_PORT = int(os.environ.get('PROXY_PORT', default=80))
 METRICS_PORT = int(os.environ.get('METRICS_PORT', default=9090))
+PROXY_NAME = os.environ.get('PROXY_NAME', default='proxy')
+PROXY_TAG = os.environ.get('PROXY_TAG', default='smt')
 
 # mongo config
 MONGO_ADDR = os.environ.get('MONGO_ADDR', default='127.0.0.1')

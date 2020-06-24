@@ -29,6 +29,14 @@ data:
     }
 
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-test-cm-2
+data:
+  key: "value"
+  foo: "bar"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -48,6 +56,15 @@ spec:
       containers:
         - name: nginx-test
           image: nginx
+          env:
+            - name: MY_FOO
+              valueFrom:
+                configMapKeyRef:
+                  name: nginx-test-cm-2
+                  key: foo
+          envFrom:
+            - configMapRef:
+                name: nginx-test-cm-2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
