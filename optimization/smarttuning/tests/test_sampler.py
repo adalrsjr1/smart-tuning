@@ -1,7 +1,4 @@
 import unittest
-import config
-from prometheus_pandas import query
-import pandas as pd
 from sampler import PrometheusSampler, Metric
 import sampler
 
@@ -69,6 +66,14 @@ class TestPrometheusSampling(unittest.TestCase):
 
         result = m1.__operation__(m2, lambda a, b: a + b)
         print(result)
+        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, latency=4, errors=4))
+        result = m1 + m2
+        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, latency=4, errors=4))
+
+    def test_metric_operation_scalar(self):
+        m1 = Metric(cpu=1, memory=1, throughput=1, latency=1, errors=1)
+
+        result = m1 * 4
         self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, latency=4, errors=4))
 
     def test_metric_logic_op(self):

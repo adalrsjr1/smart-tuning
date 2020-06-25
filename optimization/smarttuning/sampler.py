@@ -87,6 +87,7 @@ class Metric:
 
     def __operation__(self, other, op):
         if isinstance(other, Metric):
+            logger.debug("op(Metric, Metric)")
             return Metric(cpu=op(self.cpu(), other.cpu()),
                           memory=op(self.memory(), other.memory()),
                           throughput=op(self.throughput(), other.throughput()),
@@ -94,10 +95,11 @@ class Metric:
                           errors=op(self.errors(), other.errors()))
 
         if isinstance(other, Number):
-            return Metric(cpu=op(self.cpu, other),
-                          memory=op(self.memory, other),
-                          throughput=op(self.throughput, other),
-                          latency=op(self.latency, other),
+            logger.debug("op(Metric, Scalar)")
+            return Metric(cpu=op(self.cpu(), other),
+                          memory=op(self.memory(), other),
+                          throughput=op(self.throughput(), other),
+                          latency=op(self.latency(), other),
                           errors=op(self.errors(), other))
 
         raise TypeError(f'other is {type(other)} and it should be a scalar or a Metric type')

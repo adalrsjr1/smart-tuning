@@ -1,15 +1,14 @@
 from typing import Union
 from concurrent.futures import Future
 import numpy as np
-from dataclasses import dataclass
 from collections import Counter
+from sampler import Metric
 import pandas as pd
 from numbers import Number
 import logging
 import uuid
 import copy
 import math
-import dataclasses
 
 import config
 
@@ -36,124 +35,6 @@ def __distance__(u:pd.Series, v:pd.Series, distance=config.DISTANCE_METHOD.lower
     }
 
     return _distance[distance](u, v) or 0
-
-class Metric:
-    def __init__(self,
-                 f_cpu:Future=None,
-                 cpu:Number=None,
-                 f_memory:Future=None,
-                 memory:Number=None,
-                 f_throughput:Future=None,
-                 throughput:Number=None,
-                 f_latency:Future=None,
-                 latency:Number=None,
-                 f_errors:Future=None,
-                 errors:Number=None,
-                ):
-        self._f_cpu = f_cpu
-        self._cpu = cpu
-        self._f_memory = f_memory
-        self._memory = memory
-        self._f_throughput = f_throughput
-        self._throughput = throughput
-        self._f_latency = f_latency
-        self._latency = latency
-        self._f_errors = f_errors
-        self._errors = errors
-
-    def __extract_value_from_future__(self, future, timeout=config.SAMPLING_METRICS_TIMEOUT):
-        result = future.result(timeout=timeout)
-        metric = result.replace(float('NaN'), 0)
-        return metric[0] if not metric.empty else 0
-
-    def cpu(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
-        if self._cpu is None:
-            self._cpu = self.__extract_value_from_future__(self._f_cpu, timeout)
-        return self._cpu
-
-    def memory(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
-        if self._memory is None:
-            self._memory = self.__extract_value_from_future__(self._f_memory, timeout)
-        return self._memory
-
-    def throughput(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
-        if self._throughput is None:
-            self._throughput = self.__extract_value_from_future__(self._f_throughput, timeout)
-        return self._throughput
-
-    def latency(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
-        if self._latency is None:
-            self._latency = self.__extract_value_from_future__(self._f_latency, timeout)
-        return self._latency
-
-    def errors(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
-        if self._errors is None:
-            self._errors = self.__extract_value_from_future__(self._f_errors, timeout)
-        return self._errors
-
-    def __operation__(self, other, op):
-        if isinstance(other, Metric):
-            return Metric(cpu=op(self.cpu(), other.cpu()),
-                          memory=op(self.memory(), other.memory()),
-                          throughput=op(self.throughput(), other.throughput()),
-                          latency=op(self.latency(), other.latency()),
-                          errors=op(self.errors(), other.errors()))
-
-        if isinstance(other, Number):
-            return Metric(cpu=op(self.cpu, other),
-                          memory=op(self.memory, other),
-                          throughput=op(self.throughput, other),
-                          latency=op(self.latency, other),
-                          errors=op(self.errors(), other))
-
-        raise TypeError(f'other is {type(other)} and it should be a scalar or a Metric type')
-
-    def serialize(self):
-        return copy.deepcopy(self.__dict__)
-
-    def __add__(self, other):
-        return self.__operation__(other, lambda a, b: a + b)
-
-    def __sub__(self, other):
-        return self.__operation__(other, lambda a, b: a - b)
-
-    def __mul__(self, other):
-        return self.__operation__(other, lambda a, b: a * b)
-
-    def __floordiv__(self, other):
-        return self.__operation__(other, lambda a, b: a.__floordiv__(b))
-
-    def __truediv__(self, other):
-        return self.__operation__(other, lambda a, b: a.__truediv__(b))
-
-    def __divmod__(self, other):
-        return self.__operation__(other, lambda a, b: a.__divmod__(b))
-
-    def __lt__(self, other):
-        return self.objective() < (other.objective() if isinstance(other, Metric) else other)
-
-    def __le__(self, other):
-        return self.objective() <= (other.objective() if isinstance(other, Metric) else other)
-
-    def __gt__(self, other):
-        return self.objective() > (other.objective() if isinstance(other, Metric) else other)
-
-    def __ge__(self, other):
-        return self.objective() >= (other.objective() if isinstance(other, Metric) else other)
-
-    def __repr__(self):
-        return f'Metric(cpu={self.cpu}, memory={self.memory}, throughput={self.throughput}, ' \
-               f'latency={self.latency}, objective={self.objective()})'
-
-    def objective(self) -> float:
-        try:
-            result = eval(config.OBJECTIVE, globals(), self.__dict__) if config.OBJECTIVE else float('inf')
-            if math.isnan(result):
-                return float('inf')
-            return result
-        except ZeroDivisionError:
-            logger.exception('error metric division by 0')
-            return float('inf')
 
 class Container:
     def __init__(self, label, content:pd.Series=None, metric=Metric(f_cpu=0, f_memory=0, f_throughput=0, f_latency=0),
