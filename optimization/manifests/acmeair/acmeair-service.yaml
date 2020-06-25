@@ -15,7 +15,7 @@ spec:
     - port: 9093
       targetPort: 493
       name: https
-    - #nodePort: 30080
+    - nodePort: 30088
       port: 8888
       targetPort: 8888
       name: http
@@ -40,7 +40,7 @@ spec:
       targetPort: 493
       name: https
       protocol: TCP
-    - #nodePort: 30088
+    - nodePort: 30080
       port: 8888
       targetPort: 8888
       name: http

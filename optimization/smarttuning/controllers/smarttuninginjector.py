@@ -457,9 +457,11 @@ def delete_object(event:V1Event, duplicates:dict, listing_fn):
             del (duplicates[name(k8s_object)])
 
 def init():
+    # initializing
     config.executor.submit(event_loop, v1.list_namespaced_service, update_service)
     config.executor.submit(event_loop, v1Apps.list_namespaced_deployment, update_deployment)
 
+    # garbage collection
     config.executor.submit(event_loop, v1.list_namespaced_service, delete_services)
     config.executor.submit(event_loop, v1.list_namespaced_config_map, delete_configs_maps)
     config.executor.submit(event_loop, v1Apps.list_namespaced_deployment, delete_deployments)

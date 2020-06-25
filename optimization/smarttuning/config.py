@@ -29,6 +29,7 @@ SAMPLER_LOGGER = 'sapler.smarttuning.ibm'
 APP_LOGGER = 'app.smarttuning.ibm'
 # logging.getLogger(APP_LOGGER).addHandler(logging.NullHandler())
 # logging.getLogger(APP_LOGGER).propagate = False
+KMEANS_LOGGER = 'kmeans.smarttuning.ibm'
 
 # debug config
 MOCK = eval(os.environ.get('MOCK', default='True'))
@@ -67,7 +68,7 @@ GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
-OBJECTIVE = os.environ.get('OBJECTIVE', default='memory')
+OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='throughput/memory'),'<string>', 'eval')
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='1.0'))
 WAITING_TIME = int(os.environ.get('WAITING_TIME', default='2'))

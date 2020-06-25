@@ -1,10 +1,10 @@
-from __future__ import annotations
 from typing import Union
+from concurrent.futures import Future
 import numpy as np
 from dataclasses import dataclass
 from collections import Counter
 import pandas as pd
-import numbers
+from numbers import Number
 import logging
 import uuid
 import copy
@@ -12,6 +12,10 @@ import math
 import dataclasses
 
 import config
+
+logger = logging.getLogger(config.KMEANS_LOGGER)
+logger.setLevel(logging.DEBUG)
+
 # implementation note
 # https://www.cs.princeton.edu/courses/archive/fall08/cos436/Duda/C/sk_means.htm
 #
@@ -33,25 +37,74 @@ def __distance__(u:pd.Series, v:pd.Series, distance=config.DISTANCE_METHOD.lower
 
     return _distance[distance](u, v) or 0
 
-@dataclass
 class Metric:
-    cpu: float = 0
-    memory: float = 0
-    throughput: float = 0
-    latency: float = 0
+    def __init__(self,
+                 f_cpu:Future=None,
+                 cpu:Number=None,
+                 f_memory:Future=None,
+                 memory:Number=None,
+                 f_throughput:Future=None,
+                 throughput:Number=None,
+                 f_latency:Future=None,
+                 latency:Number=None,
+                 f_errors:Future=None,
+                 errors:Number=None,
+                ):
+        self._f_cpu = f_cpu
+        self._cpu = cpu
+        self._f_memory = f_memory
+        self._memory = memory
+        self._f_throughput = f_throughput
+        self._throughput = throughput
+        self._f_latency = f_latency
+        self._latency = latency
+        self._f_errors = f_errors
+        self._errors = errors
+
+    def __extract_value_from_future__(self, future, timeout=config.SAMPLING_METRICS_TIMEOUT):
+        result = future.result(timeout=timeout)
+        metric = result.replace(float('NaN'), 0)
+        return metric[0] if not metric.empty else 0
+
+    def cpu(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+        if self._cpu is None:
+            self._cpu = self.__extract_value_from_future__(self._f_cpu, timeout)
+        return self._cpu
+
+    def memory(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+        if self._memory is None:
+            self._memory = self.__extract_value_from_future__(self._f_memory, timeout)
+        return self._memory
+
+    def throughput(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+        if self._throughput is None:
+            self._throughput = self.__extract_value_from_future__(self._f_throughput, timeout)
+        return self._throughput
+
+    def latency(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+        if self._latency is None:
+            self._latency = self.__extract_value_from_future__(self._f_latency, timeout)
+        return self._latency
+
+    def errors(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+        if self._errors is None:
+            self._errors = self.__extract_value_from_future__(self._f_errors, timeout)
+        return self._errors
 
     def __operation__(self, other, op):
         if isinstance(other, Metric):
-            return Metric(cpu=op(self.cpu, other.cpu),
-                          memory=op(self.memory, other.memory),
-                          throughput=op(self.throughput, other.throughput),
-                          latency=op(self.latency, other.latency))
+            return Metric(cpu=op(self.cpu(), other.cpu()),
+                          memory=op(self.memory(), other.memory()),
+                          throughput=op(self.throughput(), other.throughput()),
+                          latency=op(self.latency(), other.latency()),
+                          errors=op(self.errors(), other.errors()))
 
-        if isinstance(other, numbers.Number):
+        if isinstance(other, Number):
             return Metric(cpu=op(self.cpu, other),
                           memory=op(self.memory, other),
                           throughput=op(self.throughput, other),
-                          latency=op(self.latency, other))
+                          latency=op(self.latency, other),
+                          errors=op(self.errors(), other))
 
         raise TypeError(f'other is {type(other)} and it should be a scalar or a Metric type')
 
@@ -99,11 +152,11 @@ class Metric:
                 return float('inf')
             return result
         except ZeroDivisionError:
-            logging.exception('error metric division by 0')
+            logger.exception('error metric division by 0')
             return float('inf')
 
 class Container:
-    def __init__(self, label, content:pd.Series=None, metric=Metric(cpu=0,memory=0,throughput=0,latency=0),
+    def __init__(self, label, content:pd.Series=None, metric=Metric(f_cpu=0, f_memory=0, f_throughput=0, f_latency=0),
                  similarity_threshold=config.URL_SIMILARITY_THRESHOLD):
 
         self.label = label
