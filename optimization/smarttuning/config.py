@@ -57,7 +57,7 @@ SAMPLING_METRICS_TIMEOUT = int(os.environ.get('SAMPLING_METRICS_TIMEOUT', defaul
 # classification config
 K = int(os.environ.get('K', default='3'))
 DISTANCE_METHOD = os.environ.get('DISTANCE_METHOD', default='hellinger')
-URL_SIMILARITY_THRESHOLD = float(os.environ.get('URL_SIMILARITY_THRESHOLD', default='0.8'))
+URL_SIMILARITY_THRESHOLD = float(os.environ.get('URL_SIMILARITY_THRESHOLD', default='0.1'))
 
 # optimization config
 SEARCH_SPACE_NAME = os.environ.get('SEARCH_SPACE_NAME', default='default')

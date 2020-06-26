@@ -1,3 +1,4 @@
+from __future__ import annotations
 from concurrent.futures import Future
 import config
 import logging
@@ -118,7 +119,7 @@ class Metric:
             'errors': self.errors()
         }
 
-    def __eq__(self, other):
+    def __eq__(self, other:Metric):
         return self.memory() == other.memory() and \
                self.cpu() == other.cpu() and \
                self.throughput() == other.throughput() and \

@@ -1,29 +1,39 @@
+from __future__ import  annotations
 from typing import Union
-from concurrent.futures import Future
 import numpy as np
 from collections import Counter
 from sampler import Metric
 import pandas as pd
-from numbers import Number
+from Levenshtein import StringMatcher
 import logging
 import uuid
 import copy
-import math
 
 import config
 
 logger = logging.getLogger(config.KMEANS_LOGGER)
 logger.setLevel(logging.DEBUG)
 
-# implementation note
-# https://www.cs.princeton.edu/courses/archive/fall08/cos436/Duda/C/sk_means.htm
-#
+
 def __merge_data__(data1:pd.Series, data2:pd.Series) -> (pd.Series, pd.Series, pd.Index):
     merged = pd.merge(data1, data2, how='outer', left_index=True, right_index=True)
     merged = merged.replace(float('NaN'), 0)
     columns = [column for column in merged.columns[:2]]
 
     return merged[columns[0]], merged[columns[1]], merged.index
+
+def __grouping_rows__(data:pd.Series, threshold) -> pd.Series:
+    return __hist_reduce__(__compare__(data, threshold))
+
+def __fuzzy_string_comparation__(u:str, v:str, threshold:float):
+    """
+        compare two strings u, v using Levenshtein distance
+        https://en.wikipedia.org/wiki/Levenshtein_distance
+
+        :return how many changes (%) are necessary to transform u into v
+    """
+    diff = StringMatcher.distance(u, v)
+    return diff / len(u) < threshold
 
 def __distance__(u:pd.Series, v:pd.Series, distance=config.DISTANCE_METHOD.lower()) -> float:
     SQRT2 = np.sqrt(2)
@@ -36,15 +46,80 @@ def __distance__(u:pd.Series, v:pd.Series, distance=config.DISTANCE_METHOD.lower
 
     return _distance[distance](u, v) or 0
 
+def __compare__(histograms:pd.Series, threshold:int):
+    from collections import defaultdict
+    workflows_group = defaultdict(set)
+    memory = set()
+
+    class Item:
+        def __init__(self, key, value):
+            self.key = key
+            self.value = value
+
+        def __eq__(self, other):
+            return self.key == other.key
+
+        def __hash__(self):
+            return hash(self.key)
+
+        def __repr__(self):
+            return f'({self.key}:{self.value})'
+
+        def acc(self, value):
+            self.value += value
+
+    for hist1, i in histograms.items():
+        for hist2, j in histograms.items():
+            if __fuzzy_string_comparation__(hist1, hist2, threshold):
+                __group__(Item(hist1, i), Item(hist2, j), workflows_group, memory)
+    return workflows_group
+
+# TODO: optimize this in the future
+def __group__(a, b, table, memory):
+    if a not in memory and b not in memory:
+        table[a].add(b)
+    elif a in memory and b not in memory:
+        if a in table:
+            table[a].add(b)
+        else:
+            return __group__(b, a, table, memory)
+    elif a not in memory and b in memory:
+        for key, value in table.items():
+            if b in value:
+                value.add(a)
+                break
+    memory.add(a)
+    memory.add(b)
+
+
+def __hist_reduce__(table):
+    data = {'path': [], 'value': []}
+
+    for key, items in table.items():
+        key.value = 0
+        for value in items:
+            key.acc(value.value)
+        data['path'].append(key.key)
+        data['value'].append(key.value)
+
+    return pd.Series(data = data['value'], index=data['path']).sort_index()
+
+
+# implementation note
+# https://www.cs.princeton.edu/courses/archive/fall08/cos436/Duda/C/sk_means.htm
+#
 class Container:
-    def __init__(self, label, content:pd.Series=None, metric=Metric(f_cpu=0, f_memory=0, f_throughput=0, f_latency=0),
+    def __init__(self, label, content:pd.Series=None, metric=None,
                  similarity_threshold=config.URL_SIMILARITY_THRESHOLD):
 
         self.label = label
-        self.content:pd.Series = content
+        self.content:pd.Series = __grouping_rows__(content, similarity_threshold)
         self.content.name = label
+
         self.metric = metric
-        self.similarity_threshold = similarity_threshold
+        if self.metric is None:
+            self.metric = Metric(cpu=0, memory=0, throughput=0, latency=0, errors=0)
+
         self.configuration = None
 
         self.start = None
@@ -67,8 +142,8 @@ class Container:
 
         if isinstance(self.classification, Cluster):
             container_dict['classification'] = self.classification.id
-        # elif isinstance(self.classification, str):
-        #     container_dict['classification'] = self.classification
+        elif isinstance(self.classification, str):
+            container_dict['classification'] = self.classification
         return container_dict
 
     def distance(self, other:Union[pd.Series, Container]):
@@ -116,9 +191,6 @@ class Cluster:
         center = v + (u - v) * (1/len(self))
 
         self.center = pd.Series(data=center, index=index, name=self.id)
-
-        # self.mean.content = v + (u - v) * (1/len(self))
-        # self.mean = self.mean  + (container - self.mean) * (1/len(self))
 
     def centroid(self):
         return self.center
