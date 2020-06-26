@@ -2,6 +2,8 @@ import unittest
 from seqkmeans import Container, Cluster, __merge_data__
 import seqkmeans as skm
 import pandas as pd
+
+
 class TestSeqKmeans(unittest.TestCase):
 
     def test_merging_data(self):
@@ -10,8 +12,8 @@ class TestSeqKmeans(unittest.TestCase):
 
         col0, col1, idx = __merge_data__(s1, s2)
         self.assertListEqual(col0.index.to_list(), col1.index.to_list())
-        self.assertListEqual([value for i, value in col0.items()], [1,2,5])
-        self.assertListEqual([value for i, value in col1.items()], [1,3,0])
+        self.assertListEqual([value for i, value in col0.items()], [1, 2, 5])
+        self.assertListEqual([value for i, value in col1.items()], [1, 3, 0])
 
         s1, s2 = s2, s1
 
@@ -32,8 +34,8 @@ class TestSeqKmeans(unittest.TestCase):
 
         col0, col1, idx = __merge_data__(s1, s2)
         self.assertListEqual(col0.index.to_list(), col1.index.to_list())
-        self.assertListEqual([value for i, value in col0.items()], [1,2,5])
-        self.assertListEqual([value for i, value in col1.items()], [0,0,0])
+        self.assertListEqual([value for i, value in col0.items()], [1, 2, 5])
+        self.assertListEqual([value for i, value in col1.items()], [0, 0, 0])
 
         s1, s2 = s2, s1
 
@@ -66,20 +68,21 @@ class TestSeqKmeans(unittest.TestCase):
 
     def test_cluster(self):
         cluster = skm.Cluster()
-        s1 = pd.Series(data=[1,2,5], index=['a', 'b','c'], name='s1', dtype=float)
-        s2 = pd.Series(data=[1,3], index=['a', 'b'], name='s1', dtype=float)
+        s1 = pd.Series(data=[1, 2, 5], index=['a', 'b', 'c'], name='s1', dtype=float)
+        s2 = pd.Series(data=[1, 3], index=['a', 'b'], name='s1', dtype=float)
 
         cluster.add(skm.Container(label='s1', content=s1))
         cluster.add(skm.Container(label='s2', content=s2))
 
-        self.assertListEqual(pd.Series(data=[0.5,1.5,0.0], index=['a', 'b','c'], name='s1', dtype=float).tolist(),
-                         cluster.centroid().to_list())
+        self.assertListEqual(pd.Series(data=[0.5, 1.5, 0.0], index=['a', 'b', 'c'], name='s1', dtype=float).tolist(),
+                             cluster.centroid().to_list())
 
     def test_distance(self):
         s1 = pd.Series(data=[0, 0], index=['a', 'b'], name='s1', dtype=float)
         s2 = pd.Series(data=[3, 4], index=['a', 'b'], name='s1', dtype=float)
 
         self.assertEqual(5.0, skm.__distance__(s1, s2, 'euclidean'))
+
 
 if __name__ == '__main__':
     unittest.main()

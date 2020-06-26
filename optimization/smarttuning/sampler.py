@@ -36,6 +36,7 @@ def series_to_dataframe(series: pd.Series):
 
 
 class Metric:
+
     def __init__(self,
                  f_cpu: Future = None,
                  cpu: Number = None,
@@ -60,6 +61,14 @@ class Metric:
         self._f_errors = f_errors
         self._errors = errors
         self.to_eval = to_eval
+
+    _instance = None
+
+    @staticmethod
+    def zero():
+        if not Metric._instance:
+            Metric._instance = Metric(cpu=0, memory=0, throughput=0, latency=0, errors=0, to_eval='0')
+        return Metric._instance
 
     def cpu(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
         if self._cpu is None:
