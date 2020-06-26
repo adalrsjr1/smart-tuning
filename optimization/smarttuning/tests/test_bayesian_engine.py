@@ -18,18 +18,20 @@ class TestBayesianEngine(unittest.TestCase):
 
     def test_loop(self):
         space = {'x':hp.uniform('x', -10, 10), 'o':hp.choice('o', ['x','y','z'])}
-        b = BayesianEngine(id='test', space=space, max_evals=10)
+        b = BayesianEngine(id='test', space=space, max_evals=100)
         dto = BayesianDTO(classification='test')
         l = []
-        for _ in range(10):
+        for _ in range(100):
             l.append(b.get())
             b.put(dto)
 
-        self.assertEqual(len(l), 10)
+        self.assertEqual(len(l), 100)
 
         print(b.best_so_far())
 
-
+    def test_multiple_loops(self):
+        for _ in range(10):
+            self.test_loop()
 
 
 
