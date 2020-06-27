@@ -31,6 +31,7 @@ APP_LOGGER = 'app.smarttuning.ibm'
 # logging.getLogger(APP_LOGGER).propagate = False
 KMEANS_LOGGER = 'kmeans.smarttuning.ibm'
 BAYESIAN_LOGGER = 'bayesian.smarttuning.ibm'
+SEARCH_SPACE_LOGGER = 'searchspace.smarttuning.ibm'
 
 # debug config
 MOCK = eval(os.environ.get('MOCK', default='True'))

@@ -5,10 +5,15 @@ import time
 import hyperopt.hp
 import hyperopt.pyll.stochastic
 import kubernetes as k8s
+from kubernetes import watch
 from hyperopt.pyll.base import scope
 
 from updateconfig import bayesian
+import logging
+import config
 
+logger = logging.getLogger(config.SEARCH_SPACE_LOGGER)
+logger.setLevel(logging.DEBUG)
 
 class ManifestBase:
     def __init__(self, manifest):
@@ -221,23 +226,33 @@ class OptionParam:
     def __repr__(self):
         return str(self.values)
 
-
-def init(cdr_search_space_name, namespace):
-    # init k8s config
-
-    if 'KUBERNETES_SERVICE_HOST' in os.environ:
-        k8s.config.load_incluster_config()
-    else:
-        k8s.config.load_kube_config()
-
-    # load CRD search space
-    api = k8s.client.CustomObjectsApi()
-    search_space_manifest = api.get_namespaced_custom_object(name=cdr_search_space_name, namespace=namespace,
+api = k8s.client.CustomObjectsApi()
+def event_loop(list_to_watch, handler):
+    w = watch.Watch()
+    for event in w.stream(list_to_watch, namespace=config.NAMESPACE,
                                                              group='smarttuning.ibm.com', version='v1alpha1',
-                                                             plural='searchspaces')
+                                                             plural='searchspaces'):
+        logger.info("Event: %s %s %s %s" % (event['type'], event['object']['kind'], event['object']['metadata']['name'], event['object']['metadata']['resourceVersion']))
+        try:
+            handler(event)
+        except Exception:
+            logger.exception('error at event loop')
+            w.stop()
 
-    # parse dicts to objects
-    manifests = search_space_manifest['spec']['manifests']
+    # config.executor.submit(event_loop, api.list_namespaced_custom_object(), update_service)
+
+def evaluate_event(event):
+    if event['type'] == 'ADDED':
+        return create_bayesian_searchspace(event)
+
+    if event['type'] == 'DELETED':
+        return delete_bayesian_searchspace(event)
+
+bayesian_engines = {}
+def create_bayesian_searchspace(event):
+    manifests = event['object']['spec']['manifests']
+    name = event['object']['metadata']['name']
+
     search_space = {}
     _manifests = []
 
@@ -246,7 +261,22 @@ def init(cdr_search_space_name, namespace):
         _manifests.append(manifest)
         search_space.update(manifest.get_hyper_interval())
 
-    return _manifests, search_space
+    bayesian_engines[name] = bayesian.BayesianEngine(id=name, space=search_space, is_bayesian=config.BAYESIAN)
+
+def delete_bayesian_searchspace(event):
+    name = event['object']['metadata']['name']
+    logger.warning(f'cannot stop engine "{name}" -- method not implemented yet')
+    return
+
+if 'KUBERNETES_SERVICE_HOST' in os.environ:
+    k8s.config.load_incluster_config()
+else:
+    k8s.config.load_kube_config()
+
+api = k8s.client.CustomObjectsApi()
+def init():
+    # event_loop(api.list_namespaced_custom_object, evaluate_event)
+    config.executor.submit(event_loop, api.list_namespaced_custom_object, evaluate_event)
 
 
 if __name__ == '__main__':
@@ -257,15 +287,23 @@ if __name__ == '__main__':
         def objective(self):
             return random.randint(10, 100)
 
+    if 'KUBERNETES_SERVICE_HOST' in os.environ:
+        k8s.config.load_incluster_config()
+    else:
+        k8s.config.load_kube_config()
 
-    manifests, search_space = init(cdr_search_space_name='acmeair-searchspace', namespace='default')
-    bayesian.init(search_space)
-    bayesian.put(Mock())
 
-    # update manifests
-    configuration = list(bayesian.get().items())
-    print('>>>', dict(configuration).items())
-    # for key, value in configuration:
-    #     for manifest in manifests:
-    #         if key == manifest.name:
-    #             manifest.patch(value)
+    # event_loop(api.list_namespaced_custom_object, evaluate_event)
+    init()
+
+    # manifests, search_space = init(cdr_search_space_name='test', namespace='default')
+    # bayesian.init(search_space)
+    # bayesian.put(Mock())
+    #
+    # # update manifests
+    # configuration = list(bayesian.get().items())
+    # print('>>>', dict(configuration).items())
+    # # for key, value in configuration:
+    # #     for manifest in manifests:
+    # #         if key == manifest.name:
+    # #             manifest.patch(value)

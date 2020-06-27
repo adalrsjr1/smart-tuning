@@ -73,7 +73,8 @@ class BayesianEngine:
 
         # add early_stop when next Hyperopt version came out
         # https://github.com/hyperopt/hyperopt/blob/abf6718951eecc1c43d591f59da321f2de5a8cbf/hyperopt/tests/test_fmin.py#L336
-        config.executor.submit(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate, max_evals=max_evals,
+        logger.info(f'initializing bayesian engine={id}')
+        self.fmin = config.executor.submit(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate, max_evals=max_evals,
                                verbose=False, show_progressbar=False,
                                rstate=np.random.RandomState(config.RANDOM_SEED))
         self._running = True

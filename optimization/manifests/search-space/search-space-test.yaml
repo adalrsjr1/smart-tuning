@@ -1,0 +1,80 @@
+apiVersion: "smarttuning.ibm.com/v1alpha1"
+kind: SearchSpace
+metadata:
+  name: test
+spec:
+  manifests:
+    - name: "acmeair-tuning"
+      nameProd: "acmeair-tuningprod"
+      namespace: "default"
+      type:
+        deployment: true
+        containers:
+          - name: "proxy"
+            ratio: 0.1
+          - name: "service"
+            ratio: 0.9
+      params:
+        - name: "cpu"
+          number:
+            lower: 1
+            upper: 15
+            step: 0.5
+            continuous: true
+        - name: "memory"
+          number:
+            lower: 256
+            upper: 512
+            step: 16
+            continuous: false
+    - name: "jvm-config-train"
+      nameProd: "jvm-config-prod"
+      namespace: "default"
+      type:
+        configMap: "jvm"
+        filename: "jvm.options"
+      params:
+        - name: "gc"
+          options:
+            type: string
+            values:
+              - "-Xgcpolicy:gencon"
+              - "-Xgc:concurrentScavenge"
+              - "-Xgcpolicy:metronome"
+              - "-Xgcpolicy:optavgpause"
+              - "-Xgcpolicy:optthruput"
+        - name: "virtualized"
+          options:
+            type: string
+            values:
+              - "-Xtune:virtualized"
+        - name: "container_support"
+          options:
+            type: string
+            values:
+              - "-XX:+UseContainerSupport"
+              - "-XX:-UseContainerSupport"
+    - name: "acmeair-config-train"
+      nameProd: "acmeair-config-prod"
+      namespace: "default"
+      type:
+        configMap: "envVar"
+      params:
+        - name: "MONGO_CONNECTION_TIMEOUT"
+          number:
+            lower: 10
+            upper: 30
+            step: 1
+            continuous: false
+        - name: "MONGO_MAX_CONNECTIONS"
+          number:
+            lower: 4
+            upper: 300
+            step: 10
+            continuous: false
+        - name: "HTTP_MAX_KEEP_ALIVE_REQUESTS"
+          number:
+            lower: 4
+            upper: 300
+            step: 10
+            continuous: false
