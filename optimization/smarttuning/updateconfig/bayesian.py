@@ -5,6 +5,8 @@ import logging
 import time
 import config
 from sampler import Metric
+import threading
+from functools import partial
 
 logger = logging.getLogger(config.BAYESIAN_LOGGER)
 logger.setLevel(logging.DEBUG)
@@ -64,7 +66,6 @@ class BayesianEngine:
 
         surrogate = rand.suggest
         if is_bayesian:
-            from functools import partial
             # n_startup_jobs: # of jobs doing random search at begining of optimization
             # n_EI_candidades: number of config samples draw before select the best. lower number encourages exploration
             # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
@@ -74,10 +75,18 @@ class BayesianEngine:
         # add early_stop when next Hyperopt version came out
         # https://github.com/hyperopt/hyperopt/blob/abf6718951eecc1c43d591f59da321f2de5a8cbf/hyperopt/tests/test_fmin.py#L336
         logger.info(f'initializing bayesian engine={id}')
-        self.fmin = config.executor.submit(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate, max_evals=max_evals,
+
+        self.objective_fn = partial(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate, max_evals=max_evals,
                                verbose=False, show_progressbar=False,
                                rstate=np.random.RandomState(config.RANDOM_SEED))
+
+        self.fmin = threading.Thread(target=self.objective_fn, daemon=True)
+        # self.fmin = config.executor.submit(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate, max_evals=max_evals,
+        #                        verbose=False, show_progressbar=False,
+        #                        rstate=np.random.RandomState(config.RANDOM_SEED))
+        # self.fmin.start()
         self._running = True
+
 
     def id(self)->str:
         return self._id

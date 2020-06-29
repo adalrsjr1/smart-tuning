@@ -15,6 +15,13 @@ import config
 logger = logging.getLogger(config.SEARCH_SPACE_LOGGER)
 logger.setLevel(logging.DEBUG)
 
+if 'KUBERNETES_SERVICE_HOST' in os.environ:
+    k8s.config.load_incluster_config()
+else:
+    k8s.config.load_kube_config()
+
+api = k8s.client.CustomObjectsApi()
+
 class ManifestBase:
     def __init__(self, manifest):
         self.__dict__.update(manifest)
@@ -268,12 +275,7 @@ def delete_bayesian_searchspace(event):
     logger.warning(f'cannot stop engine "{name}" -- method not implemented yet')
     return
 
-if 'KUBERNETES_SERVICE_HOST' in os.environ:
-    k8s.config.load_incluster_config()
-else:
-    k8s.config.load_kube_config()
 
-api = k8s.client.CustomObjectsApi()
 def init():
     # event_loop(api.list_namespaced_custom_object, evaluate_event)
     config.executor.submit(event_loop, api.list_namespaced_custom_object, evaluate_event)
@@ -287,10 +289,10 @@ if __name__ == '__main__':
         def objective(self):
             return random.randint(10, 100)
 
-    if 'KUBERNETES_SERVICE_HOST' in os.environ:
-        k8s.config.load_incluster_config()
-    else:
-        k8s.config.load_kube_config()
+    # if 'KUBERNETES_SERVICE_HOST' in os.environ:
+    #     k8s.config.load_incluster_config()
+    # else:
+    #     k8s.config.load_kube_config()
 
 
     # event_loop(api.list_namespaced_custom_object, evaluate_event)
