@@ -46,7 +46,7 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
         return event['object'].metadata.name
 
     logger.info('initializing new watching loop')
-    for event in w.stream(list_to_watch.fn()):
+    for event in w.stream(list_to_watch.func, 'default'):
         logger.info("Event: %s %s %s" % (event['type'], kind(event), name(event)))
         try:
             callback(event)

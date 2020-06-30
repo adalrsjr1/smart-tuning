@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from seqkmeans import Container, KmeansContext, Metric, Cluster
 import bayesian
-from controllers import smarttuninginjector, searchspacemodel
+from controllers import injector, searchspacemodel
 
 logger = logging.getLogger(config.APP_LOGGER)
 logger.setLevel(logging.DEBUG)
@@ -235,7 +235,7 @@ def sample_prod_workload(classification, last_config, timeout=config.SAMPLING_ME
     return workload_prod
 
 def main():
-    smarttuninginjector.init()
+    injector.init()
 
     tuning_candidates = []
     last_config, last_type, last_prod_metric = None, None, 0

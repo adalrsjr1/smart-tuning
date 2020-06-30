@@ -128,9 +128,9 @@ def terminate_thread(thread):
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
 def shutdown():
-    mongo.close()
-    executor.shutdown(wait=False)
-    for t in executor._threads:
+    mongo().close()
+    executor().shutdown(wait=False)
+    for t in executor()._threads:
         try:
             terminate_thread(t)
         except SystemError:

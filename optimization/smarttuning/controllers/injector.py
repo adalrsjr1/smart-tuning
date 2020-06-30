@@ -1,11 +1,15 @@
+import json
 import logging
 import os
+import time
+
 import kubernetes as k8s
 from kubernetes import client, watch
-from kubernetes.client.rest import ApiException
 from kubernetes.client.models import *
-import json
+from kubernetes.client.rest import ApiException
+
 import config
+from controllers.k8seventloop import EventLoop, ListToWatch
 
 if 'KUBERNETES_SERVICE_HOST' in os.environ:
     k8s.config.load_incluster_config()
@@ -14,11 +18,6 @@ else:
 
 logger = logging.getLogger(config.INJECTOR_LOGGER)
 logger.setLevel(logging.DEBUG)
-
-
-
-v1 = client.CoreV1Api()
-v1Apps = client.AppsV1Api()
 
 # (key, value) == (production_name, training_name)
 duplicated_cm = {}
@@ -36,8 +35,6 @@ def update_service(event):
 
 
 def evaluate_event(event: dict) -> bool:
-
-
     if 'Service' == event['object'].kind and event['type'] in ['MODIFIED']:
         logger.debug(f'will inject proxy into {kind(event["object"])}: {name(event["object"])}?')
         return is_to_inject(event['object'])
@@ -45,7 +42,6 @@ def evaluate_event(event: dict) -> bool:
     if 'Deployment' == event['object'].kind and event['type'] in ['ADDED']:
         logger.debug(f'will inject proxy into {kind(event["object"])}: {name(event["object"])}?')
         return is_to_inject(event['object'])
-
 
     return False
 
@@ -72,6 +68,7 @@ def kind(k8s_object):
 
 def resource_version(k8s_object):
     return k8s_object.metadata.resource_version
+
 
 def inject_proxy_into_service(event: dict):
     service: V1Service = event['object']
@@ -101,8 +98,14 @@ def inject_proxy_into_service(event: dict):
         }
     }
 
+    if 'KUBERNETES_SERVICE_HOST' in os.environ:
+        logger.debug('deployed on kubernetes cluster')
+        k8s.config.load_incluster_config()
+    else:
+        logger.debug('deployed on kubernetes local')
+        k8s.config.load_kube_config()
     try:
-        return v1.patch_namespaced_service(name(service), service.metadata.namespace, patch_body)
+        return client.CoreV1Api().patch_namespaced_service(name(service), service.metadata.namespace, patch_body)
     except ApiException as e:
         if 409 == e.status:
             logger.exception(f'service {name(service)} conflict')
@@ -124,6 +127,7 @@ def update_node_port(port_spec, set_value=30999, set_as_none=False):
     elif isinstance(port_spec, V1ServicePort):
         port_spec.node_port = value
 
+
 def duplicate_service_for_training(service: V1Service):
     if service is None:
         return None
@@ -143,14 +147,16 @@ def duplicate_service_for_training(service: V1Service):
             update_node_port(port, set_as_none=True)
 
     try:
-        v1.create_namespaced_service(namespace=config.NAMESPACE, body=duplicate_service(service))
+        client.CoreV1Api().create_namespaced_service(namespace=config.NAMESPACE, body=duplicate_service(service))
         duplicated_svc[old_name] = service.metadata.name
     except ApiException as e:
         if 409 == e.status:
             logger.warning(f'deployment {service.metadata.name} is already deployed')
 
-def last_applied_svc_configuration(service:V1Service):
+
+def last_applied_svc_configuration(service: V1Service):
     return json.loads(service.metadata.annotations.get('kubectl.kubernetes.io/last-applied-configuratio', '{}'))
+
 
 def duplicate_service(service: V1Service):
     service.spec.cluster_ip = None
@@ -186,7 +192,8 @@ def inject_proxy_to_deployment(event):
     deployment: V1Deployment = event['object']
 
     if is_object_proxied(deployment):
-        logger.info(f'proxy is present at {kind(deployment)}: {name(deployment)} -- version {resource_version(deployment)}')
+        logger.info(
+            f'proxy is present at {kind(deployment)}: {name(deployment)} -- version {resource_version(deployment)}')
         return deployment
 
     containers = deployment.spec.template.spec.containers
@@ -201,12 +208,13 @@ def inject_proxy_to_deployment(event):
         "apiVersion": deployment.api_version,
         "metadata": {
             "labels": {"has_proxy": "true", config.PROXY_TAG: "false"},
-            "annotations": {"configmap.reloader.stakater.com/reload": ','.join(extract_configs_names(deployment).union({config.PROXY_CONFIG_MAP}))}
+            "annotations": {"configmap.reloader.stakater.com/reload": ','.join(
+                extract_configs_names(deployment).union({config.PROXY_CONFIG_MAP}))}
         },
         "spec": {
             "template": {
                 "metadata": {
-                    "labels": {config.PROXY_TAG:"false"}
+                    "labels": {config.PROXY_TAG: "false"}
                 },
                 "spec": {
                     "initContainers": [init_proxy_container(proxy_port=config.PROXY_PORT, service_port=service_port)],
@@ -220,7 +228,8 @@ def inject_proxy_to_deployment(event):
         }
     }
 
-    return v1Apps.patch_namespaced_deployment(deployment.metadata.name, deployment.metadata.namespace, patch_body)
+    return client.AppsV1Api().patch_namespaced_deployment(deployment.metadata.name, deployment.metadata.namespace,
+                                                          patch_body)
 
 
 def init_proxy_container(proxy_port: int, service_port: int):
@@ -249,7 +258,7 @@ def init_proxy_container(proxy_port: int, service_port: int):
     }
 
 
-def container_dict_to_model(c:dict)->V1Container:
+def container_dict_to_model(c: dict) -> V1Container:
     env_var = lambda name, path: V1EnvVar(name=name,
                                           value_from=V1EnvVarSource(field_ref=V1ObjectFieldSelector(field_path=path)))
 
@@ -301,6 +310,7 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int):
         'ports': [{'containerPort': proxy_port}, {'containerPort': metrics_port}],
     }
 
+
 def duplicate_deployment_for_training(deployment: V1Deployment):
     if deployment.metadata.name.endswith(f'-{config.PROXY_TAG}'):
         return None
@@ -315,18 +325,21 @@ def duplicate_deployment_for_training(deployment: V1Deployment):
     duplicating_deployment_configs(extract_configs_names(deployment))
 
     config_maps = append_suffix_to_configs_names(deployment, suffix=config.PROXY_TAG)
-    deployment.metadata.annotations.update({"configmap.reloader.stakater.com/reload": ','.join(config_maps.union({config.PROXY_CONFIG_MAP}))})
+    deployment.metadata.annotations.update(
+        {"configmap.reloader.stakater.com/reload": ','.join(config_maps.union({config.PROXY_CONFIG_MAP}))})
 
     duplicate_deployment(deployment)
 
     try:
-        v1Apps.create_namespaced_deployment(namespace=config.NAMESPACE, body=duplicate_deployment(deployment))
+        client.AppsV1Api().create_namespaced_deployment(namespace=config.NAMESPACE,
+                                                        body=duplicate_deployment(deployment))
         duplicated_dep[old_name] = deployment.metadata.name
     except ApiException as e:
         if 409 == e.status:
             logger.warning(f'deployment {deployment.metadata.name} is already deployed')
 
-def extract_configs_names(deployment:V1Deployment) -> set:
+
+def extract_configs_names(deployment: V1Deployment) -> set:
     spec: V1PodSpec = deployment.spec.template.spec
     containers = spec.containers
 
@@ -358,7 +371,8 @@ def extract_configs_names(deployment:V1Deployment) -> set:
 
     return config_maps_to_return
 
-def append_suffix_to_configs_names(deployment:V1Deployment, suffix=config.PROXY_TAG):
+
+def append_suffix_to_configs_names(deployment: V1Deployment, suffix=config.PROXY_TAG):
     spec: V1PodSpec = deployment.spec.template.spec
     containers = spec.containers
 
@@ -393,14 +407,16 @@ def append_suffix_to_configs_names(deployment:V1Deployment, suffix=config.PROXY_
 
     return config_maps_to_return
 
+
 def duplicating_deployment_configs(config_maps):
     config_map: V1ConfigMap
-    for config_map in v1.list_namespaced_config_map(namespace=config.NAMESPACE).items:
+    for config_map in client.CoreV1Api().list_namespaced_config_map(namespace=config.NAMESPACE).items:
         if config_map.metadata.name in config_maps and not config_map.metadata.name.endswith(f'-{config.PROXY_TAG}'):
             old_name = config_map.metadata.name
             config_map.metadata.name += f'-{config.PROXY_TAG}'
             try:
-                v1.create_namespaced_config_map(namespace=config.NAMESPACE, body=duplicate_config_map(config_map))
+                client.CoreV1Api().create_namespaced_config_map(namespace=config.NAMESPACE,
+                                                                body=duplicate_config_map(config_map))
                 duplicated_cm[old_name] = config_map.metadata.name
             except ApiException as e:
                 if 409 == e.status:
@@ -425,29 +441,36 @@ def duplicate_deployment(deployment: V1Deployment):
 def event_loop(list_to_watch, handler):
     w = watch.Watch()
     for event in w.stream(list_to_watch, config.NAMESPACE):
-        logger.info("Event: %s %s %s %s" % (event_type(event), kind(event['object']), name(event['object']), resource_version(event['object'])))
+        logger.info("Event: %s %s %s %s" % (
+            event_type(event), kind(event['object']), name(event['object']), resource_version(event['object'])))
         try:
             handler(event)
         except Exception:
             logger.exception('error at event loop')
             w.stop()
 
+
 def event_type(event):
     return event['type']
+
 
 def namespace(k8s_object):
     return k8s_object.metadata.namespace
 
-def delete_services(event:V1Event):
-    delete_object(event, duplicated_svc, v1.delete_namespaced_service)
 
-def delete_configs_maps(event:V1Event):
-    delete_object(event, duplicated_cm, v1.delete_namespaced_config_map)
+def delete_services(event: V1Event):
+    delete_object(event, duplicated_svc, client.CoreV1Api().delete_namespaced_service)
 
-def delete_deployments(event:V1Event):
-    delete_object(event, duplicated_dep, v1Apps.delete_namespaced_deployment)
 
-def delete_object(event:V1Event, duplicates:dict, listing_fn):
+def delete_configs_maps(event: V1Event):
+    delete_object(event, duplicated_cm, client.CoreV1Api().delete_namespaced_config_map)
+
+
+def delete_deployments(event: V1Event):
+    delete_object(event, duplicated_dep, client.AppsV1Api().delete_namespaced_deployment)
+
+
+def delete_object(event: V1Event, duplicates: dict, listing_fn):
     k8s_object = event['object']
     if 'DELETED' == event_type(event):
         k8s_object_name = duplicates.get(name(k8s_object), '')
@@ -456,21 +479,35 @@ def delete_object(event:V1Event, duplicates:dict, listing_fn):
             listing_fn(name=k8s_object_name, namespace=namespace(k8s_object))
             del (duplicates[name(k8s_object)])
 
-def init():
+
+def init(loop):
     # initializing
-    config.executor.submit(event_loop, v1.list_namespaced_service, update_service)
-    config.executor.submit(event_loop, v1Apps.list_namespaced_deployment, update_deployment)
+    loop.register('services-injector', ListToWatch(func=client.CoreV1Api().list_namespaced_service,
+                                                   namespace=config.NAMESPACE), update_service)
+
+    loop.register('deployment-injector', ListToWatch(func=client.AppsV1Api().list_namespaced_deployment,
+                                                     namespace=config.NAMESPACE), update_deployment)
 
     # garbage collection
-    config.executor.submit(event_loop, v1.list_namespaced_service, delete_services)
-    config.executor.submit(event_loop, v1.list_namespaced_config_map, delete_configs_maps)
-    config.executor.submit(event_loop, v1Apps.list_namespaced_deployment, delete_deployments)
+    loop.register('services-gc', ListToWatch(func=client.CoreV1Api().list_namespaced_service,
+                                             namespace=config.NAMESPACE), delete_services)
+
+    loop.register('configmaps-gc', ListToWatch(func=client.CoreV1Api().list_namespaced_config_map,
+                                               namespace=config.NAMESPACE), delete_configs_maps)
+
+    loop.register('deployments-gc', ListToWatch(func=client.AppsV1Api().list_namespaced_deployment,
+                                                namespace=config.NAMESPACE), delete_deployments)
+
+    logger.debug('wait 1s as safeguard to enusre all loops are going to be registered properly')
+    time.sleep(1)
 
 
 if __name__ == '__main__':
     try:
-        init()
+        loop = EventLoop(config.executor())
+        init(loop)
     except Exception:
         logger.exception('error injector loop')
-    finally:
-        config.shutdown()
+    # finally:
+    #     loop.shutdown()
+    #     config.shutdown()
