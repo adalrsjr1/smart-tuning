@@ -170,8 +170,8 @@ class Metric:
         return self.objective() >= (other.objective() if isinstance(other, Metric) else other)
 
     def __repr__(self):
-        return f'Metric(cpu={self.cpu()}, memory={self.memory()}, throughput={self.throughput()}, ' \
-               f'latency={self.latency()}, errors={self.errors()}, objective={self.objective()})'
+        return f'{{"cpu":{self.cpu()}, "memory":{self.memory()}, "throughput":{self.throughput()}, ' \
+               f'"latency":{self.latency()}, "errors":{self.errors()}, "objective":{self.objective()}}}'
 
     def objective(self) -> float:
         try:

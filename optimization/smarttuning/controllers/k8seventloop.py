@@ -46,7 +46,7 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
         return event['object'].metadata.name
 
     logger.info('initializing new watching loop')
-    for event in w.stream(list_to_watch.func, 'default'):
+    for event in w.stream(list_to_watch.fn()):
         logger.info("Event: %s %s %s" % (event['type'], kind(event), name(event)))
         try:
             callback(event)
@@ -80,10 +80,14 @@ class EventLoop:
         return name, w, f
 
     def unregister(self, name):
+        if not name in self.loops:
+            logger.info(f'loop {name} not registered')
+            return False
         logger.info(f'unregistering loop {name}')
         w, _ = self.loops[name]
         w.stop()
         del self.loops[name]
+        return True
 
     def shutdown(self):
         logger.info(f'shutdown event loop ')

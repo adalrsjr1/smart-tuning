@@ -234,7 +234,7 @@ def sample_prod_workload(classification, last_config, timeout=config.SAMPLING_ME
 
     return workload_prod
 
-def main():
+def old_main():
     injector.init()
 
     tuning_candidates = []
@@ -345,6 +345,16 @@ def do_adapt(manifests, best_config, production=True):
     do_patch(manifests, best_config, production=production)
     save_config_applied(best_config or {})
     return best_config
+
+from controllers.k8seventloop import EventLoop
+from controllers.searchspace import SearchSpaceContext
+
+def main():
+    event_loop = EventLoop(config.executor())
+    ctx = SearchSpaceContext(name='test_workflow', namespace='default')
+    list_to_watch = ctx.function_of_observables()
+    event_loop.register(ctx.name, list_to_watch, ctx.selector)
+
 
 if __name__ == '__main__':
     try:

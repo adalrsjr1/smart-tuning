@@ -26,34 +26,35 @@ class BayesianChannel:
 
     @staticmethod
     def unregister(bayesian_id):
-        del (BayesianChannel.channels[bayesian_id])
+        if bayesian_id in BayesianChannel.channels:
+            del (BayesianChannel.channels[bayesian_id])
 
     @staticmethod
     def put_in(bayesian_id, value):
         if not bayesian_id in BayesianChannel.channels:
             BayesianChannel.register(bayesian_id)
-        logger.debug(f'putting into channel.{bayesian_id}.in')
+        logger.debug(f'putting {value} channel.{bayesian_id}.in')
         BayesianChannel.channels[bayesian_id]['in'].put(value)
 
     @staticmethod
     def put_out(bayesian_id, value):
         if not bayesian_id in BayesianChannel.channels:
             BayesianChannel.register(bayesian_id)
-        logger.debug(f'putting into channel.{bayesian_id}.out')
+        logger.debug(f'putting {value} into channel.{bayesian_id}.out')
         BayesianChannel.channels[bayesian_id]['out'].put(value)
 
     @staticmethod
     def get_in(bayesian_id):
         if not bayesian_id in BayesianChannel.channels:
             BayesianChannel.register(bayesian_id)
-        logger.debug(f'getting into channel.{bayesian_id}.in')
+        logger.debug(f'getting value from channel.{bayesian_id}.in')
         return BayesianChannel.channels[bayesian_id]['in'].get(True)
 
     @staticmethod
     def get_out(bayesian_id):
         if not bayesian_id in BayesianChannel.channels:
             BayesianChannel.register(bayesian_id)
-        logger.debug(f'getting into channel.{bayesian_id}.out')
+        logger.debug(f'getting value channel.{bayesian_id}.out')
         return BayesianChannel.channels[bayesian_id]['out'].get(True)
 
 
@@ -61,6 +62,9 @@ class BayesianDTO:
     def __init__(self, metric=Metric.zero(), classification=''):
         self.metric = metric
         self.classification = classification
+
+    def __repr__(self):
+        return f'{{"metric": {self.metric}, "classification": "{self.classification}"}}'
 
 
 class BayesianEngine:
@@ -103,6 +107,7 @@ class BayesianEngine:
         return self._running
 
     def objective(self, params):
+
         # follow this hint for implement multiple workload types
         # https://github.com/hyperopt/hyperopt/issues/181
         status = STATUS_FAIL
@@ -136,9 +141,15 @@ class BayesianEngine:
     def put(self, dto: BayesianDTO):
         BayesianChannel.put_in(self.id(), dto)
 
-    def best_so_far(self):
-        min = self.trials().argmin
-        return space_eval(self._space, min)
+    def best_so_far(self) -> (dict, float):
+        """
+        Be careful!!!! not thread safe
+
+        :return (dict, float) -> (best configuration, best loss)
+        """
+        loss = self.trials().best_trial['result']['loss']
+        best = self.trials().argmin
+        return space_eval(self._space, best), loss
 
     def sample(self, metric):
         parameters = BayesianChannel.get_out(self.id())

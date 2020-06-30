@@ -15,6 +15,8 @@ def print_config(toPrint=False):
         print('\n *** config loaded *** \n')
 
 ## to disable loggers
+FORMAT = '%(asctime)-15s %(name)-30s %(threadName)-30s: %(message)s'
+logging.basicConfig(format=FORMAT)
 INJECTOR_LOGGER = 'injector.smarttuning.ibm'
 # logging.getLogger('INJECTOR_LOGGER').addHandler(logging.NullHandler())
 # logging.getLogger('INJECTOR_LOGGER').propagate = False
