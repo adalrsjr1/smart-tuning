@@ -1,6 +1,6 @@
 import unittest
-from hyperopt import fmin, tpe, hp, rand, Trials, STATUS_OK, STATUS_FAIL, space_eval
-from updateconfig.bayesian import BayesianEngine, BayesianDTO
+from hyperopt import hp, STATUS_OK
+from bayesian import BayesianEngine, BayesianDTO
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -9,7 +9,7 @@ class TestBayesianEngine(unittest.TestCase):
     executor = ThreadPoolExecutor()
 
     def test_in_out_objective(self):
-        b = BayesianEngine(id='test')
+        b = BayesianEngine(name='test')
         dto = BayesianDTO(classification='test')
         future = TestBayesianEngine.executor.submit(b.objective, {'a':1, 'b':2})
         b.put(dto)
@@ -18,7 +18,7 @@ class TestBayesianEngine(unittest.TestCase):
 
     def test_loop(self):
         space = {'x':hp.uniform('x', -10, 10), 'o':hp.choice('o', ['x','y','z'])}
-        b = BayesianEngine(id='test', space=space, max_evals=100)
+        b = BayesianEngine(name='test', space=space, max_evals=100)
         dto = BayesianDTO(classification='test')
         l = []
         for _ in range(100):

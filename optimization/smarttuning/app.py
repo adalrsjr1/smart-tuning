@@ -8,15 +8,15 @@ import sampler as wh
 import pandas as pd
 import numpy as np
 from seqkmeans import Container, KmeansContext, Metric, Cluster
-from updateconfig import bayesian, searchspace
-from controllers import smarttuninginjector
+import bayesian
+from controllers import smarttuninginjector, searchspacemodel
 
 logger = logging.getLogger(config.APP_LOGGER)
 logger.setLevel(logging.DEBUG)
 
 def init_bayesian():
     if not bayesian.running:
-        manifests, search_space = searchspace.init(cdr_search_space_name=config.SEARCH_SPACE_NAME, namespace=config.NAMESPACE)
+        manifests, search_space = searchspacemodel.init(cdr_search_space_name=config.SEARCH_SPACE_NAME, namespace=config.NAMESPACE)
 
         bayesian.init(search_space)
 

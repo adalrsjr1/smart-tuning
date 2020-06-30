@@ -1,18 +1,20 @@
+import logging
+import threading
+import time
+from functools import partial
 from queue import Queue
+
 import numpy as np
 from hyperopt import fmin, tpe, rand, Trials, STATUS_OK, STATUS_FAIL, space_eval
-import logging
-import time
+
 import config
 from sampler import Metric
-import threading
-from functools import partial
 
 logger = logging.getLogger(config.BAYESIAN_LOGGER)
 logger.setLevel(logging.DEBUG)
 
-class BayesianChannel:
 
+class BayesianChannel:
     channels = {}
 
     @staticmethod
@@ -24,42 +26,48 @@ class BayesianChannel:
 
     @staticmethod
     def unregister(bayesian_id):
-        del(BayesianChannel.channels[bayesian_id])
+        del (BayesianChannel.channels[bayesian_id])
 
     @staticmethod
     def put_in(bayesian_id, value):
         if not bayesian_id in BayesianChannel.channels:
             BayesianChannel.register(bayesian_id)
+        logger.debug(f'putting into channel.{bayesian_id}.in')
         BayesianChannel.channels[bayesian_id]['in'].put(value)
 
     @staticmethod
     def put_out(bayesian_id, value):
         if not bayesian_id in BayesianChannel.channels:
             BayesianChannel.register(bayesian_id)
+        logger.debug(f'putting into channel.{bayesian_id}.out')
         BayesianChannel.channels[bayesian_id]['out'].put(value)
 
     @staticmethod
     def get_in(bayesian_id):
         if not bayesian_id in BayesianChannel.channels:
             BayesianChannel.register(bayesian_id)
+        logger.debug(f'getting into channel.{bayesian_id}.in')
         return BayesianChannel.channels[bayesian_id]['in'].get(True)
 
     @staticmethod
     def get_out(bayesian_id):
         if not bayesian_id in BayesianChannel.channels:
             BayesianChannel.register(bayesian_id)
+        logger.debug(f'getting into channel.{bayesian_id}.out')
         return BayesianChannel.channels[bayesian_id]['out'].get(True)
+
 
 class BayesianDTO:
     def __init__(self, metric=Metric.zero(), classification=''):
         self.metric = metric
         self.classification = classification
 
+
 class BayesianEngine:
     ## to make search-space dynamic
     ## https://github.com/hyperopt/hyperopt/blob/2814a9e047904f11d29a8d01e9f620a97c8a4e37/tutorial/Partial-sampling%20in%20hyperopt.ipynb
-    def __init__(self, id:str, space=None, is_bayesian=True, max_evals=int(1e15)):
-        self._id = id
+    def __init__(self, name: str, space=None, is_bayesian=True, max_evals=int(1e15)):
+        self._id = name
         self._running = False
         self._trials = Trials()
         self._space = space
@@ -74,21 +82,18 @@ class BayesianEngine:
 
         # add early_stop when next Hyperopt version came out
         # https://github.com/hyperopt/hyperopt/blob/abf6718951eecc1c43d591f59da321f2de5a8cbf/hyperopt/tests/test_fmin.py#L336
-        logger.info(f'initializing bayesian engine={id}')
+        logger.info(f'initializing bayesian engine={name}')
 
-        self.objective_fn = partial(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate, max_evals=max_evals,
-                               verbose=False, show_progressbar=False,
-                               rstate=np.random.RandomState(config.RANDOM_SEED))
+        self.objective_fn = partial(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate,
+                                    max_evals=max_evals,
+                                    verbose=False, show_progressbar=False,
+                                    rstate=np.random.RandomState(config.RANDOM_SEED))
 
-        self.fmin = threading.Thread(target=self.objective_fn, daemon=True)
-        # self.fmin = config.executor.submit(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate, max_evals=max_evals,
-        #                        verbose=False, show_progressbar=False,
-        #                        rstate=np.random.RandomState(config.RANDOM_SEED))
-        # self.fmin.start()
+        self.fmin = threading.Thread(name='bayesian-engine-' + name, target=self.objective_fn, daemon=True)
+        self.fmin.start()
         self._running = True
 
-
-    def id(self)->str:
+    def id(self) -> str:
         return self._id
 
     def trials(self):
@@ -104,13 +109,13 @@ class BayesianEngine:
         loss = float('inf')
         classification = ''
         try:
-            BayesianChannel.put_out(self.id, params)
-            dto: BayesianDTO = BayesianChannel.get_in(self.id)
+            BayesianChannel.put_out(self.id(), params)
+            dto: BayesianDTO = BayesianChannel.get_in(self.id())
             loss = dto.metric.objective()
             classification = dto.classification
             status = STATUS_OK
         except Exception:
-            logger.exception('at bayesian core')
+            logger.exception('evalution failed at bayesian core')
         finally:
             return {
                 'loss': loss,
@@ -124,22 +129,18 @@ class BayesianEngine:
                 #     {'classification': pickle.dumps(classficiation)}
             }
 
-
     def get(self):
-        parameters = BayesianChannel.get_out(self.id)
+        parameters = BayesianChannel.get_out(self.id())
         return parameters
 
-
-    def put(self, dto:BayesianDTO):
-        BayesianChannel.put_in(self.id, dto)
-
+    def put(self, dto: BayesianDTO):
+        BayesianChannel.put_in(self.id(), dto)
 
     def best_so_far(self):
         min = self.trials().argmin
         return space_eval(self._space, min)
 
-
     def sample(self, metric):
-        parameters = BayesianChannel.get_out(self.id)
-        BayesianChannel.put_in(self.id, metric)
+        parameters = BayesianChannel.get_out(self.id())
+        BayesianChannel.put_in(self.id(), metric)
         return parameters, metric

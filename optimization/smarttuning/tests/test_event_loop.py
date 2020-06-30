@@ -4,14 +4,18 @@ import time
 from kubernetes import watch, client, config
 from kubernetes.client.models import *
 from concurrent.futures import ThreadPoolExecutor
-from threading import Thread
 from controllers.k8seventloop import EventLoop, ListToWatch, event_loop
+from collections import Counter
 
 import warnings
 warnings.simplefilter("ignore", ResourceWarning)
 
 class TestEventLoop(unittest.TestCase):
-    executor = ThreadPoolExecutor()
+
+    @classmethod
+    def setUpClass(self):
+        self.executor:ThreadPoolExecutor = ThreadPoolExecutor()
+        self.counter = Counter()
 
     def init(self):
         if 'KUBERNETES_SERVICE_HOST' in os.environ:
@@ -20,7 +24,8 @@ class TestEventLoop(unittest.TestCase):
             config.load_kube_config()
 
     def test_event_loop_intantiation(self):
-        loop = EventLoop()
+        loop = EventLoop(executor=self.executor)
+        loop.shutdown()
 
     def test_list_to_watch(self):
         self.init()
@@ -71,47 +76,58 @@ class TestEventLoop(unittest.TestCase):
         v1 = client.CoreV1Api()
         list_to_watch = ListToWatch(v1.list_pod_for_all_namespaces)
         w = watch.Watch()
-        t = Thread(target=event_loop, args=(w, list_to_watch, lambda x: self.assertEqual(x['object'].kind, 'Pod')), daemon=True)
-        t.start()
+        f = self.executor.submit(event_loop, w, list_to_watch, lambda x: self.assertEqual(x['object'].kind, 'Pod'))
         time.sleep(1)
         w.stop()
+        f.cancel()
+
+    def test_event_loop_size(self):
+        self.init()
+        v1 = client.CoreV1Api()
+        list_to_watch = ListToWatch(v1.list_pod_for_all_namespaces)
+        w = watch.Watch()
+
+        def counting(event):
+            self.counter['test_event_loop_size'] += 1
+
+        f = self.executor.submit(event_loop, w, list_to_watch, counting)
+        time.sleep(1)
+        w.stop()
+        self.assertGreater(self.counter['test_event_loop_size'], 0)
+        f.cancel()
 
     def test_event_loop_w_args(self):
         self.init()
         v1 = client.CoreV1Api()
         list_to_watch = ListToWatch(v1.list_namespaced_pod, namespace='kube-system')
         w = watch.Watch()
-        t = Thread(target=event_loop, args=(w, list_to_watch, lambda x: self.assertEqual(x['object']['kind'], 'Pod')), daemon=True)
-        t.start()
+        self.executor.submit(event_loop, args=(w, list_to_watch, lambda x: self.assertEqual(x['object']['kind'], 'Pod')))
         time.sleep(1)
         w.stop()
 
     def test_full_event_loop(self):
         self.init()
-        loop = EventLoop()
+        loop = EventLoop(self.executor)
 
         v1 = client.CoreV1Api()
         list_to_watch = ListToWatch(v1.list_pod_for_all_namespaces)
         loop.register('test', list_to_watch, lambda x: self.assertEqual(x['object'].kind, 'Pod'))
         time.sleep(1)
-        loop.unregister('test')
+        loop.shutdown()
 
     def test_full_event_loop_w_args(self):
         self.init()
-        loop = EventLoop()
+        loop = EventLoop(self.executor)
 
         v1 = client.CoreV1Api()
         list_to_watch = ListToWatch(v1.list_namespaced_pod, namespace='kube-system')
         loop.register('test', list_to_watch, lambda x: self.assertEqual(x['object']['kind'], 'Pod'))
         time.sleep(1)
-        ListToWatch()
-        loop.unregister('test')
+        loop.shutdown()
 
-    def tearDown(self) -> None:
-        TestEventLoop.executor.shutdown()
-
-
-
+    @classmethod
+    def tearDownClass(self):
+        self.executor.shutdown(wait=False)
 
 if __name__ == '__main__':
     unittest.main()

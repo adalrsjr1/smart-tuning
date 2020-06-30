@@ -1,13 +1,16 @@
+import logging
+import os
+from concurrent.futures import Future
+from functools import partial
+
 import kubernetes
 from kubernetes import watch
-from functools import partial
-from threading import Thread
-import logging
+
 import config
-import os
 
 logger = logging.getLogger(config.EVENT_LOOP_LOGGER)
 logger.setLevel(logging.DEBUG)
+
 
 class ListToWatch:
     def __init__(self, func=None, **kwargs):
@@ -30,7 +33,8 @@ class ListToWatch:
         else:
             return self.func
 
-def event_loop(w:watch.Watch, list_to_watch:ListToWatch, callback, context=None):
+
+def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=None):
     def kind(event):
         if isinstance(event['object'], dict):
             return event['object']['kind']
@@ -41,6 +45,7 @@ def event_loop(w:watch.Watch, list_to_watch:ListToWatch, callback, context=None)
             return event['object']['metadata']['name']
         return event['object'].metadata.name
 
+    logger.info('initializing new watching loop')
     for event in w.stream(list_to_watch.fn()):
         logger.info("Event: %s %s %s" % (event['type'], kind(event), name(event)))
         try:
@@ -54,25 +59,38 @@ def event_loop(w:watch.Watch, list_to_watch:ListToWatch, callback, context=None)
             else:
                 w.stop()
 
+
 class EventLoop:
-    def __init__(self):
+    def __init__(self, executor):
         # initializing kubernetes client
         if 'KUBERNETES_SERVICE_HOST' in os.environ:
+            logger.debug('deployed on kubernetes cluster')
             kubernetes.config.load_incluster_config()
         else:
+            logger.debug('deployed on kubernetes local')
             kubernetes.config.load_kube_config()
-
+        self.executor = executor
         self.loops = {}
 
-    def register(self, name, list_to_watch, callback):
+    def register(self, name, list_to_watch, callback) -> (str, watch.Watch, Future):
         logger.info(f'registering loop "{name}"')
         w = watch.Watch()
-        t = Thread(name='name', target=event_loop, args=(w, list_to_watch, callback, (self, name)), daemon=True)
-        self.loops[name] = (w, t)
-        t.start()
+        f = self.executor.submit(event_loop, w, list_to_watch, callback, (self, name))
+        self.loops[name] = (w, f)
+        return name, w, f
 
     def unregister(self, name):
         logger.info(f'unregistering loop {name}')
         w, _ = self.loops[name]
         w.stop()
         del self.loops[name]
+
+    def shutdown(self):
+        logger.info(f'shutdown event loop ')
+        w: watch.Watch
+        f: Future
+        for key, value in self.loops.items():
+            logger.info(f'stopping event loop {key}')
+            w, f = value
+            w.stop()
+            f.cancel()

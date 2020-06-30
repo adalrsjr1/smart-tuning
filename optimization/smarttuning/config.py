@@ -93,13 +93,47 @@ SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH',default='')
 # SYNC_PORT = int(os.environ.get('SYNC_PORT', default='5000'))
 
 print_config(PRINT_CONFIG)
+_executor = None
+_client = None
 
+def executor(max_workers=None):
+    global _executor
+    if not _executor:
+        _executor = ThreadPoolExecutor(max_workers=max_workers)
+    return _executor
 
-executor = ThreadPoolExecutor()
-client = MongoClient(MONGO_ADDR, MONGO_PORT)
+def mongo():
+    global _client
+    if not _client:
+        _client = MongoClient(MONGO_ADDR, MONGO_PORT)
+    return _client
+
+import ctypes
+def terminate_thread(thread):
+    """Terminates a python thread from another thread.
+
+    :param thread: a threading.Thread instance
+    """
+    if not thread.is_alive():
+        return
+
+    exc = ctypes.py_object(SystemExit)
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), exc)
+    if 0 == res:
+        raise ValueError("nonexistent thread id")
+    elif 1 <= res:
+        # """if it returns a number greater than one, you're in trouble,
+        # and you should call it again with exc=NULL to revert the effect"""
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, None)
+        raise SystemError("PyThreadState_SetAsyncExc failed")
 
 def shutdown():
-    client.close()
-    executor.shutdown()
+    mongo.close()
+    executor.shutdown(wait=False)
+    for t in executor._threads:
+        try:
+            terminate_thread(t)
+        except SystemError:
+            logging.exception('error while shutdown thread pool')
 
 

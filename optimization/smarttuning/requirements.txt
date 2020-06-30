@@ -7,6 +7,7 @@ decorator==4.4.2
 Flask==1.1.2
 future==0.18.2
 google-auth==1.14.0
+hyperopt==0.2.4
 idna==2.9
 itsdangerous==1.1.0
 Jinja2==2.11.2
@@ -26,6 +27,7 @@ rsa==4.0
 scipy==1.4.1
 six==1.14.0
 tqdm==4.45.0
+transitions==0.8.2
 urllib3==1.25.9
 websocket-client==0.57.0
 Werkzeug==1.0.1
