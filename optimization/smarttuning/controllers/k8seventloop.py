@@ -24,14 +24,11 @@ class ListToWatch:
         self.kwargs = kwargs
 
     def fn(self):
-        """
-        Returns a partial fucntion of the listing function with all parameters wrapped in
-
-        """
-        if self.kwargs:
-            return partial(self.func, **self.kwargs)
-        else:
-            return self.func
+        return self.func, self.kwargs
+        # if self.kwargs:
+        #     return self.func, self.kwargs
+        # else:
+        #     return self.func
 
 
 def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=None):
@@ -45,9 +42,16 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
             return event['object']['metadata']['name']
         return event['object'].metadata.name
 
-    logger.info('initializing new watching loop')
-    for event in w.stream(list_to_watch.fn()):
-        logger.info("Event: %s %s %s" % (event['type'], kind(event), name(event)))
+    loop_name = context[1] if context else ''
+    logger.info(f'initializing new watching loop {loop_name}')
+
+    if list_to_watch.kwargs:
+        stream = w.stream(list_to_watch.func, list_to_watch.kwargs)
+    else:
+        stream = w.stream(list_to_watch.func)
+
+    for event in w.stream(list_to_watch.func, **list_to_watch.kwargs):
+        logger.info("[%s] Event: %s %s %s" % (loop_name, event['type'], kind(event), name(event)))
         try:
             callback(event)
         except Exception:
@@ -64,10 +68,8 @@ class EventLoop:
     def __init__(self, executor):
         # initializing kubernetes client
         if 'KUBERNETES_SERVICE_HOST' in os.environ:
-            logger.debug('deployed on kubernetes cluster')
             kubernetes.config.load_incluster_config()
         else:
-            logger.debug('deployed on kubernetes local')
             kubernetes.config.load_kube_config()
         self.executor = executor
         self.loops = {}

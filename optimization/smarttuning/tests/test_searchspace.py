@@ -5,10 +5,10 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 
 from kubernetes import config as k8sconfig
-
+import kubernetes
 from controllers import searchspace
 from bayesian import BayesianDTO
-from controllers.k8seventloop import EventLoop
+from controllers.k8seventloop import EventLoop, ListToWatch
 from controllers.searchspace import SearchSpaceContext
 from sampler import Metric
 
@@ -34,9 +34,25 @@ class TestSearchSpace(unittest.TestCase):
         ctx.delete_bayesian_searchspace()
         loop.unregister(ctx.name)
 
+    def test_watcher(self):
+        client = kubernetes.client.CustomObjectsApi()
+        list_to_watch = ListToWatch(client.list_namespaced_custom_object, namespace='default',
+                    group='smarttuning.ibm.com',
+                    version='v1alpha1',
+                    plural='searchspaces')
+
+        w = kubernetes.watch.Watch()
+        t = list_to_watch.fn()
+        fn = t[0]
+        args = t[1]
+
+        for event in w.stream(fn, **args):
+            self.assertEqual(event['type'], 'ADDED')
+            w.stop()
+
     def test_workflow(self):
         """
-        shuld be executed a part of the other tests
+        should be executed apart of the other tests
         """
         loop = EventLoop(ThreadPoolExecutor())
         searchspace.init(loop)

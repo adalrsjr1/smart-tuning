@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from seqkmeans import Container, KmeansContext, Metric, Cluster
 import bayesian
-from controllers import injector, searchspacemodel
+from controllers import injector, searchspacemodel, searchspace
 
 logger = logging.getLogger(config.APP_LOGGER)
 logger.setLevel(logging.DEBUG)
@@ -351,15 +351,20 @@ from controllers.searchspace import SearchSpaceContext
 
 def main():
     event_loop = EventLoop(config.executor())
-    ctx = SearchSpaceContext(name='test_workflow', namespace='default')
-    list_to_watch = ctx.function_of_observables()
-    event_loop.register(ctx.name, list_to_watch, ctx.selector)
+
+    searchspace.init(event_loop)
+    injector.init(event_loop)
+
+    # ctx = SearchSpaceContext(name='test_workflow', namespace='default')
+    # list_to_watch = ctx.function_of_observables()
+    # event_loop.register(ctx.name, list_to_watch, ctx.selector)
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception:
-        logger.exception('main loop error')
-    finally:
-        config.shutdown()
+    main()
+    # try:
+    #     main()
+    # except Exception:
+    #     logger.exception('main loop error')
+    # finally:
+    #     config.shutdown()

@@ -42,7 +42,8 @@ class TestEventLoop(unittest.TestCase):
         v1 = client.CoreV1Api()
         list_to_watch = ListToWatch(v1.list_namespaced_pod, namespace='default')
         r1:V1PodList = v1.list_namespaced_pod({'namespace':'default'})
-        r2:V1PodList = list_to_watch.fn()()
+        func = list_to_watch.fn()
+        r2:V1PodList = func[0](func[1])
 
         names1 = []
         for item in r1.items:
@@ -59,7 +60,8 @@ class TestEventLoop(unittest.TestCase):
         v1 = client.CoreV1Api()
         list_to_watch = ListToWatch(v1.list_namespace)
         r1 = v1.list_namespace()
-        r2 = list_to_watch.fn()()
+        fn = list_to_watch.fn()
+        r2 = fn[0](**fn[1])
 
         names1 = []
         for item in r1.items:
@@ -121,7 +123,7 @@ class TestEventLoop(unittest.TestCase):
 
         v1 = client.CoreV1Api()
         list_to_watch = ListToWatch(v1.list_namespaced_pod, namespace='kube-system')
-        loop.register('test', list_to_watch, lambda x: self.assertEqual(x['object']['kind'], 'Pod'))
+        loop.register('test', list_to_watch, lambda x: self.assertEqual(x['object'].kind, 'Pod'))
         time.sleep(1)
         loop.shutdown()
 

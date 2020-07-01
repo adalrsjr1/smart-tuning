@@ -25,18 +25,6 @@ duplicated_dep = {}
 duplicated_svc = {}
 
 
-def name(k8s_object):
-    if isinstance(k8s_object, dict):
-        return k8s_object.get('metadata', {'name': ''}).get('name', '')
-    if k8s_object and k8s_object.metadata:
-        return k8s_object.metadata.name
-    return ''
-
-
-def kind(k8s_object):
-    return k8s_object.kind
-
-
 def update_service(event):
     if evaluate_event(event):
         try:
@@ -64,6 +52,18 @@ def is_to_inject(k8s_object):
         annotations = k8s_object.metadata.annotations
         return annotations.get('injection.smarttuning.ibm.com', 'false') == 'true'
     return False
+
+
+def name(k8s_object):
+    if isinstance(k8s_object, dict):
+        return k8s_object.get('metadata', {'name': ''}).get('name', '')
+    if k8s_object and k8s_object.metadata:
+        return k8s_object.metadata.name
+    return ''
+
+
+def kind(k8s_object):
+    return k8s_object.kind
 
 
 def resource_version(k8s_object):
@@ -498,7 +498,7 @@ def init(loop):
     loop.register('deployments-gc', ListToWatch(func=client.AppsV1Api().list_namespaced_deployment,
                                                 namespace=config.NAMESPACE), delete_deployments)
 
-    logger.debug('wait 1s as safeguard to ensure all controller\' loops are going to be registered properly')
+    logger.debug('wait 1s as safeguard to enusre all loops are going to be registered properly')
     time.sleep(1)
 
 
