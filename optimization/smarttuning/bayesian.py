@@ -5,11 +5,12 @@ from functools import partial
 from queue import Queue
 
 import numpy as np
+import random
 from hyperopt import fmin, tpe, rand, Trials, STATUS_OK, STATUS_FAIL, space_eval
 
 import config
 from sampler import Metric
-
+random.seed(config.RANDOM_SEED)
 logger = logging.getLogger(config.BAYESIAN_LOGGER)
 logger.setLevel(logging.DEBUG)
 
@@ -87,11 +88,11 @@ class BayesianEngine:
         # add early_stop when next Hyperopt version came out
         # https://github.com/hyperopt/hyperopt/blob/abf6718951eecc1c43d591f59da321f2de5a8cbf/hyperopt/tests/test_fmin.py#L336
         logger.info(f'initializing bayesian engine={name}')
-
+        np.random.seed(config.RANDOM_SEED)
         self.objective_fn = partial(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate,
                                     max_evals=max_evals,
                                     verbose=False, show_progressbar=False,
-                                    rstate=np.random.RandomState(config.RANDOM_SEED))
+                                    rstate=np.random.RandomState(random.randint(0,1000)))
 
         self.fmin = threading.Thread(name='bayesian-engine-' + name, target=self.objective_fn, daemon=True)
         self.fmin.start()

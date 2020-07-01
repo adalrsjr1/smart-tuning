@@ -22,7 +22,7 @@ def searchspace_controller(event):
     elif 'DELETED' == t:
         name = event['object']['metadata']['name']
         ctx = search_spaces[name]
-        ctx.delete_bayesian_searchspace(event, is_bayesian=config.BAYESIAN)
+        ctx.delete_bayesian_searchspace(event)
         del search_spaces[name]
 
 def context(name) -> SearchSpaceContext:
