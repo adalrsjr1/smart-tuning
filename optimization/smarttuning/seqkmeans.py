@@ -68,10 +68,11 @@ def __compare__(histograms:pd.Series, threshold:int):
         def acc(self, value):
             self.value += value
 
-    for hist1, i in histograms.items():
-        for hist2, j in histograms.items():
-            if __fuzzy_string_comparation__(hist1, hist2, threshold):
-                __group__(Item(hist1, i), Item(hist2, j), workflows_group, memory)
+    if len(histograms) > 0:
+        for hist1, i in histograms.items():
+            for hist2, j in histograms.items():
+                if __fuzzy_string_comparation__(hist1, hist2, threshold):
+                    __group__(Item(hist1, i), Item(hist2, j), workflows_group, memory)
     return workflows_group
 
 # TODO: optimize this in the future

@@ -15,7 +15,7 @@ def print_config(toPrint=False):
         print('\n *** config loaded *** \n')
 
 ## to disable loggers
-FORMAT = '%(asctime)-15s %(name)-30s %(threadName)-30s: %(message)s'
+FORMAT = '%(asctime)-15s %(name)-30s %(levelname)-5s %(threadName)-30s: %(message)s'
 logging.basicConfig(format=FORMAT)
 INJECTOR_LOGGER = 'injector.smarttuning.ibm'
 # logging.getLogger('INJECTOR_LOGGER').addHandler(logging.NullHandler())
@@ -56,7 +56,7 @@ MONGO_DB = os.environ.get('MONGO_DB', default='smarttuning')
 
 # prometheus config
 PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', default='localhost')
-PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', default='30090')
+PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', default='30099')
 SAMPLING_METRICS_TIMEOUT = int(os.environ.get('SAMPLING_METRICS_TIMEOUT', default=15))
 
 # classification config
@@ -73,7 +73,7 @@ GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
-OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='throughput/memory'),'<string>', 'eval')
+OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='memory'),'<string>', 'eval')
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='1.0'))
 WAITING_TIME = int(os.environ.get('WAITING_TIME', default='2'))

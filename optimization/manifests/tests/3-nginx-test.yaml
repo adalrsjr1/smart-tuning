@@ -45,6 +45,7 @@ metadata:
     app: nginx-test
   annotations:
     injection.smarttuning.ibm.com: "true"
+    configmap.reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   template:

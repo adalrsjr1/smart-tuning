@@ -52,6 +52,16 @@ class TestPrometheusSampling(unittest.TestCase):
         result = sampler.series_to_dataframe(result)
         self.assertGreaterEqual(len(result), 0)
 
+    def test_sample_empty_workload(self):
+        import time
+        prom = self.client()
+        future = prom.workload()
+        result = future.result()
+        pd.set_option("display.max_rows", None, "display.max_columns", None)
+        print(result)
+        result = sampler.series_to_dict(result)
+        self.assertEqual(len(result), 0)
+
     def test_sample_metric(self):
         prom = self.client()
         metric = prom.metric()

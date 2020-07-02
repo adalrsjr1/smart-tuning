@@ -1,0 +1,42 @@
+apiVersion: "smarttuning.ibm.com/v1alpha1"
+kind: SearchSpace
+metadata:
+  name: nginx-test
+spec:
+  manifests:
+    - name: "nginx-test-smarttuning"
+      nameProd: "nginx-test"
+      namespace: "default"
+      type:
+        deployment: true
+        containers:
+          - name: "proxy"
+            ratio: 0.1
+          - name: "nginx-test"
+            ratio: 0.9
+      params:
+        - name: "cpu"
+          number:
+            lower: 1
+            upper: 2
+            step: 0.1
+            continuous: true
+        - name: "memory"
+          number:
+            lower: 256
+            upper: 512
+            step: 32
+            continuous: false
+    - name: "nginx-test-cm-2-smarttuning"
+      nameProd: "nginx-test-cm-2"
+      namespace: "default"
+      type:
+        configMap: "envVar"
+      params:
+        - name: "value"
+          number:
+            lower: 10
+            upper: 30
+            step: 1
+            continuous: false
+

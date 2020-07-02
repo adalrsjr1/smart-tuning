@@ -16,7 +16,8 @@ def searchspace_controller(event):
     if 'ADDED' == t:
         name = event['object']['metadata']['name']
         namespace = event['object']['metadata']['namespace']
-        ctx = SearchSpaceContext(name, namespace)
+        manifests = event['object']['spec']['manifests']
+        ctx = SearchSpaceContext(name, namespace, manifests)
         ctx.create_bayesian_searchspace(event, is_bayesian=config.BAYESIAN)
         search_spaces[name] = ctx
     elif 'DELETED' == t:
@@ -30,11 +31,12 @@ def context(name) -> SearchSpaceContext:
         return search_spaces[name]
 
 class SearchSpaceContext:
-    def __init__(self, name: str, namespace: str = config.NAMESPACE):
+    def __init__(self, name: str, namespace: str = config.NAMESPACE, manifests = []):
         self.name = name
         self.api = k8s.client.CustomObjectsApi()
         self.namespace = namespace
         self.engine:BayesianEngine = None
+        self.manifests = [ManifestBase(manifest) for manifest in manifests]
 
     def function_of_observables(self):
         api = k8s.client.CustomObjectsApi()

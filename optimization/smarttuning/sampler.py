@@ -17,7 +17,7 @@ def __extract_value_from_future__(future, timeout=config.SAMPLING_METRICS_TIMEOU
     metric = result.replace(float('NaN'), 0)
     return metric[0] if not metric.empty else 0
 
-def series_to_dataframe(series: pd.Series):
+def series_to(series: pd.Series, container):
     rows = []
     key: str
     for key, value in series.items():
@@ -25,15 +25,22 @@ def series_to_dataframe(series: pd.Series):
         key = json.loads(key)
         key.update({'value': value})
         rows.append(key)
-    labels = key.keys()
+    labels = series.keys()
 
     table = {label: [] for label in labels}
     for row in rows:
         for key, value in row.items():
             table[key].append(value)
 
-    return pd.DataFrame(table)
+    if container is dict:
+        return table
+    return container(table)
 
+def series_to_dataframe(series: pd.Series):
+    return series_to(series, pd.DataFrame)
+
+def series_to_dict(series: pd.Series):
+    return series_to(series, dict)
 
 class Metric:
 
@@ -185,14 +192,15 @@ class Metric:
 
 
 class PrometheusSampler:
-    def __init__(self, podname: str, interval: int, executor=config.executor, addr=config.PROMETHEUS_ADDR,
+    def __init__(self, podname: str, interval: int, executor=config.executor(), addr=config.PROMETHEUS_ADDR,
                  port=config.PROMETHEUS_PORT):
         self.client = handler.Prometheus(f'http://{addr}:{port}')
         self.executor = executor
         self.podname = podname
-        self.interval = interval
+        self.interval = int(interval)
 
     def __do_sample__(self, query: str) -> Future:
+        logger.debug(f'sampling:{query}')
         return self.executor.submit(self.client.query, query)
 
     def metric(self, quantile=1.0) -> Metric:
@@ -206,21 +214,21 @@ class PrometheusSampler:
 
     def throughput(self, quantile=1.0) -> Future:
         """ return future<pd.Series>"""
-        logger.debug(f'sampling throughput at {self.podname}')
-        query = f'quantile({quantile},rate(smarttuning_http_requests_total{{pod=~"{self.podname}",name!~".*POD.*"}}[{self.interval}s]))'
+        logger.debug(f'sampling throughput at {self.podname}.*')
+        query = f'quantile({quantile},rate(smarttuning_http_requests_total{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def error(self, quantile=1.0) -> Future:
-        logger.debug(f'sampling errors rate at {self.podname}')
-        query = f'quantile({quantile}, rate(smarttuning_http_requests_total{{code=~"5..",pod=~"{self.podname}",name!~".*POD.*"}}[{self.interval}s])) /' \
-                f'quantile({quantile}, rate(smarttuning_http_requests_total{{pod=~"{self.podname}",name!~".*POD.*"}}[{self.interval}s]))'
+        logger.debug(f'sampling errors rate at {self.podname}.*')
+        query = f'quantile({quantile}, rate(smarttuning_http_requests_total{{code=~"5..",pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s])) /' \
+                f'quantile({quantile}, rate(smarttuning_http_requests_total{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def latency(self, quantile=1.0) -> Future:
         """ return a concurrent.futures.Future<pandas.Series> with the latency_sum/latency_count rate of an specific pod"""
-        logger.debug(f'sampling latency at {self.podname}')
-        query = f'quantile({quantile}, rate(smarttuning_http_latency_seconds_sum{{pod=~"{self.podname}",name!~".*POD.*"}}[{self.interval}s])) / ' \
-                f'quantile({quantile}, rate(smarttuning_http_latency_seconds_count{{pod=~"{self.podname}",name!~".*POD.*"}}[{self.interval}s]))'
+        logger.debug(f'sampling latency at {self.podname}.*')
+        query = f'quantile({quantile}, rate(smarttuning_http_latency_seconds_sum{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s])) / ' \
+                f'quantile({quantile}, rate(smarttuning_http_latency_seconds_count{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 
@@ -228,16 +236,16 @@ class PrometheusSampler:
         """ return a concurrent.futures.Future<pandas.Series> with the memory (bytes) quantile over time of an specific pod
             :param quantile a value 0.0 - 1.0
         """
-        logger.debug(f'sampling memory at {self.podname}')
-        query = f'quantile({quantile}, quantile_over_time({quantile},container_memory_working_set_bytes{{pod=~"{self.podname}",name!~".*POD.*"}}[{self.interval}s]))'
+        logger.debug(f'sampling memory at {self.podname}.*')
+        query = f'quantile({quantile}, quantile_over_time({quantile},container_memory_working_set_bytes{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 
     def cpu(self, quantile=1.0) -> Future:
         """ return a concurrent.futures.Future<pandas.Series> with the CPU (milicores) rate over time of an specific pod
         """
-        logger.debug(f'sampling cpu at {self.podname}')
-        query = f'quantile({quantile},rate(container_cpu_usage_seconds_total{{pod=~"{self.podname}",name!~".*POD.*"}}[{self.interval}s]))'
+        logger.debug(f'sampling cpu at {self.podname}.*')
+        query = f'quantile({quantile},rate(container_cpu_usage_seconds_total{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def workload(self) -> Future:
@@ -253,10 +261,10 @@ class PrometheusSampler:
         are grouped into /my/url/using/path-parameter/uid153@email.com
 
         """
-        logger.debug(f'sampling urls at {self.podname}')
+        logger.debug(f'sampling urls at {self.podname}.*')
 
-        query = f'sum by (path)(rate(smarttuning_http_requests_total{{pod=~"{self.podname}"}}[{self.interval}s]))' \
+        query = f'sum by (path)(rate(smarttuning_http_requests_total{{pod=~"{self.podname}.*"}}[{self.interval}s]))' \
                 f' / ignoring ' \
-                f'(path) group_left sum(rate(smarttuning_http_requests_total{{pod=~"{self.podname}"}}[{self.interval}s]))'
+                f'(path) group_left sum(rate(smarttuning_http_requests_total{{pod=~"{self.podname}.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
