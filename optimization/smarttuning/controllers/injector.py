@@ -35,7 +35,7 @@ def update_service(event):
 
 
 def evaluate_event(event: dict) -> bool:
-    if 'Service' == event['object'].kind and event['type'] in ['MODIFIED']:
+    if 'Service' == event['object'].kind and event['type'] in ['ADDED', 'MODIFIED']:
         logger.debug(f'will inject proxy into {kind(event["object"])}: {name(event["object"])}?')
         return is_to_inject(event['object'])
 
@@ -78,6 +78,8 @@ def inject_proxy_into_service(event: dict):
 
     logger.info(f'injecting proxy to {kind(service)}: {name(service)} -- version {resource_version(service)}')
     ports = service.spec.ports
+
+
 
     port = {
         "name": config.PROXY_TAG,
@@ -144,7 +146,7 @@ def duplicate_service_for_training(service: V1Service):
 
     if check_if_is_node_port(service):
         for port in service.spec.ports:
-            update_node_port(port, set_as_none=True)
+                update_node_port(port, set_as_none=True)
 
     try:
         client.CoreV1Api().create_namespaced_service(namespace=config.NAMESPACE, body=duplicate_service(service))
@@ -208,8 +210,11 @@ def inject_proxy_to_deployment(event):
         "apiVersion": deployment.api_version,
         "metadata": {
             "labels": {"has_proxy": "true", config.PROXY_TAG: "false"},
-            "annotations": {"configmap.reloader.stakater.com/reload": ','.join(
-                extract_configs_names(deployment).union({config.PROXY_CONFIG_MAP}))}
+            # "annotations": {"configmap.reloader.stakater.com/reload": ','.join(
+            #     extract_configs_names(deployment).union({config.PROXY_CONFIG_MAP}))}
+            "annotations": {
+                "reloader.stakater.com/auto": "true"
+            }
         },
         "spec": {
             "template": {
@@ -352,22 +357,25 @@ def extract_configs_names(deployment: V1Deployment) -> set:
         if config.PROXY_NAME == container.name:
             continue
 
-        for var in container.env:
-            value_from = var.value_from
-            if value_from:
-                config_map_key_ref = value_from.config_map_key_ref
-                if config_map_key_ref:
-                    config_maps_to_return.add(config_map_key_ref.name)
+        if container.env:
+            for var in container.env:
+                value_from = var.value_from
+                if value_from:
+                    config_map_key_ref = value_from.config_map_key_ref
+                    if config_map_key_ref:
+                        config_maps_to_return.add(config_map_key_ref.name)
 
-        for var in container.env_from:
-            config_map_ref = var.config_map_ref
-            if config_map_ref:
-                config_maps_to_return.add(config_map_ref.name)
+        if container.env_from:
+            for var in container.env_from:
+                config_map_ref = var.config_map_ref
+                if config_map_ref:
+                    config_maps_to_return.add(config_map_ref.name)
 
-    for volume in spec.volumes:
-        config_map = volume.config_map
-        if config_map:
-            config_maps_to_return.add(config_map.name)
+    if spec.volumes:
+        for volume in spec.volumes:
+            config_map = volume.config_map
+            if config_map:
+                config_maps_to_return.add(config_map.name)
 
     return config_maps_to_return
 
@@ -385,25 +393,28 @@ def append_suffix_to_configs_names(deployment: V1Deployment, suffix=config.PROXY
         if config.PROXY_NAME == container.name:
             continue
 
-        for var in container.env:
-            value_from = var.value_from
-            if value_from:
-                config_map_key_ref = value_from.config_map_key_ref
-                if config_map_key_ref:
-                    config_map_key_ref.name += f'-{suffix}'
-                    config_maps_to_return.add(config_map_key_ref.name)
+        if container.env:
+            for var in container.env:
+                value_from = var.value_from
+                if value_from:
+                    config_map_key_ref = value_from.config_map_key_ref
+                    if config_map_key_ref:
+                        config_map_key_ref.name += f'-{suffix}'
+                        config_maps_to_return.add(config_map_key_ref.name)
 
-        for var in container.env_from:
-            config_map_ref = var.config_map_ref
-            if config_map_ref:
-                config_map_ref.name += f'-{suffix}'
-                config_maps_to_return.add(config_map_ref.name)
+        if container.env_from:
+            for var in container.env_from:
+                config_map_ref = var.config_map_ref
+                if config_map_ref:
+                    config_map_ref.name += f'-{suffix}'
+                    config_maps_to_return.add(config_map_ref.name)
 
-    for volume in spec.volumes:
-        config_map = volume.config_map
-        if config_map:
-            config_map.name += f'-{suffix}'
-            config_maps_to_return.add(config_map.name)
+    if spec.volumes:
+        for volume in spec.volumes:
+            config_map = volume.config_map
+            if config_map:
+                config_map.name += f'-{suffix}'
+                config_maps_to_return.add(config_map.name)
 
     return config_maps_to_return
 
@@ -511,3 +522,4 @@ if __name__ == '__main__':
     # finally:
     #     loop.shutdown()
     #     config.shutdown()
+

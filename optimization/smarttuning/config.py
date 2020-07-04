@@ -1,10 +1,10 @@
+import logging
 import os
 import time
-import logging
-# import kubernetes as k8s
-from concurrent.futures import ThreadPoolExecutor, wait as ThreadWait, ALL_COMPLETED as FUTURE_ALL_COMPLETED
+from concurrent.futures import ThreadPoolExecutor
 
 from pymongo import MongoClient
+
 
 def print_config(toPrint=False):
     if toPrint:
@@ -14,9 +14,9 @@ def print_config(toPrint=False):
                 print('\t', item)
         print('\n *** config loaded *** \n')
 
+
 ## to disable loggers
-FORMAT = '%(asctime)-15s %(name)-30s %(levelname)-5s %(threadName)-30s: %(message)s'
-logging.basicConfig(format=FORMAT)
+FORMAT = '%(asctime)-15s - %(name)-30s %(levelname)-7s - %(threadName)-30s: %(message)s'
 INJECTOR_LOGGER = 'injector.smarttuning.ibm'
 # logging.getLogger('INJECTOR_LOGGER').addHandler(logging.NullHandler())
 # logging.getLogger('INJECTOR_LOGGER').propagate = False
@@ -40,12 +40,12 @@ EVENT_LOOP_LOGGER = 'eventloop.smarttuning.ibm'
 MOCK = eval(os.environ.get('MOCK', default='True'))
 PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='False'))
 LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='DEBUG').upper()
-logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format=FORMAT)
 # proxy config
 PROXY_PORT = int(os.environ.get('PROXY_PORT', default=80))
 METRICS_PORT = int(os.environ.get('METRICS_PORT', default=9090))
 PROXY_NAME = os.environ.get('PROXY_NAME', default='proxy')
-PROXY_TAG = os.environ.get('PROXY_TAG', default='smarttuning') # this should be the same name as in prometheus config
+PROXY_TAG = os.environ.get('PROXY_TAG', default='smarttuning')  # this should be the same name as in prometheus config
 PROXY_IMAGE = os.environ.get('PROXY_IMAGE', default='smarttuning/proxy')
 PROXY_CONFIG_MAP = os.environ.get('PROXY_CONFIG_MAP', default='smarttuning-proxy-config')
 
@@ -73,7 +73,7 @@ GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
-OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='memory'),'<string>', 'eval')
+OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='memory'), '<string>', 'eval')
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='1.0'))
 WAITING_TIME = int(os.environ.get('WAITING_TIME', default='2'))
@@ -88,7 +88,7 @@ NAMESPACE = os.environ.get('NAMESPACE', 'default')
 
 # deprecated -- to remove
 NAMESPACE_PROD = os.environ.get('NAMESPACE_PROD', 'default')
-SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH',default='')
+SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH', default='')
 # CONFIG_PATH = os.environ.get('CONFIG_PATH', default='/etc')
 # REGISTER_SERVER_PORT = int(os.environ.get('REGISTER_SERVER_PORT', default='5000'))
 # REGISTER_SERVER_ADDR = os.environ.get('REGISTER_SERVER_ADDR', default='0.0.0.0')
@@ -98,11 +98,13 @@ print_config(PRINT_CONFIG)
 _executor = None
 _client = None
 
+
 def executor(max_workers=None):
     global _executor
     if not _executor:
         _executor = ThreadPoolExecutor(max_workers=max_workers)
     return _executor
+
 
 def mongo():
     global _client
@@ -110,7 +112,18 @@ def mongo():
         _client = MongoClient(MONGO_ADDR, MONGO_PORT)
     return _client
 
+def ping(address:str, port:int) -> bool:
+    import socket
+    a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    location = (address, port)
+
+    result_of_check = a_socket.connect_ex(location)
+    a_socket.close()
+    return result_of_check == 0
+
 import ctypes
+
+
 def terminate_thread(thread):
     """Terminates a python thread from another thread.
 
@@ -129,6 +142,7 @@ def terminate_thread(thread):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, None)
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
+
 def shutdown():
     mongo().close()
     executor().shutdown(wait=False)
@@ -137,5 +151,3 @@ def shutdown():
             terminate_thread(t)
         except SystemError:
             logging.exception('error while shutdown thread pool')
-
-

@@ -97,6 +97,7 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 		resp.SetStatusCode(fasthttp.StatusBadGateway)
 		ctx.Logger().Printf("error when proxying the request: %s", err)
 	}
+
 	responseSize := resp.Header.ContentLength()
 	postprocessResponse(resp)
 
@@ -113,6 +114,12 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 
 	go func(promChan chan PromMetric) {
 		metric := <-promChan
+
+		// TODO: potential bug
+		if metric.responseSize < 0 {
+			metric.responseSize = 0
+		}
+
 		code := strconv.Itoa(metric.statusCode)
 		httpRequestsTotal.With(prometheus.Labels{
 			"node":      nodeName,
@@ -173,7 +180,6 @@ func prepareRequest(req *fasthttp.Request) {
 func postprocessResponse(resp *fasthttp.Response) {
 	// do not proxy "Connection" header
 	//resp.Header.Del("Connection")
-	resp.Header.Add("Server", "X-SMART-TUNING-PROXY")
 	resp.Header.Add("Pod", podName)
 
 	// strip other unneeded headers

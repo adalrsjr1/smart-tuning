@@ -1,17 +1,17 @@
-import heapq
+import logging
 import time
-from concurrent.futures import Future
+
+import numpy as np
 
 import config
-import logging
-import numpy as np
-from seqkmeans import Container, KmeansContext, Metric, Cluster
+import sampler
+import kubernetes
+from concurrent.futures import Future
 from bayesian import BayesianDTO
 from controllers import injector, searchspace
-
 from controllers.k8seventloop import EventLoop
 from controllers.searchspace import SearchSpaceContext
-import sampler
+from seqkmeans import Container, KmeansContext, Metric, Cluster
 
 logger = logging.getLogger(config.APP_LOGGER)
 logger.setLevel(logging.DEBUG)
@@ -30,7 +30,10 @@ def warmup():
 
     return time.time() - start
 
-microservices:dict = {}
+
+microservices: dict = {}
+
+
 def microservices_listener():
     logger.info('starting microservices listener')
     global microservices
@@ -46,6 +49,7 @@ def microservices_listener():
 
         time.sleep(1)
 
+
 def initialize_samplers(samplers, production, training):
     if not production in samplers:
         samplers[production] = sampler.PrometheusSampler(production, config.WAITING_TIME * config.SAMPLE_SIZE)
@@ -53,11 +57,13 @@ def initialize_samplers(samplers, production, training):
     if not training in samplers:
         samplers[production] = sampler.PrometheusSampler(training, config.WAITING_TIME * config.SAMPLE_SIZE)
 
+
 def microservice_loop(microservice):
     waiting = np.random.randint(1, 10)
     while True:
         print(microservice, waiting)
         time.sleep(waiting)
+
 
 def init():
     event_loop = EventLoop(config.executor())
@@ -65,10 +71,14 @@ def init():
     searchspace.init(event_loop)
     injector.init(event_loop)
 
+
 def get_microservices():
     return injector.duplicated_dep
 
+
 contexts = {}
+
+
 def create_contexts(microservices):
     logger.info(f'creating contexts for {microservices} in {contexts}')
     for production, training in microservices.items():
@@ -76,16 +86,21 @@ def create_contexts(microservices):
             contexts[production] = config.executor().submit(create_context, production, training)
 
     # TODO: need further improvements
-    # to_remove = []
-    # future:Future
-    # for microservice, future in contexts.items():
-    #     logger.info(f'gc: marking to remove {microservice} ctx')
-    #     if future.done():
-    #         to_remove.append(microservice)
-    #
-    # for microservice in to_remove:
-    #     logger.info(f'gc contexts: wiping {microservice} ctx')
-    #     del contexts[microservice]
+    to_remove = []
+    for microservice, future in contexts.items():
+        if future.done():
+            logger.info(f'gc: marking to remove {microservice} ctx')
+            to_remove.append(microservice)
+
+    for microservice in to_remove:
+        logger.info(f'gc contexts: wiping {microservice} ctx')
+        del contexts[microservice]
+
+    if 0 == len(microservices) < len(contexts):
+        future:Future
+        for future in contexts.values():
+            future.cancel()
+
 
 def create_context(production_microservice, training_microservice):
     logger.info(f'creating context for ({production_microservice},{training_microservice})')
@@ -99,7 +114,7 @@ def create_context(production_microservice, training_microservice):
     last_class = None
     while production_name and training_name:
         try:
-            search_space_ctx:SearchSpaceContext = sample_config(production_name)
+            search_space_ctx: SearchSpaceContext = sample_config(production_name)
             if not search_space_ctx:
                 logger.info(f'no searchspace configuration available for microservice {production_name}')
                 time.sleep(1)
@@ -112,12 +127,14 @@ def create_context(production_microservice, training_microservice):
             training_metric = sampler_training.metric()
             training_workload = sampler_training.workload()
 
-            production_class, production_hits = classify_workload(production_metric, production_workload.result(config.SAMPLING_METRICS_TIMEOUT))
-            training_class, training_hits = classify_workload(training_metric, training_workload.result(config.SAMPLING_METRICS_TIMEOUT))
+            production_class, production_hits = classify_workload(production_metric, production_workload.result(
+                config.SAMPLING_METRICS_TIMEOUT))
+            training_class, training_hits = classify_workload(training_metric,
+                                                              training_workload.result(config.SAMPLING_METRICS_TIMEOUT))
 
             loss = update_loss(training_class, training_metric, search_space_ctx)
 
-            time.sleep(2) # to avoid race condition when iterating over Trials
+            time.sleep(2)  # to avoid race condition when iterating over Trials
             best_config, best_loss = best_loss_so_far(search_space_ctx)
             if loss <= best_loss * (1 - config.METRIC_THRESHOLD):
                 if last_config != best_config or last_class != production_class:
@@ -129,8 +146,10 @@ def create_context(production_microservice, training_microservice):
                 config=config_to_apply,
                 production_metric=production_metric.serialize(),
                 training_metric=training_metric.serialize(),
-                production_workload=sampler.series_to_dict(production_workload.result(config.SAMPLING_METRICS_TIMEOUT)), # extract to dict
-                training_workload=sampler.series_to_dict(training_workload.result(config.SAMPLING_METRICS_TIMEOUT)), # extract to dict
+                production_workload=sampler.series_to_dict(production_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
+                # extract to dict
+                training_workload=sampler.series_to_dict(training_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
+                # extract to dict
                 best_loss=best_loss,
                 best_config=best_config,
                 update_production=best_config
@@ -139,16 +158,19 @@ def create_context(production_microservice, training_microservice):
         except:
             logger.exception(f'error when handling microservice({production_microservice},{training_microservice})')
 
+
 def sample_config(microservice) -> SearchSpaceContext:
     return searchspace.search_spaces.get(microservice, None)
 
-def update_training_config(name, new_config_ctx:SearchSpaceContext):
+
+def update_training_config(name, new_config_ctx: SearchSpaceContext):
     config_to_apply = new_config_ctx.get_from_engine()
     logger.info(f'updating training microservice {name} with config {config_to_apply}')
 
     manifests = new_config_ctx.manifests
     do_patch(manifests, config_to_apply)
     return config_to_apply
+
 
 def do_patch(manifests, configuration, production=False):
     for key, value in configuration.items():
@@ -157,35 +179,50 @@ def do_patch(manifests, configuration, production=False):
                 logger.debug(f'patching new config at {manifest.name}')
                 manifest.patch(value, production=production)
 
+
 classificationCtx = KmeansContext(config.K)
+
+
 def classify_workload(metric, workload) -> (Cluster, int):
     label = str(time.time_ns())
     logger.info(f'classifying workload {label}')
     container = Container(label=label, content=workload, metric=metric)
     return classificationCtx.cluster(container)
 
-def update_loss(classification:Cluster, metric_value:Metric, search_space_ctx:SearchSpaceContext):
+
+def update_loss(classification: Cluster, metric_value: Metric, search_space_ctx: SearchSpaceContext):
     logger.info(f'updating loss at BayesianEngine: {search_space_ctx.engine.id()}')
     dto = BayesianDTO(metric=metric_value, classification=classification.id)
     search_space_ctx.put_into_engine(dto)
     return metric_value.objective()
 
-def best_loss_so_far(search_space_ctx:SearchSpaceContext):
+
+def best_loss_so_far(search_space_ctx: SearchSpaceContext):
     logger.info(f'getting best loss at BayesianEngine: {search_space_ctx.engine.id()}')
     return search_space_ctx.get_best_so_far()
 
-def update_production(name, config, search_space_ctx:SearchSpaceContext):
+
+def update_production(name, config, search_space_ctx: SearchSpaceContext):
     logger.info(f'updating production microservice {name} with config {config}')
     manifests = search_space_ctx.manifests
     do_patch(manifests, config, production=True)
 
+
 def save(**kwargs):
     logger.info(f'logging data to mongo')
+    config.mongo().admin
+    if not config.ping(config.MONGO_ADDR, config.MONGO_PORT):
+        logger.warning(f'cannot save logging -- mongo unable at {config.MONGO_ADDR}:{config.MONGO_PORT}')
+        return None
     db = config.mongo()[config.MONGO_DB]
     collection = db.logging
 
     return collection.insert_one(kwargs)
 
+##
+# all services ports should be named
+# all deployments and services should be annotated with 'injection.smarttuning.ibm.com'
+# kubectl apply -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
 def main():
     init()
     while True:
@@ -197,13 +234,10 @@ def main():
             break
 
 
-
-
 if __name__ == '__main__':
-    main()
-    # try:
-    #     main()
-    # except Exception:
-    #     logger.exception('main loop error')
-    # finally:
-    #     config.shutdown()
+    try:
+        main()
+    except Exception:
+        logger.exception('main loop error')
+    finally:
+        config.shutdown()
