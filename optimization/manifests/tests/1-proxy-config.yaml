@@ -22,6 +22,7 @@ rules:
   - apiGroups: ["*"]
     resources:
       - configmaps
+      - services
       - deployments
       - searchspaces
     verbs: ["get","list","watch","create","update","patch","delete"]

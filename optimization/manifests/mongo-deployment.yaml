@@ -42,7 +42,6 @@ spec:
       containers:
         - name: mongo-admin-workload
           image: mongo-express
-          imagePullPolicy: Never
           ports:
             - containerPort: 8081
           envFrom:
@@ -59,11 +58,7 @@ spec:
                   - |
                     FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
                     mkdir /home/$FOLDER_NAME
-                    mongoexport -d smarttuning -c tuning_collection --out /home/$FOLDER_NAME/mongo_tuning.json
-                    mongoexport -d smarttuning -c configs_applied_collection --out /home/$FOLDER_NAME/mongo_configs.json
-                    mongoexport -d smarttuning -c metric_collection --out /home/$FOLDER_NAME/mongo_metrics.json
-                    mongoexport -d smarttuning -c workloads_collection --out /home/$FOLDER_NAME/mongo_workloads.json
-          imagePullPolicy: Never
+                    mongoexport -d smarttuning -c logging --out /home/$FOLDER_NAME/mongo_tuning.json
           ports:
             - containerPort: 27017
           envFrom:

@@ -168,6 +168,7 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 
 func prepareRequest(req *fasthttp.Request) {
 	// do not proxy "Connection" header.
+
 	req.SetHost(proxyClient.Addr)
 	req.Header.Set("X-Forwarded-Host", podIP)
 	//req.Header.Del("Connection")

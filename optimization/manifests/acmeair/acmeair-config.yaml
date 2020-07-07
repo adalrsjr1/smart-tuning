@@ -223,29 +223,29 @@ metadata:
   name: "acmeair-searchspace"
 spec:
   manifests:
-#    - name: "acmeair-tuning"
-#      nameProd: "acmeair-tuningprod"
-#      namespace: "default"
-#      type:
-#        deployment: true
-#        containers:
-#          - name: "proxy"
-#            ratio: 0.25
-#          - name: "service"
-#            ratio: 0.75
-#      params:
-#        - name: "cpu"
-#          number:
-#            lower: 1
-#            upper: 15
-#            step: 1
-#            continuous: true
-#        - name: "memory"
-#          number:
-#            lower: 256
-#            upper: 1024
-#            step: 16
-#            continuous: false
+    - name: "acmeair-tuning"
+      nameProd: "acmeair-tuningprod"
+      namespace: "default"
+      type:
+        deployment: true
+        containers:
+          - name: "proxy"
+            ratio: 0.25
+          - name: "service"
+            ratio: 0.75
+      params:
+        - name: "cpu"
+          number:
+            lower: 1
+            upper: 15
+            step: 1
+            continuous: true
+        - name: "memory"
+          number:
+            lower: 256
+            upper: 1024
+            step: 16
+            continuous: false
     - name: "jvm-config-train"
       nameProd: "jvm-config-prod"
       namespace: "default"
@@ -297,29 +297,3 @@ spec:
 #            upper: 300
 #            step: 10
 #            continuous: false
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: tuning
-rules:
-  - apiGroups: ["*"]
-    resources:
-      - configmaps
-      - deployments
-      - searchspaces
-    verbs: ["get","list","watch","create","update","patch","delete"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: tuning
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: tuning
-subjects:
-  - kind: ServiceAccount
-    name: default
-    namespace: default
----

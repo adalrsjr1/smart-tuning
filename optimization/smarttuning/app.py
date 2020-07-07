@@ -81,7 +81,9 @@ contexts = {}
 
 def create_contexts(microservices):
     logger.info(f'creating contexts for {microservices} in {contexts}')
+    production:str
     for production, training in microservices.items():
+
         if not production in contexts:
             contexts[production] = config.executor().submit(create_context, production, training)
 
@@ -107,8 +109,11 @@ def create_context(production_microservice, training_microservice):
     production_name = production_microservice
     training_name = training_microservice
 
-    sampler_production = sampler.PrometheusSampler(production_name, config.WAITING_TIME * config.SAMPLE_SIZE)
-    sampler_training = sampler.PrometheusSampler(training_name, config.WAITING_TIME * config.SAMPLE_SIZE)
+    production_sanitized = production_microservice.replace('.', '\\.')
+    training_sanitized = training_microservice.replace('.', '\\.')
+
+    sampler_production = sampler.PrometheusSampler(production_sanitized, config.WAITING_TIME * config.SAMPLE_SIZE)
+    sampler_training = sampler.PrometheusSampler(training_sanitized, config.WAITING_TIME * config.SAMPLE_SIZE)
 
     last_config = None
     last_class = None
@@ -143,6 +148,7 @@ def create_context(production_microservice, training_microservice):
                     last_class = production_class
 
             save(
+                timestamp=time.time_ns(),
                 config=config_to_apply,
                 production_metric=production_metric.serialize(),
                 training_metric=training_metric.serialize(),

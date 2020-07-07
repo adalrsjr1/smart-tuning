@@ -43,20 +43,23 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
         return event['object'].metadata.name
 
     loop_name = context[1] if context else ''
-    logger.info(f'initializing new watching loop {loop_name}')
+    logger.info(f'initializing new watcher loop {loop_name}')
 
-    for event in w.stream(list_to_watch.func, **list_to_watch.kwargs):
-        logger.info("[%s] Event: %s %s %s" % (loop_name, event['type'], kind(event), name(event)))
-        try:
-            callback(event)
-        except Exception:
-            logger.exception('error at event loop')
-            if context:
-                manager = context[0]
-                name = context[1]
-                manager.unregister(name)
-            else:
-                w.stop()
+    try:
+        for event in w.stream(list_to_watch.func, **list_to_watch.kwargs):
+            logger.info("[%s] Event: %s %s %s" % (loop_name, event['type'], kind(event), name(event)))
+            try:
+                callback(event)
+            except Exception:
+                logger.exception('error at event loop')
+                if context:
+                    manager = context[0]
+                    name = context[1]
+                    manager.unregister(name)
+                else:
+                    w.stop()
+    except:
+        logger.exception('error outside loop')
 
 
 class EventLoop:

@@ -1,3 +1,30 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tuning
+rules:
+  - apiGroups: ["*"]
+    resources:
+      - configmaps
+      - services
+      - deployments
+      - searchspaces
+    verbs: ["get","list","watch","create","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tuning
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tuning
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -16,7 +43,7 @@ data:
   # classification config
   K: '1'
   DISTANCE_METHOD: "hellinger"
-  URL_SIMILARITY_THRESHOLD: "0.8" # not being used
+  URL_SIMILARITY_THRESHOLD: "0.1"
   # optimization config
   SEARCH_SPACE_NAME: 'acmeair-searchspace'
   BAYESIAN: 'True'
@@ -69,8 +96,8 @@ spec:
                       - docker-desktop
       containers:
         - name: smarttuning
-          image: smarttuning
-          imagePullPolicy: Never
+          image: smarttuning/smarttuning:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
           envFrom:

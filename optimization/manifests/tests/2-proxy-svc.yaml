@@ -12,8 +12,4 @@ spec:
       targetPort: 8080
       nodePort: 30080
       name: http
-#    - port: 9090
-#      targetPort: 9090
-#      nodePort: 30090
-#      name: smarttuning
   type: NodePort

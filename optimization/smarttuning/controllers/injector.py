@@ -24,6 +24,8 @@ duplicated_cm = {}
 duplicated_dep = {}
 duplicated_svc = {}
 
+def training_name() -> str:
+    return f'{config.PROXY_TAG}'
 
 def update_service(event):
     if evaluate_event(event):
@@ -134,13 +136,13 @@ def duplicate_service_for_training(service: V1Service):
     if service is None:
         return None
 
-    if name(service).endswith(f'-{config.PROXY_TAG}'):
+    if name(service).endswith(training_name()):
         return None
 
     logger.info(f'dupplicating {kind(service)}: {name(service)}')
 
     old_name = name(service)
-    service.metadata.name += f'-{config.PROXY_TAG}'
+    service.metadata.name += training_name()
     service.metadata.labels.update({config.PROXY_TAG: 'true'})
     service.spec.selector.update({config.PROXY_TAG: 'true'})
 
@@ -317,19 +319,19 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int):
 
 
 def duplicate_deployment_for_training(deployment: V1Deployment):
-    if deployment.metadata.name.endswith(f'-{config.PROXY_TAG}'):
+    if deployment.metadata.name.endswith(training_name()):
         return None
 
     old_name = deployment.metadata.name
     deployment.spec.replicas = 1
-    deployment.metadata.name += f'-{config.PROXY_TAG}'
+    deployment.metadata.name += training_name()
     deployment.metadata.labels.update({config.PROXY_TAG: 'true'})
     deployment.spec.template.metadata.labels.update({config.PROXY_TAG: 'true'})
     deployment.spec.selector.match_labels.update({config.PROXY_TAG: 'true'})
 
     duplicating_deployment_configs(extract_configs_names(deployment))
 
-    config_maps = append_suffix_to_configs_names(deployment, suffix=config.PROXY_TAG)
+    config_maps = append_suffix_to_configs_names(deployment, suffix=training_name())
     deployment.metadata.annotations.update(
         {"configmap.reloader.stakater.com/reload": ','.join(config_maps.union({config.PROXY_CONFIG_MAP}))})
 
@@ -342,7 +344,6 @@ def duplicate_deployment_for_training(deployment: V1Deployment):
     except ApiException as e:
         if 409 == e.status:
             logger.warning(f'deployment {deployment.metadata.name} is already deployed')
-
 
 def extract_configs_names(deployment: V1Deployment) -> set:
     spec: V1PodSpec = deployment.spec.template.spec
@@ -380,7 +381,7 @@ def extract_configs_names(deployment: V1Deployment) -> set:
     return config_maps_to_return
 
 
-def append_suffix_to_configs_names(deployment: V1Deployment, suffix=config.PROXY_TAG):
+def append_suffix_to_configs_names(deployment: V1Deployment, suffix=training_name()):
     spec: V1PodSpec = deployment.spec.template.spec
     containers = spec.containers
 
@@ -399,21 +400,21 @@ def append_suffix_to_configs_names(deployment: V1Deployment, suffix=config.PROXY
                 if value_from:
                     config_map_key_ref = value_from.config_map_key_ref
                     if config_map_key_ref:
-                        config_map_key_ref.name += f'-{suffix}'
+                        config_map_key_ref.name += suffix
                         config_maps_to_return.add(config_map_key_ref.name)
 
         if container.env_from:
             for var in container.env_from:
                 config_map_ref = var.config_map_ref
                 if config_map_ref:
-                    config_map_ref.name += f'-{suffix}'
+                    config_map_ref.name += suffix
                     config_maps_to_return.add(config_map_ref.name)
 
     if spec.volumes:
         for volume in spec.volumes:
             config_map = volume.config_map
             if config_map:
-                config_map.name += f'-{suffix}'
+                config_map.name += suffix
                 config_maps_to_return.add(config_map.name)
 
     return config_maps_to_return
@@ -422,9 +423,9 @@ def append_suffix_to_configs_names(deployment: V1Deployment, suffix=config.PROXY
 def duplicating_deployment_configs(config_maps):
     config_map: V1ConfigMap
     for config_map in client.CoreV1Api().list_namespaced_config_map(namespace=config.NAMESPACE).items:
-        if config_map.metadata.name in config_maps and not config_map.metadata.name.endswith(f'-{config.PROXY_TAG}'):
+        if config_map.metadata.name in config_maps and not config_map.metadata.name.endswith(training_name()):
             old_name = config_map.metadata.name
-            config_map.metadata.name += f'-{config.PROXY_TAG}'
+            config_map.metadata.name += training_name()
             try:
                 client.CoreV1Api().create_namespaced_config_map(namespace=config.NAMESPACE,
                                                                 body=duplicate_config_map(config_map))
@@ -493,33 +494,28 @@ def delete_object(event: V1Event, duplicates: dict, listing_fn):
 
 def init(loop):
     # initializing
-    loop.register('services-injector', ListToWatch(func=client.CoreV1Api().list_namespaced_service,
-                                                   namespace=config.NAMESPACE), update_service)
+    loop.register('services-injector', ListToWatch(func=client.CoreV1Api().list_namespaced_service, namespace=config.NAMESPACE), update_service)
 
-    loop.register('deployment-injector', ListToWatch(func=client.AppsV1Api().list_namespaced_deployment,
-                                                     namespace=config.NAMESPACE), update_deployment)
+    loop.register('deployment-injector', ListToWatch(func=client.AppsV1Api().list_namespaced_deployment, namespace=config.NAMESPACE), update_deployment)
 
     # garbage collection
-    loop.register('services-gc', ListToWatch(func=client.CoreV1Api().list_namespaced_service,
-                                             namespace=config.NAMESPACE), delete_services)
+    loop.register('services-gc', ListToWatch(func=client.CoreV1Api().list_namespaced_service, namespace=config.NAMESPACE), delete_services)
 
-    loop.register('configmaps-gc', ListToWatch(func=client.CoreV1Api().list_namespaced_config_map,
-                                               namespace=config.NAMESPACE), delete_configs_maps)
+    loop.register('configmaps-gc', ListToWatch(func=client.CoreV1Api().list_namespaced_config_map, namespace=config.NAMESPACE), delete_configs_maps)
 
-    loop.register('deployments-gc', ListToWatch(func=client.AppsV1Api().list_namespaced_deployment,
-                                                namespace=config.NAMESPACE), delete_deployments)
+    loop.register('deployments-gc', ListToWatch(func=client.AppsV1Api().list_namespaced_deployment, namespace=config.NAMESPACE), delete_deployments)
 
     logger.debug('wait 1s as safeguard to enusre all loops are going to be registered properly')
-    time.sleep(1)
+    time.sleep(10)
 
-
-if __name__ == '__main__':
-    try:
-        loop = EventLoop(config.executor())
-        init(loop)
-    except Exception:
-        logger.exception('error injector loop')
-    # finally:
-    #     loop.shutdown()
-    #     config.shutdown()
-
+#
+# if __name__ == '__main__':
+#     try:
+#         loop = EventLoop(config.executor())
+#         init(loop)
+#     except Exception:
+#         logger.exception('error injector loop')
+#     # finally:
+#     #     loop.shutdown()
+#     #     config.shutdown()
+#

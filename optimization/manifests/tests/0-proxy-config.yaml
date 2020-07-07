@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smarttuning-proxy-config
+data:
+  MAX_CONNECTIONS: "10000"
+  READ_BUFFER_SIZE: "4096"
+  WRITE_BUFFER_SIZE: "4096"
+  READ_TIMEOUT: "30"
+  WRITE_TIMEOUT: "30"
+  MAX_IDLE_CONNECTION_DURATION: "60"
+  MAX_CONNECTION_TIMEOUT: "30"
+  RESOURCE_USAGE: "FALSE"
+  METRIC_ID: "smarttuning"
+  MEASURING_TRAFFIC: "true"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tuning
+rules:
+  - apiGroups: ["*"]
+    resources:
+      - configmaps
+      - services
+      - deployments
+      - searchspaces
+    verbs: ["get","list","watch","create","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: smarttuning
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tuning
+subjects:
+  - kind: ServiceAccount
+    name: smarttuning
+    namespace: default
+---
