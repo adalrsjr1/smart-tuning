@@ -65,7 +65,7 @@ class TestSearchSpace(unittest.TestCase):
             cpu=1,
             memory=1,
             throughput=1,
-            latency=1,
+            process_time=1,
             errors=1,
             to_eval='cpu'
         )
@@ -108,7 +108,7 @@ class TestSearchSpace(unittest.TestCase):
             cpu=1,
             memory=1,
             throughput=1,
-            latency=1,
+            process_time=1,
             errors=1,
             to_eval='cpu'
         )

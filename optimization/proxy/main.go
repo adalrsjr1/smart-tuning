@@ -60,9 +60,9 @@ var (
 		Help: "Count of all HTTP requests",
 	}, []string{"node", "pod", "namespace", "code", "path", "src", "dst"})
 
-	httpLatencyHist = promauto.NewSummaryVec(prometheus.SummaryOpts{
-		Name:       metricID + "_http_latency_seconds",
-		Help:       "Server time latency",
+	httpProcessTimeHist = promauto.NewSummaryVec(prometheus.SummaryOpts{
+		Name:       metricID + "_http_processtime_seconds",
+		Help:       "process time",
 		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001, 1.00: 0.00},
 	}, []string{"node", "pod", "namespace", "code", "src", "dst"})
 
@@ -78,6 +78,7 @@ type PromMetric struct {
 	path         []byte
 	statusCode   int
 	startTime    time.Time
+	endTime		 time.Time
 	requestsSize int
 	responseSize int
 	client       net.IP
@@ -100,12 +101,14 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 
 	responseSize := resp.Header.ContentLength()
 	postprocessResponse(resp)
+	tEnd := time.Now()
 
 	// fix inconsistent URL with channels
 	promChan <- PromMetric{
 		path:         req.RequestURI(),
 		statusCode:   resp.StatusCode(),
 		startTime:    tStart,
+		endTime:      tEnd,
 		requestsSize: requestSize,
 		responseSize: responseSize,
 		client:       client,
@@ -131,14 +134,14 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 			"dst":       metric.podIP,
 		}).Inc()
 
-		httpLatencyHist.With(prometheus.Labels{
+		httpProcessTimeHist.With(prometheus.Labels{
 			"node":      nodeName,
 			"pod":       podName,
 			"namespace": podNamespace,
 			"code":      code,
 			"src":       metric.client.String(),
 			"dst":       metric.podIP,
-		}).Observe(time.Since(metric.startTime).Seconds())
+		}).Observe(metric.endTime.Sub(metric.startTime).Seconds())
 
 		if measuringTraffic {
 			// src -> dst

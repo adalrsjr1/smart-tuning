@@ -51,8 +51,8 @@ class Metric:
                  memory: Number = None,
                  f_throughput: Future = None,
                  throughput: Number = None,
-                 f_latency: Future = None,
-                 latency: Number = None,
+                 f_process_time: Future = None,
+                 process_time: Number = None,
                  f_errors: Future = None,
                  errors: Number = None,
                  to_eval=config.OBJECTIVE
@@ -63,8 +63,8 @@ class Metric:
         self._memory = memory
         self._f_throughput = f_throughput
         self._throughput = throughput
-        self._f_latency = f_latency
-        self._latency = latency
+        self._f_process_time = f_process_time
+        self._process_time = process_time
         self._f_errors = f_errors
         self._errors = errors
         self.to_eval = to_eval
@@ -74,7 +74,7 @@ class Metric:
     @staticmethod
     def zero():
         if not Metric._instance:
-            Metric._instance = Metric(cpu=0, memory=0, throughput=0, latency=0, errors=0, to_eval='0')
+            Metric._instance = Metric(cpu=0, memory=0, throughput=0, process_time=0, errors=0, to_eval='0')
         return Metric._instance
 
     def cpu(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
@@ -92,10 +92,10 @@ class Metric:
             self._throughput = __extract_value_from_future__(self._f_throughput, timeout)
         return self._throughput
 
-    def latency(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
-        if self._latency is None:
-            self._latency = __extract_value_from_future__(self._f_latency, timeout)
-        return self._latency
+    def process_time(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+        if self._process_time is None:
+            self._process_time = __extract_value_from_future__(self._f_process_time, timeout)
+        return self._process_time
 
     def errors(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
         if self._errors is None:
@@ -108,7 +108,7 @@ class Metric:
             return Metric(cpu=op(self.cpu(), other.cpu()),
                           memory=op(self.memory(), other.memory()),
                           throughput=op(self.throughput(), other.throughput()),
-                          latency=op(self.latency(), other.latency()),
+                          process_time=op(self.process_time(), other.process_time()),
                           errors=op(self.errors(), other.errors()))
 
         if isinstance(other, Number):
@@ -116,7 +116,7 @@ class Metric:
             return Metric(cpu=op(self.cpu(), other),
                           memory=op(self.memory(), other),
                           throughput=op(self.throughput(), other),
-                          latency=op(self.latency(), other),
+                          process_time=op(self.process_time(), other),
                           errors=op(self.errors(), other))
 
         raise TypeError(f'other is {type(other)} and it should be a scalar or a Metric type')
@@ -131,7 +131,7 @@ class Metric:
             'cpu': self.cpu(),
             'memory': self.memory(),
             'throughput': self.throughput(),
-            'latency': self.latency(),
+            'process_time': self.process_time(),
             'errors': self.errors()
         }
 
@@ -139,12 +139,12 @@ class Metric:
         return self.memory() == other.memory() and \
                self.cpu() == other.cpu() and \
                self.throughput() == other.throughput() and \
-               self.latency() == other.latency() and \
+               self.process_time() == other.process_time() and \
                self.errors() == other.errors() and \
                self.objective() == other.objective()
 
     def __hash__(self):
-        return hash((self.memory(), self.cpu(), self.throughput(), self.latency(), self.errors(), self.objective()))
+        return hash((self.memory(), self.cpu(), self.throughput(), self.process_time(), self.errors(), self.objective()))
 
     def __add__(self, other):
         return self.__operation__(other, lambda a, b: a + b)
@@ -178,7 +178,7 @@ class Metric:
 
     def __repr__(self):
         return f'{{"cpu":{self.cpu()}, "memory":{self.memory()}, "throughput":{self.throughput()}, ' \
-               f'"latency":{self.latency()}, "errors":{self.errors()}, "objective":{self.objective()}}}'
+               f'"process_time":{self.process_time()}, "errors":{self.errors()}, "objective":{self.objective()}}}'
 
     def objective(self) -> float:
         try:
@@ -208,7 +208,7 @@ class PrometheusSampler:
             f_cpu=self.cpu(quantile),
             f_memory=self.memory(quantile),
             f_throughput=self.throughput(quantile),
-            f_latency=self.latency(quantile),
+            f_process_time=self.process_time(quantile),
             f_errors=self.error(quantile)
         )
 
@@ -224,11 +224,11 @@ class PrometheusSampler:
                 f'quantile({quantile}, rate(smarttuning_http_requests_total{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
-    def latency(self, quantile=1.0) -> Future:
-        """ return a concurrent.futures.Future<pandas.Series> with the latency_sum/latency_count rate of an specific pod"""
-        logger.debug(f'sampling latency at {self.podname}.*')
-        query = f'quantile({quantile}, rate(smarttuning_http_latency_seconds_sum{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s])) / ' \
-                f'quantile({quantile}, rate(smarttuning_http_latency_seconds_count{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s]))'
+    def process_time(self, quantile=1.0) -> Future:
+        """ return a concurrent.futures.Future<pandas.Series> with the processtime_sum/processtime_count rate of an specific pod"""
+        logger.debug(f'sampling process time at {self.podname}.*')
+        query = f'quantile({quantile}, rate(smarttuning_http_processtime_seconds_sum{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s])) / ' \
+                f'quantile({quantile}, rate(smarttuning_http_processtime_seconds_count{{pod=~"{self.podname}.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 

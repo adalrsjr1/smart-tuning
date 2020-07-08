@@ -27,7 +27,7 @@ class TestPrometheusSampling(unittest.TestCase):
 
     def test_sample_latency(self):
         prom = self.client()
-        future = prom.latency()
+        future = prom.process_time()
         result = sampler.__extract_value_from_future__(future, 1000)
         self.assertGreaterEqual(result, 0)
 
@@ -67,31 +67,31 @@ class TestPrometheusSampling(unittest.TestCase):
         metric = prom.metric()
         self.assertGreaterEqual(metric.cpu(), 0)
         self.assertGreaterEqual(metric.memory(), 0)
-        self.assertGreaterEqual(metric.latency(), 0)
+        self.assertGreaterEqual(metric.process_time(), 0)
         self.assertGreaterEqual(metric.throughput(), 0)
         self.assertGreaterEqual(metric.errors(), 0)
 
         print(metric)
 
     def test_metric_operation(self):
-        m1 = Metric(cpu=1, memory=1, throughput=1, latency=1, errors=1)
-        m2 = Metric(cpu=3, memory=3, throughput=3, latency=3, errors=3)
+        m1 = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1)
+        m2 = Metric(cpu=3, memory=3, throughput=3, process_time=3, errors=3)
 
         result = m1.__operation__(m2, lambda a, b: a + b)
         print(result)
-        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, latency=4, errors=4))
+        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, errors=4))
         result = m1 + m2
-        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, latency=4, errors=4))
+        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, errors=4))
 
     def test_metric_operation_scalar(self):
-        m1 = Metric(cpu=1, memory=1, throughput=1, latency=1, errors=1)
+        m1 = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1)
 
         result = m1 * 4
-        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, latency=4, errors=4))
+        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, errors=4))
 
     def test_metric_logic_op(self):
-        m1 = Metric(cpu=1, memory=1, throughput=1, latency=1, errors=1, to_eval='cpu+memory+throughput+latency+errors')
-        m2 = Metric(cpu=3, memory=3, throughput=3, latency=3, errors=3, to_eval='cpu+memory+throughput+latency+errors')
+        m1 = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1, to_eval='cpu+memory+throughput+latency+errors')
+        m2 = Metric(cpu=3, memory=3, throughput=3, process_time=3, errors=3, to_eval='cpu+memory+throughput+latency+errors')
 
         print(m1)
         print(m2)

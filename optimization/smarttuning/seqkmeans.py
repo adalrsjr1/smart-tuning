@@ -119,7 +119,7 @@ class Container:
 
         self.metric = metric
         if self.metric is None:
-            self.metric = Metric(cpu=0, memory=0, throughput=0, latency=0, errors=0)
+            self.metric = Metric(cpu=0, memory=0, throughput=0, process_time=0, errors=0)
 
         self.configuration = None
 
