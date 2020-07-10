@@ -4,7 +4,9 @@ import config
 import logging
 import pandas as pd
 import json
+import re
 from numbers import Number
+from collections import defaultdict
 import math
 from prometheus_pandas import query as handler
 
@@ -21,13 +23,12 @@ def series_to(series: pd.Series, container):
     rows = []
     key: str
     for key, value in series.items():
-        key = key.replace('=', '":', 1).replace('{', '{"').replace(',', ',"')
-        key = json.loads(key)
+        key = parser_to_dict(key)
         key.update({'value': value})
         rows.append(key)
     labels = series.keys()
 
-    table = {label: [] for label in labels}
+    table = defaultdict(list)
     for row in rows:
         for key, value in row.items():
             table[key].append(value)
@@ -35,6 +36,16 @@ def series_to(series: pd.Series, container):
     if container is dict:
         return table
     return container(table)
+
+def parser_to_dict(string:str) -> dict:
+    string = re.sub('[{}"]', '', string)
+    l_string = string.split(',')
+    new_dict = {}
+    for token in l_string:
+        splited = token.split('=', 1)
+
+        new_dict[splited[0]] = splited[1]
+    return new_dict
 
 def series_to_dataframe(series: pd.Series):
     return series_to(series, pd.DataFrame)
@@ -193,8 +204,11 @@ class Metric:
 
 class PrometheusSampler:
     def __init__(self, podname: str, interval: int, executor=config.executor(), addr=config.PROMETHEUS_ADDR,
-                 port=config.PROMETHEUS_PORT):
-        self.client = handler.Prometheus(f'http://{addr}:{port}')
+                 port=config.PROMETHEUS_PORT, api_url=''):
+        if not api_url:
+            api_url = f'http://{addr}:{port}'
+
+        self.client = handler.Prometheus(api_url)
         self.executor = executor
         self.podname = podname
         self.interval = int(interval)

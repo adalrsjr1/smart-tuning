@@ -2,12 +2,18 @@ import unittest
 from sampler import PrometheusSampler, Metric
 import pandas as pd
 import sampler
+import json
 
 class TestPrometheusSampling(unittest.TestCase):
 
     def client(self):
         return PrometheusSampler('acmeair-tuning-.*', interval=900, addr='localhost', port='30099')
 
+    def test_sample_parsing(self):
+        instr = '{dst="10.244.4.17",instance="10.244.4.17:9090",path="/customer/byid/uid45@email.com=300",pod="acmeair-customerservicesmarttuning-dd64b486-8qbmm",service="acmeair-customer-servicesmarttuning",src="10.244.2.9"}'
+        output = '{"dst":"10.244.4.17","instance":"10.244.4.17:9090","path":"/customer/byid/uid45@email.com=300","pod":"acmeair-customerservicesmarttuning-dd64b486-8qbmm","service":"acmeair-customer-servicesmarttuning","src":"10.244.2.9"}'
+
+        self.assertDictEqual(json.loads(output), sampler.parser_to_dict(instr))
 
     def test_prom_sample(self):
         prom = self.client()

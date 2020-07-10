@@ -1,4 +1,4 @@
-FROM golang:alpine
+FROM golang:alpine as build
 
 RUN mkdir /proxy
 WORKDIR /proxy
@@ -13,4 +13,9 @@ RUN go mod download
 COPY main.go main.go
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /go/bin/proxy
 
-ENTRYPOINT ["/go/bin/proxy"]
+
+FROM alpine:latest
+WORKDIR /proxy
+COPY --from=0 /go/bin/proxy .
+ENTRYPOINT ["/proxy/proxy"]
+#ENTRYPOINT ["/go/bin/proxy"]

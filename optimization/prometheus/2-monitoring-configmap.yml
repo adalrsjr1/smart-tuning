@@ -48,6 +48,11 @@ data:
           action: replace
 
       - job_name: 'kubernetes-pods'
+        basic_auth:
+          username: admin
+          password: password
+        tls_config:
+          insecure_skip_verify: true
         kubernetes_sd_configs:
         - role: pod
         relabel_configs:
@@ -118,6 +123,7 @@ data:
           action: replace
           target_label: kubernetes_name
 
+      # https://prometheus.io/docs/prometheus/latest/configuration/configuration/#service
       # https://blog.sebastian-daschner.com/entries/prometheus-kubernetes-discovery
       - job_name: 'smarttuning-services'
         metrics_path: /metrics

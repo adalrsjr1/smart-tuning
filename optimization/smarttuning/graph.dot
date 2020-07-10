@@ -1,0 +1,15 @@
+digraph  {
+"acmeair-nginx-servicesmarttuning";
+"acmeair-booking-servicesmarttuning";
+"acmeair-flight-servicesmarttuning";
+"acmeair-customer-servicesmarttuning";
+"acmeair-auth-servicesmarttuning";
+"acmeair-nginx-servicesmarttuning" -> "acmeair-booking-servicesmarttuning"  [key=0, label="[-1243.8350877192981]", weight="-1243.8350877192981"];
+"acmeair-nginx-servicesmarttuning" -> "acmeair-flight-servicesmarttuning"  [key=0, label="[-2406.6300475580433]", weight="-2406.6300475580433"];
+"acmeair-nginx-servicesmarttuning" -> "acmeair-auth-servicesmarttuning"  [key=0, label="[-342.822255516686]", weight="-342.822255516686"];
+"acmeair-nginx-servicesmarttuning" -> "acmeair-customer-servicesmarttuning"  [key=0, label="[-6.708795469457788]", weight="-6.708795469457788"];
+"acmeair-booking-servicesmarttuning" -> "acmeair-customer-servicesmarttuning"  [key=0, label="[-9.810560738809608]", weight="-9.810560738809608"];
+"acmeair-booking-servicesmarttuning" -> "acmeair-flight-servicesmarttuning"  [key=0, label="[-1615.064141937069]", weight="-1615.064141937069"];
+"acmeair-booking-servicesmarttuning" -> "acmeair-auth-servicesmarttuning"  [key=0, label="[-0.0]", weight="-0.0"];
+"acmeair-auth-servicesmarttuning" -> "acmeair-customer-servicesmarttuning"  [key=0, label="[-342.8748872803062]", weight="-342.8748872803062"];
+}

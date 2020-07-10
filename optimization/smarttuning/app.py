@@ -229,6 +229,7 @@ def save(**kwargs):
 # all services ports should be named
 # all deployments and services should be annotated with 'injection.smarttuning.ibm.com'
 # kubectl apply -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
+# kubectl delete -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
 def main():
     init()
     while True:

@@ -64,12 +64,12 @@ var (
 		Name:       metricID + "_http_processtime_seconds",
 		Help:       "process time",
 		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001, 1.00: 0.00},
-	}, []string{"node", "pod", "namespace", "code", "src", "dst"})
+	}, []string{"node", "pod", "namespace", "code", "path", "src", "dst"})
 
 	httpSize = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: metricID + "_http_size",
 		Help: "Traffic between nodes",
-	}, []string{"node", "pod", "namespace", "code", "src", "dst"})
+	}, []string{"direction", "node", "pod", "namespace", "code", "path", "src", "dst"})
 
 	promChan = make(chan PromMetric, maxConn)
 )
@@ -123,13 +123,15 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 			metric.responseSize = 0
 		}
 
+		strPath := string(metric.path)
+
 		code := strconv.Itoa(metric.statusCode)
 		httpRequestsTotal.With(prometheus.Labels{
 			"node":      nodeName,
 			"pod":       podName,
 			"namespace": podNamespace,
 			"code":      code,
-			"path":      string(metric.path), //+ p.sanitizeURLQuery(req.URL.RawQuery)
+			"path":      strPath, //+ p.sanitizeURLQuery(req.URL.RawQuery)
 			"src":       metric.client.String(),
 			"dst":       metric.podIP,
 		}).Inc()
@@ -138,6 +140,7 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 			"node":      nodeName,
 			"pod":       podName,
 			"namespace": podNamespace,
+			"path":      strPath,
 			"code":      code,
 			"src":       metric.client.String(),
 			"dst":       metric.podIP,
@@ -146,20 +149,24 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 		if measuringTraffic {
 			// src -> dst
 			httpSize.With(prometheus.Labels{
+				"direction": "forward",
 				"node":      nodeName,
 				"pod":       podName,
 				"namespace": podNamespace,
 				"code":      code,
+				"path":      strPath,
 				//"size":      strconv.Itoa(metric.requestsSize),
 				"src": metric.client.String(),
 				"dst": metric.podIP,
 			}).Add(float64(metric.requestsSize))
 			// dst -> src
 			httpSize.With(prometheus.Labels{
+				"direction": "backward",
 				"node":      nodeName,
 				"pod":       podName,
 				"namespace": podNamespace,
 				"code":      code,
+				"path":		 strPath,
 				//"size":      strconv.Itoa(metric.responseSize),
 				"src": metric.podIP,
 				"dst": metric.client.String(),
