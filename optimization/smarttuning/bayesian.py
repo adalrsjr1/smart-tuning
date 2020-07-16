@@ -144,7 +144,7 @@ class BayesianEngine:
 
     def best_so_far(self) -> (dict, float):
         """
-        Be careful!!!! not thread safe
+        Be careful!!!! it isn't thread safe
 
         :return (dict, float) -> (best configuration, best loss)
         """

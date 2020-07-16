@@ -1,5 +1,6 @@
 from __future__ import annotations
 from bayesian import BayesianEngine, BayesianDTO, BayesianChannel
+from controllers import k8seventloop
 from controllers.searchspacemodel import *
 
 from controllers.k8seventloop import ListToWatch

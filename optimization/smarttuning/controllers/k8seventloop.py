@@ -65,10 +65,7 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
 class EventLoop:
     def __init__(self, executor):
         # initializing kubernetes client
-        if 'KUBERNETES_SERVICE_HOST' in os.environ:
-            kubernetes.config.load_incluster_config()
-        else:
-            kubernetes.config.load_kube_config()
+        config.init_k8s(hostname=config.K8S_HOST)
         self.executor = executor
         self.loops = {}
 

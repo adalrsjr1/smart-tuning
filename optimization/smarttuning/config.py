@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+import kubernetes
 from concurrent.futures import ThreadPoolExecutor
 
 from pymongo import MongoClient
@@ -14,7 +15,21 @@ def print_config(toPrint=False):
                 print('\t', item)
         print('\n *** config loaded *** \n')
 
+def init_k8s(hostname='localhost'):
+    if 'KUBERNETES_SERVICE_HOST' in os.environ:
+        logging.info('loading K8S configuration')
+        kubernetes.config.load_incluster_config()
+    else:
+        if 'trxrhel7perf-1' == hostname:
+            logging.info('loading trxrhel7perf-1 configuration')
+            kubernetes.config.load_kube_config(config_file=K8S_CONF)
+        else:
+            logging.info('loading localhost configuration')
+            kubernetes.config.load_kube_config()
 
+K8S_HOST = 'trxrhel7perf-1'
+K8S_CONF = '/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config'
+LOCALHOST = 'trxrhel7perf-1.canlab.ibm.com'
 ## to disable loggers
 FORMAT = '%(asctime)-15s - %(name)-30s %(levelname)-7s - %(threadName)-30s: %(message)s'
 INJECTOR_LOGGER = 'injector.smarttuning.ibm'
@@ -50,12 +65,12 @@ PROXY_IMAGE = os.environ.get('PROXY_IMAGE', default='smarttuning/proxy')
 PROXY_CONFIG_MAP = os.environ.get('PROXY_CONFIG_MAP', default='smarttuning-proxy-config')
 
 # mongo config
-MONGO_ADDR = os.environ.get('MONGO_ADDR', default='127.0.0.1')
+MONGO_ADDR = os.environ.get('MONGO_ADDR', default=LOCALHOST)
 MONGO_PORT = int(os.environ.get('MONGO_PORT', default='30027'))
 MONGO_DB = os.environ.get('MONGO_DB', default='smarttuning')
 
 # prometheus config
-PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', default='localhost')
+PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', default=LOCALHOST)
 PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', default='30099')
 SAMPLING_METRICS_TIMEOUT = int(os.environ.get('SAMPLING_METRICS_TIMEOUT', default=15))
 
@@ -89,10 +104,7 @@ NAMESPACE = os.environ.get('NAMESPACE', 'default')
 # deprecated -- to remove
 NAMESPACE_PROD = os.environ.get('NAMESPACE_PROD', 'default')
 SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH', default='')
-# CONFIG_PATH = os.environ.get('CONFIG_PATH', default='/etc')
-# REGISTER_SERVER_PORT = int(os.environ.get('REGISTER_SERVER_PORT', default='5000'))
-# REGISTER_SERVER_ADDR = os.environ.get('REGISTER_SERVER_ADDR', default='0.0.0.0')
-# SYNC_PORT = int(os.environ.get('SYNC_PORT', default='5000'))
+
 
 print_config(PRINT_CONFIG)
 _executor = None

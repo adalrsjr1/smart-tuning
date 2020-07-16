@@ -12,5 +12,5 @@ kubectl apply --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -
 sleep 1
 kubectl apply --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  tuning-deployment.yaml
 sleep 1
-kubectl apply --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  proxy-config
+kubectl apply --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  proxy-config.yaml
 sleep 1

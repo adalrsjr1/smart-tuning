@@ -71,6 +71,18 @@ var (
 		Help: "Traffic between nodes",
 	}, []string{"direction", "node", "pod", "namespace", "code", "path", "src", "dst"})
 
+	inTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		// when change this name also update prometheus config file
+		Name: "in_http_requests_total",
+		Help: "Count of all HTTP requests",
+	}, []string{"node", "pod", "namespace", "code", "path", "src", "dst"})
+
+	outTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		// when change this name also update prometheus config file
+		Name: "out_http_requests_total",
+		Help: "Count of all HTTP responses",
+	}, []string{"node", "pod", "namespace", "code", "path", "src", "dst"})
+
 	promChan = make(chan PromMetric, maxConn)
 )
 
@@ -93,14 +105,15 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	requestSize := len(req.Body()) + len(req.URI().QueryString())
 
 	tStart := time.Now()
-	prepareRequest(req)
+	prepareRequest(req, ctx)
+
 	if err := proxyClient.Do(req, resp); err != nil {
 		resp.SetStatusCode(fasthttp.StatusBadGateway)
 		ctx.Logger().Printf("error when proxying the request: %s", err)
 	}
 
 	responseSize := resp.Header.ContentLength()
-	postprocessResponse(resp)
+	postprocessResponse(resp, ctx)
 	tEnd := time.Now()
 
 	// fix inconsistent URL with channels
@@ -176,11 +189,20 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	}(promChan)
 }
 
-func prepareRequest(req *fasthttp.Request) {
+func prepareRequest(req *fasthttp.Request, ctx *fasthttp.RequestCtx) {
 	// do not proxy "Connection" header.
-
+	ctxReq := &ctx.Request
 	req.SetHost(proxyClient.Addr)
 	req.Header.Set("X-Forwarded-Host", podIP)
+	inTotal.With(prometheus.Labels{
+		"node":      nodeName,
+		"pod":       podName,
+		"namespace": podNamespace,
+		"code":      "0",
+		"path":       string(ctxReq.RequestURI()), //+ p.sanitizeURLQuery(req.URL.RawQuery)
+		"src":       ctx.RemoteIP().String(),
+		"dst":       podIP,
+	}).Inc()
 	//req.Header.Del("Connection")
 	// strip other unneeded headers.
 
@@ -188,11 +210,21 @@ func prepareRequest(req *fasthttp.Request) {
 
 }
 
-func postprocessResponse(resp *fasthttp.Response) {
+func postprocessResponse(resp *fasthttp.Response, ctx *fasthttp.RequestCtx) {
 	// do not proxy "Connection" header
 	//resp.Header.Del("Connection")
 	resp.Header.Add("Pod", podName)
 
+	ctxReq := &ctx.Request
+	outTotal.With(prometheus.Labels{
+		"node":      nodeName,
+		"pod":       podName,
+		"namespace": podNamespace,
+		"code":      strconv.Itoa(resp.StatusCode()),
+		"path":       string(ctxReq.RequestURI()), //+ p.sanitizeURLQuery(req.URL.RawQuery)
+		"src":       ctx.RemoteIP().String(),
+		"dst":       podIP,
+	}).Inc()
 	// strip other unneeded headers
 
 	// alter other response data if needed

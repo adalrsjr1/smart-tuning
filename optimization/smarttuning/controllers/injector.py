@@ -11,10 +11,7 @@ from kubernetes.client.rest import ApiException
 import config
 from controllers.k8seventloop import EventLoop, ListToWatch
 
-if 'KUBERNETES_SERVICE_HOST' in os.environ:
-    k8s.config.load_incluster_config()
-else:
-    k8s.config.load_kube_config()
+config.init_k8s(hostname=config.K8S_HOST)
 
 logger = logging.getLogger(config.INJECTOR_LOGGER)
 logger.setLevel(logging.DEBUG)
@@ -102,12 +99,7 @@ def inject_proxy_into_service(event: dict):
         }
     }
 
-    if 'KUBERNETES_SERVICE_HOST' in os.environ:
-        logger.debug('deployed on kubernetes cluster')
-        k8s.config.load_incluster_config()
-    else:
-        logger.debug('deployed on kubernetes local')
-        k8s.config.load_kube_config()
+    config.init_k8s(config.K8S_HOST)
     try:
         return client.CoreV1Api().patch_namespaced_service(name(service), service.metadata.namespace, patch_body)
     except ApiException as e:

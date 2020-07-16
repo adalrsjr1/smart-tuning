@@ -9,19 +9,24 @@ import re
 pd.set_option('display.max_columns', None)
 from kubernetes.client.models import *
 from prometheus_pandas import query as handler
+interval = 900
 
 podname = 'acmeair.*smarttuning-'
 # latency
-# q = f'quantile(1, rate(smarttuning_http_processtime_seconds_sum{{pod=~"{podname}.*",name!~".*POD.*"}}[900s])) by (pod, src, dst, instance, service, path) /' \
-#     f'quantile(1, rate(smarttuning_http_processtime_seconds_count{{pod=~"{podname}.*",name!~".*POD.*"}}[900s])) by (pod, src, dst, instance, service, path)'
+q3 = f'avg( rate(smarttuning_http_processtime_seconds_sum{{pod=~"{podname}.*",name!~".*POD.*"}}[{interval}s])) by (pod, src, dst, instance, service) /' \
+    f'avg( rate(smarttuning_http_processtime_seconds_count{{pod=~"{podname}.*",name!~".*POD.*"}}[{interval}s])) by (pod, src, dst, instance, service)'
 
 # throughput
-q = f'quantile(1,rate(smarttuning_http_requests_total{{pod=~"{podname}.*",name!~".*POD.*"}}[300s])) by (pod, src, dst, instance, service)'
+q1 = f'avg( rate(in_http_requests_total{{pod=~"{podname}.*",name!~".*POD.*"}}[{interval}s])) by (pod, src, dst, instance, service) /' \
+     f'avg( rate(out_http_requests_total{{pod=~"{podname}.*",name!~".*POD.*"}}[{interval}s])) by (pod, src, dst, instance, service)'
+q2 = f'avg(rate(smarttuning_http_requests_total{{pod=~"{podname}.*",name!~".*POD.*"}}[{interval}s])) by (pod, src, dst, instance, service)'
+# memory
+# q2 = f'quantile(1, quantile_over_time(1,container_memory_working_set_bytes{{pod=~"{podname}.*",name!~".*POD.*"}}[{interval}s])) (pod)'
 
 t = None
 timeout = None
 p = handler.Prometheus('http://localhost:8001')
-params = {'query': q}
+params = {'query': q1}
 params.update({'time': t} if t is not None else {})
 params.update({'timeout': timeout.total_seconds()} if timeout is not None else {})
 
@@ -31,6 +36,7 @@ result = p._do_query('/api/v1/namespaces/kube-monitoring/services/prometheus-ser
 table = {}
 requests_df:pd.DataFrame = sampler.series_to_dataframe(handler.to_pandas(result))
 links_df = requests_df.copy()
+
 # clean dataframe and create hash table
 for i, item in links_df.iterrows():
     splitted_ip = item['instance'].split(':')[0]
@@ -48,6 +54,8 @@ for i, instance in enumerate(links_df['instance']):
     #     if row['src'] == instance:
     #         links_df.loc[j, ('src')] = links_df.loc[i, ('service')]
 
+print(links_df)
+
 # transform table into graph
 G = nx.MultiDiGraph()
 ip_regex = re.compile("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
@@ -60,10 +68,12 @@ for i, row in links_df.iterrows():
             path = row["path"]
         except KeyError:
             path = ''
-        G.add_edge(row['src'], row['dst'], weight=-v, label=f'[{-v}]')
+        G.add_edge(row['src'], row['dst'], weight=-v, label=f'[{-v:.2f}]')
+
 # remove cycles
 gateway = ''
 for degree in G.in_degree():
+    print(degree)
     if degree[1] == 0:
         gateway = degree[0]
         break
@@ -104,8 +114,8 @@ for key, value in lenght.items():
 # print('path', path)
 # print()
 print('best', path[shortest[0]])
-
 nx.drawing.nx_pydot.write_dot(G, 'graph.dot')
+
 
 # workload C: best ['acmeair-nginx-servicesmarttuning', 'acmeair-booking-servicesmarttuning', 'acmeair-flight-servicesmarttuning']
 # workload B: best ['acmeair-nginx-servicesmarttuning', 'acmeair-booking-servicesmarttuning', 'acmeair-flight-servicesmarttuning']
