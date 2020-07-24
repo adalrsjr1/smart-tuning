@@ -2,9 +2,10 @@ import logging
 import time
 
 import numpy as np
-
+import numbers
 import config
 import sampler
+import hashlib
 import kubernetes
 from concurrent.futures import Future
 from bayesian import BayesianDTO
@@ -14,7 +15,7 @@ from controllers.searchspace import SearchSpaceContext
 from seqkmeans import Container, KmeansContext, Metric, Cluster
 
 logger = logging.getLogger(config.APP_LOGGER)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def warmup():
@@ -55,7 +56,7 @@ def initialize_samplers(samplers, production, training):
         samplers[production] = sampler.PrometheusSampler(production, config.WAITING_TIME * config.SAMPLE_SIZE)
 
     if not training in samplers:
-        samplers[production] = sampler.PrometheusSampler(training, config.WAITING_TIME * config.SAMPLE_SIZE)
+        samplers[training] = sampler.PrometheusSampler(training, config.WAITING_TIME * config.SAMPLE_SIZE)
 
 
 def microservice_loop(microservice):
@@ -80,22 +81,22 @@ contexts = {}
 
 
 def create_contexts(microservices):
-    logger.info(f'creating contexts for {microservices} in {contexts}')
+
     production:str
     for production, training in microservices.items():
-
         if not production in contexts:
+            logger.debug(f'creating contexts for {microservices} in {contexts}')
             contexts[production] = config.executor().submit(create_context, production, training)
 
     # TODO: need further improvements
     to_remove = []
     for microservice, future in contexts.items():
         if future.done():
-            logger.info(f'gc: marking to remove {microservice} ctx')
+            logger.debug(f'gc: marking to remove {microservice} ctx')
             to_remove.append(microservice)
 
     for microservice in to_remove:
-        logger.info(f'gc contexts: wiping {microservice} ctx')
+        logger.debug(f'gc contexts: wiping {microservice} ctx')
         del contexts[microservice]
 
     if 0 == len(microservices) < len(contexts):
@@ -111,9 +112,12 @@ def create_context(production_microservice, training_microservice):
 
     production_sanitized = production_microservice.replace('.', '\\.')
     training_sanitized = training_microservice.replace('.', '\\.')
-
+    logger.info(f'pod_names --  prod:{production_sanitized} train:{training_sanitized}')
     sampler_production = sampler.PrometheusSampler(production_sanitized, config.WAITING_TIME * config.SAMPLE_SIZE)
     sampler_training = sampler.PrometheusSampler(training_sanitized, config.WAITING_TIME * config.SAMPLE_SIZE)
+
+    overall_metrics_prod = sampler.PrometheusSampler('acmeair-nginxservice', config.WAITING_TIME * config.SAMPLE_SIZE)
+    overall_metrics_train = sampler.PrometheusSampler('acmeair-nginxservicesmarttuning', config.WAITING_TIME * config.SAMPLE_SIZE)
 
     last_config = None
     last_class = None
@@ -121,27 +125,42 @@ def create_context(production_microservice, training_microservice):
         try:
             search_space_ctx: SearchSpaceContext = sample_config(production_name)
             if not search_space_ctx:
-                logger.info(f'no searchspace configuration available for microservice {production_name}')
+                logger.debug(f'no searchspace configuration available for microservice {production_name}')
                 time.sleep(1)
                 continue
             config_to_apply = update_training_config(training_microservice, search_space_ctx)
-            # wait(config.WAITING_TIME)
+            wait(config.WAITING_TIME)
 
             production_metric = sampler_production.metric()
             production_workload = sampler_production.workload()
             training_metric = sampler_training.metric()
             training_workload = sampler_training.workload()
 
-            production_class, production_hits = classify_workload(production_metric, production_workload.result(
-                config.SAMPLING_METRICS_TIMEOUT))
-            training_class, training_hits = classify_workload(training_metric,
-                                                              training_workload.result(config.SAMPLING_METRICS_TIMEOUT))
+            # fix this for production deployment
+            overall_production_metric = overall_metrics_prod.metric()
+            overall_training_metric = overall_metrics_train.metric()
+            metrics_prod = overall_metrics_prod.metric()
+            metrics_train = overall_metrics_train.metric()
+
+            production_result = production_workload.result(config.SAMPLING_METRICS_TIMEOUT)
+            production_class, production_hits = classify_workload(production_metric, production_result)
+
+            training_result = training_workload.result(config.SAMPLING_METRICS_TIMEOUT)
+            training_class, training_hits = classify_workload(training_metric, training_result)
 
             loss = update_loss(training_class, training_metric, search_space_ctx)
 
             time.sleep(2)  # to avoid race condition when iterating over Trials
             best_config, best_loss = best_loss_so_far(search_space_ctx)
-            if loss <= best_loss * (1 - config.METRIC_THRESHOLD):
+
+            evaluation = loss <= best_loss * (1 - config.METRIC_THRESHOLD) \
+                    and training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD) \
+                    and overall_metrics_train.metric().objective() <= overall_metrics_prod.metric().objective()
+            logger.info(f'loss:{loss} <= best_loss:{best_loss} '
+                        f'and training:{training_metric.objective()} <= production:{production_metric.objective()} '
+                        f'and overall_t:{overall_production_metric.objective()} <= overall_p:{overall_production_metric.objective()} '
+                        f'== {evaluation}')
+            if evaluation:
                 if last_config != best_config or last_class != production_class:
                     update_production(production_microservice, best_config, search_space_ctx)
                     last_config = best_config
@@ -153,12 +172,14 @@ def create_context(production_microservice, training_microservice):
                 production_metric=production_metric.serialize(),
                 training_metric=training_metric.serialize(),
                 production_workload=sampler.series_to_dict(production_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
+                overall_metrics_train=metrics_train.serialize(),
+                overall_metrics_prod=metrics_prod.serialize(),
                 # extract to dict
                 training_workload=sampler.series_to_dict(training_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
                 # extract to dict
                 best_loss=best_loss,
                 best_config=best_config,
-                update_production=best_config
+                update_production=best_config,
             )
 
         except:
@@ -166,7 +187,8 @@ def create_context(production_microservice, training_microservice):
 
 
 def sample_config(microservice) -> SearchSpaceContext:
-    return searchspace.search_spaces.get(microservice, None)
+    logger.debug(f'lookup {microservice} in {searchspace.search_spaces.keys()}')
+    return searchspace.search_spaces.get(f'{microservice}-ss', None)
 
 
 def update_training_config(name, new_config_ctx: SearchSpaceContext):
@@ -182,7 +204,7 @@ def do_patch(manifests, configuration, production=False):
     for key, value in configuration.items():
         for manifest in manifests:
             if key == manifest.name:
-                logger.debug(f'patching new config at {manifest.name}')
+                logger.info(f'patching new config at {manifest.name}')
                 manifest.patch(value, production=production)
 
 
@@ -198,7 +220,7 @@ def classify_workload(metric, workload) -> (Cluster, int):
 
 def update_loss(classification: Cluster, metric_value: Metric, search_space_ctx: SearchSpaceContext):
     logger.info(f'updating loss at BayesianEngine: {search_space_ctx.engine.id()}')
-    dto = BayesianDTO(metric=metric_value, classification=classification.id)
+    dto = BayesianDTO(metric=metric_value, classification= classification.id if classification else '')
     search_space_ctx.put_into_engine(dto)
     return metric_value.objective()
 
@@ -214,6 +236,10 @@ def update_production(name, config, search_space_ctx: SearchSpaceContext):
     do_patch(manifests, config, production=True)
 
 
+def wait(sleeptime=config.WAITING_TIME):
+    logger.info(f'waiting {sleeptime}s before sampling metrics')
+    time.sleep(sleeptime)
+
 def save(**kwargs):
     logger.info(f'logging data to mongo')
     config.mongo().admin
@@ -223,7 +249,44 @@ def save(**kwargs):
     db = config.mongo()[config.MONGO_DB]
     collection = db.logging
 
-    return collection.insert_one(kwargs)
+    try:
+        collection.insert_one(sanitize_dict_to_save(kwargs))
+    except:
+        logger.error('error when saving data')
+
+def sanitize_dict_to_save(data) -> dict:
+    result = {}
+
+    for item in data.items():
+        key = sanitize_token(item[0])
+        value = sanitize_token(item[1])
+        result.update({key: value})
+
+    return result
+
+def sanitize_list_to_save(data):
+    result = []
+
+    for item in data:
+        result.append(sanitize_token(item))
+
+    if isinstance(data, list):
+        return result
+    if isinstance(data, set):
+        return set(result)
+    if isinstance(data, tuple):
+        return tuple(data)
+
+def sanitize_token(token) -> str:
+    if isinstance(token, str):
+        return token.replace( '\\', '\\\\').replace('$', '\\$').replace( '.', '\\_')
+    if isinstance(token, dict):
+        return sanitize_dict_to_save(token)
+    if isinstance(token, list) or isinstance(token, set) or isinstance(token, tuple):
+        return sanitize_list_to_save(token)
+    if isinstance(token, numbers.Number) or isinstance(token, bool):
+        return token
+    return sanitize_dict_to_save(token.__dict__)
 
 ##
 # all services ports should be named

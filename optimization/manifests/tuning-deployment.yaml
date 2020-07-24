@@ -40,6 +40,7 @@ data:
   # prometheus config
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
+  SAMPLING_METRICS_TIMEOUT: '300'
   # classification config
   K: '1'
   DISTANCE_METHOD: "hellinger"
@@ -55,11 +56,13 @@ data:
   RANDOM_SEED: '31'
   ## the objective is always to minimize
   ## 2 ** 20 transforms bytes to megabytes
-  OBJECTIVE: '-(throughput / (memory / (2 ** 20)))'
+  ##OBJECTIVE: '-(throughput / (memory / (2 ** 20)))'
+  OBJECTIVE: '-(throughput / (memory / (2**20))) / in_out'
+  #OBJECTIVE: 'in_out'
   SAMPLE_SIZE: '0.3334'
-  WAITING_TIME: '900'
-  POD_REGEX: 'acmeair-tuning-.*'
-  POD_PROD_REGEX: 'acmeair-tuningprod-.*'
+  WAITING_TIME: '300'
+  POD_REGEX: 'acmeair-.+servicessmarttuning-.+'
+  POD_PROD_REGEX: 'acmeair-.+services-.+'
   QUANTILE: '1.0'
   # actuator config
   #  CONFIGMAP_NAME: 'jvm-config-train'

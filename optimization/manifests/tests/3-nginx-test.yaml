@@ -40,7 +40,7 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-test
+  name: acmeair-nginx-test-service
   labels:
     app: nginx-test
   annotations:

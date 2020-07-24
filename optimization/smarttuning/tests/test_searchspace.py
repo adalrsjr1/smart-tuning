@@ -4,6 +4,9 @@ import unittest
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 
+import config
+
+config.K8S_HOST = 'localhost'
 from kubernetes import config as k8sconfig
 import kubernetes
 from controllers import searchspace
@@ -14,10 +17,12 @@ from sampler import Metric
 
 warnings.simplefilter("ignore", ResourceWarning)
 
+
 class TestSearchSpace(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+
         if 'KUBERNETES_SERVICE_HOST' in os.environ:
             k8sconfig.load_incluster_config()
         else:
@@ -37,9 +42,9 @@ class TestSearchSpace(unittest.TestCase):
     def test_watcher(self):
         client = kubernetes.client.CustomObjectsApi()
         list_to_watch = ListToWatch(client.list_namespaced_custom_object, namespace='default',
-                    group='smarttuning.ibm.com',
-                    version='v1alpha1',
-                    plural='searchspaces')
+                                    group='smarttuning.ibm.com',
+                                    version='v1alpha1',
+                                    plural='searchspaces')
 
         w = kubernetes.watch.Watch()
         t = list_to_watch.fn()
@@ -61,17 +66,10 @@ class TestSearchSpace(unittest.TestCase):
         self.assertGreater(len(searchspace.search_spaces), 0)
         ctx: SearchSpaceContext = searchspace.context('test')
 
-        metric = Metric(
-            cpu=1,
-            memory=1,
-            throughput=1,
-            process_time=1,
-            errors=1,
-            to_eval='cpu'
-        )
+        metric = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1, to_eval='cpu')
 
         ctx.put_into_engine(BayesianDTO(metric, ''))
-        time.sleep(1) # emulating sampling time
+        time.sleep(1)  # emulating sampling time
         first_config = ctx.get_from_engine()
 
         self.assertDictEqual(first_config, ctx.get_best_so_far()[0])
@@ -79,7 +77,7 @@ class TestSearchSpace(unittest.TestCase):
 
         metric._cpu = 2
         ctx.put_into_engine(BayesianDTO(metric, ''))
-        time.sleep(1) # emulating sampling time
+        time.sleep(1)  # emulating sampling time
         new_config = ctx.get_from_engine()
 
         self.assertNotEqual(first_config, new_config)
@@ -87,13 +85,11 @@ class TestSearchSpace(unittest.TestCase):
 
         metric._cpu = 0
         ctx.put_into_engine(BayesianDTO(metric, ''))
-        time.sleep(1) # emulating sampling time
+        time.sleep(1)  # emulating sampling time
         new_config = ctx.get_from_engine()
         self.assertNotEqual(first_config, new_config)
         self.assertEqual(0, ctx.get_best_so_far()[1])
         self.assertDictEqual(new_config, ctx.get_best_so_far()[0])
-
-
 
     def test_instantiate_from_event(self):
         loop = EventLoop(ThreadPoolExecutor())
@@ -101,23 +97,76 @@ class TestSearchSpace(unittest.TestCase):
 
         time.sleep(1)
         self.assertEqual(len(searchspace.search_spaces), 2)
-        ctx1:SearchSpaceContext = searchspace.context('test')
-        ctx2:SearchSpaceContext = searchspace.context('test2')
+        ctx1: SearchSpaceContext = searchspace.context('test')
+        ctx2: SearchSpaceContext = searchspace.context('test2')
 
-        metric = Metric(
-            cpu=1,
-            memory=1,
-            throughput=1,
-            process_time=1,
-            errors=1,
-            to_eval='cpu'
-        )
+        metric = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1, to_eval='cpu')
 
         ctx1.put_into_engine(BayesianDTO(metric, ''))
-        self.assertGreater(len(ctx1.get_from_engine()),0)
+        self.assertGreater(len(ctx1.get_from_engine()), 0)
 
         ctx2.put_into_engine(BayesianDTO(metric, ''))
         self.assertGreater(len(ctx1.get_from_engine()), 0)
+
+    def test_jvmopt_workflow(self):
+        """
+                should be executed apart of the other tests
+                """
+        loop = EventLoop(ThreadPoolExecutor())
+        searchspace.init(loop)
+
+        time.sleep(1)
+        self.assertGreater(len(searchspace.search_spaces), 0)
+        ctx: SearchSpaceContext = searchspace.context('test')
+
+        metric = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1, to_eval='cpu')
+
+        ctx.put_into_engine(BayesianDTO(metric, ''))
+        time.sleep(1)  # emulating sampling time
+        first_config = ctx.get_from_engine()
+
+        self.assertDictEqual(first_config, ctx.get_best_so_far()[0])
+        self.assertEqual(1, ctx.get_best_so_far()[1])
+
+        metric._cpu = 2
+        ctx.put_into_engine(BayesianDTO(metric, ''))
+        time.sleep(1)  # emulating sampling time
+        new_config = ctx.get_from_engine()
+
+        self.assertNotEqual(first_config, new_config)
+        self.assertEqual(1, ctx.get_best_so_far()[1])
+
+        metric._cpu = 0
+        ctx.put_into_engine(BayesianDTO(metric, ''))
+        time.sleep(1)  # emulating sampling time
+        new_config = ctx.get_from_engine()
+        self.assertNotEqual(first_config, new_config)
+        self.assertEqual(0, ctx.get_best_so_far()[1])
+        self.assertDictEqual(new_config, ctx.get_best_so_far()[0])
+
+    def test_instantiate_from_event(self):
+        loop = EventLoop(ThreadPoolExecutor())
+        searchspace.init(loop)
+
+        time.sleep(1)
+        self.assertTrue(searchspace.context('jvm-test'))
+        jvm_ctx: SearchSpaceContext = searchspace.context('jvm-test')
+
+        metric = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1, to_eval='cpu')
+
+        import re
+        for _ in range(1):
+            jvm_ctx.put_into_engine(BayesianDTO(metric, ''))
+            result = jvm_ctx.get_from_engine()
+            self.assertGreater(len(result), 0)
+            for key, value in result.items():
+                for manifest in jvm_ctx.manifests:
+                    if key == manifest.name:
+                        self.assertTrue(
+                            re.fullmatch(
+                                "-Dhttp\.keepalive=(false|true)\s*-Dhttp\.maxConnectionse=[0-9]+\s*-XX:-UseContainerSupport\s*-Xgcpolicy:[a-z]+\s+-Xtune:virtualized",
+                                searchspace.dict_to_jvmoptions(manifest.patch(value).data)[0])
+                        )
 
 
 if __name__ == '__main__':

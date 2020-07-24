@@ -2,7 +2,6 @@
   "annotations": {
     "list": [
       {
-        "$$hashKey": "object:62",
         "builtIn": 1,
         "datasource": "-- Grafana --",
         "enable": true,
@@ -17,50 +16,48 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1587058384506,
+  "iteration": 1594948313541,
   "links": [],
   "panels": [
     {
       "aliasColors": {},
-      "bars": true,
+      "bars": false,
       "dashLength": 10,
       "dashes": false,
       "datasource": "prometheus",
-      "description": "",
-      "fill": 1,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 22,
-        "w": 24,
+        "h": 9,
+        "w": 12,
         "x": 0,
         "y": 0
       },
       "hiddenSeries": false,
-      "id": 2,
-      "interval": "",
+      "id": 12,
       "legend": {
         "alignAsTable": true,
-        "avg": false,
-        "current": false,
-        "hideEmpty": false,
-        "hideZero": true,
-        "max": false,
+        "avg": true,
+        "current": true,
+        "max": true,
         "min": false,
-        "rightSide": false,
         "show": true,
-        "sort": "total",
-        "sortDesc": true,
-        "total": true,
+        "total": false,
         "values": true
       },
-      "lines": false,
+      "lines": true,
       "linewidth": 1,
-      "nullPointMode": "null as zero",
+      "nullPointMode": "null",
       "options": {
         "dataLinks": []
       },
       "percentage": false,
-      "pluginVersion": "6.7.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -70,37 +67,543 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum by (path)(rate(remap_http_requests_total{namespace=\"$namespace\",exported_pod=\"$podname\"}[$time_interval_m])) / ignoring (path) group_left sum(rate(remap_http_requests_total{namespace=\"$namespace\",exported_pod=\"$podname\"}[$time_interval_m]))",
-          "format": "time_series",
-          "instant": true,
+          "expr": "quantile(1,rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (quantile(1, quantile_over_time(1,container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / 1024 / 1024)",
           "interval": "",
-          "legendFormat": "{{path}}",
+          "legendFormat": "PROD $prod_podname",
           "refId": "A"
+        },
+        {
+          "expr": "quantile(1,rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (quantile(1, quantile_over_time(1,container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / 1024 / 1024)",
+          "interval": "",
+          "legendFormat": "TRAIN $train_podname",
+          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "namespace=$namespace; histogram",
+      "title": "Throughput / MB",
       "tooltip": {
-        "shared": false,
+        "shared": true,
         "sort": 0,
         "value_type": "individual"
       },
       "type": "graph",
       "xaxis": {
         "buckets": null,
-        "mode": "series",
+        "mode": "time",
         "name": null,
-        "show": false,
-        "values": [
-          "total"
-        ]
+        "show": true,
+        "values": []
       },
       "yaxes": [
         {
-          "$$hashKey": "object:158",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "hiddenSeries": false,
+      "id": 6,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "quantile(1,rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "PROD $prod_podname",
+          "refId": "A"
+        },
+        {
+          "expr": "quantile(1,rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "PROD $train_podname",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Throughput",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "reqps",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "hiddenSeries": false,
+      "id": 2,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "quantile(1,rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "PROD $prod_podname",
+          "refId": "A"
+        },
+        {
+          "expr": "quantile(1,rate(container_cpu_usage_seconds_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "TRAIN $train_podname",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "CPU",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "hiddenSeries": false,
+      "id": 4,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "quantile(1, quantile_over_time(1, container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "PROD $prod_podname",
+          "refId": "A"
+        },
+        {
+          "expr": "quantile(1, quantile_over_time(1, container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "TRAIN $train_podname",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Memory",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "hiddenSeries": false,
+      "id": 8,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "quantile(1, rate(smarttuning_http_processtime_seconds_sum{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / quantile(1, rate(smarttuning_http_processtime_seconds_count{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "PROD $prod_podname",
+          "refId": "A"
+        },
+        {
+          "expr": "quantile(1, rate(smarttuning_http_processtime_seconds_sum{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / quantile(1, rate(smarttuning_http_processtime_seconds_count{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "TRAIN $train_podname",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Process Time",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "dtdurations",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "hiddenSeries": false,
+      "id": 10,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "quantile(1, rate(smarttuning_http_requests_total{code=~\"[4|5]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) /quantile(1, rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "PROD $prod_podname",
+          "refId": "A"
+        },
+        {
+          "expr": "quantile(1, rate(smarttuning_http_requests_total{code=~\"[4|5]..\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) /quantile(1, rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "TRAIN $train_podname",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Errors",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
           "format": "percentunit",
           "label": null,
           "logBase": 1,
@@ -109,7 +612,6 @@
           "show": true
         },
         {
-          "$$hashKey": "object:159",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -124,8 +626,8 @@
       }
     }
   ],
-  "refresh": "",
-  "schemaVersion": 22,
+  "refresh": "5s",
+  "schemaVersion": 25,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -133,14 +635,15 @@
       {
         "allValue": null,
         "current": {
-          "text": "default",
-          "value": "default"
+          "isNone": true,
+          "selected": false,
+          "text": "None",
+          "value": ""
         },
         "datasource": "prometheus",
         "definition": "remap_http_requests_total",
         "hide": 0,
         "includeAll": false,
-        "index": -1,
         "label": null,
         "multi": false,
         "name": "namespace",
@@ -162,8 +665,8 @@
         "auto_min": "10s",
         "current": {
           "selected": false,
-          "text": "10m",
-          "value": "10m"
+          "text": "15m",
+          "value": "15m"
         },
         "hide": 0,
         "label": null,
@@ -175,9 +678,19 @@
             "value": "1m"
           },
           {
-            "selected": true,
+            "selected": false,
+            "text": "5m",
+            "value": "5m"
+          },
+          {
+            "selected": false,
             "text": "10m",
             "value": "10m"
+          },
+          {
+            "selected": true,
+            "text": "15m",
+            "value": "15m"
           },
           {
             "selected": false,
@@ -220,7 +733,8 @@
             "value": "30d"
           }
         ],
-        "query": "1m,10m,30m,1h,6h,12h,1d,7d,14d,30d",
+        "query": "1m,5m,10m,15m,30m,1h,6h,12h,1d,7d,14d,30d",
+        "queryValue": "",
         "refresh": 2,
         "skipUrlSync": false,
         "type": "interval"
@@ -228,30 +742,49 @@
       {
         "allValue": null,
         "current": {
-          "text": "daytrader-69c56dcbb6-tqf8r",
-          "value": "daytrader-69c56dcbb6-tqf8r"
+          "selected": false,
+          "text": "acmeair-nginx",
+          "value": "acmeair-nginx"
         },
         "datasource": "prometheus",
-        "definition": "remap_http_requests_total",
+        "definition": "container_cpu_usage_seconds_total",
         "hide": 0,
         "includeAll": false,
-        "index": -1,
         "label": null,
         "multi": false,
-        "name": "podname",
-        "options": [
-          {
-            "$$hashKey": "object:1045",
-            "selected": true,
-            "text": "daytrader-69c56dcbb6-tqf8r",
-            "value": "daytrader-69c56dcbb6-tqf8r"
-          }
-        ],
-        "query": "remap_http_requests_total",
-        "refresh": 0,
-        "regex": "/.*exported_pod=\"([\\w-]*).*/",
+        "name": "prod_podname",
+        "options": [],
+        "query": "container_cpu_usage_seconds_total",
+        "refresh": 2,
+        "regex": "/.*pod=\"(acmeair-nginx|acmeair-[\\w]+service*)-.*/",
         "skipUrlSync": false,
-        "sort": 0,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "acmeair-nginxsmarttuning",
+          "value": "acmeair-nginxsmarttuning"
+        },
+        "datasource": "prometheus",
+        "definition": "container_cpu_usage_seconds_total",
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "train_podname",
+        "options": [],
+        "query": "container_cpu_usage_seconds_total",
+        "refresh": 2,
+        "regex": "/.*pod=\"(acmeair-nginx-smarttuning|acmeair-[\\w]+smarttuning*)-.*/",
+        "skipUrlSync": false,
+        "sort": 1,
         "tagValuesQuery": "",
         "tags": [],
         "tagsQuery": "",
@@ -261,12 +794,11 @@
     ]
   },
   "time": {
-    "from": "now-10m",
+    "from": "2020-07-17T15:49:28.000Z",
     "to": "now"
   },
   "timepicker": {
     "refresh_intervals": [
-      "5s",
       "10s",
       "30s",
       "1m",
@@ -280,9 +812,6 @@
   },
   "timezone": "",
   "title": "smarttuning",
-  "uid": "YajPwi3Wz",
-  "variables": {
-    "list": []
-  },
-  "version": 2
+  "uid": "8RkJTIzGz",
+  "version": 10
 }

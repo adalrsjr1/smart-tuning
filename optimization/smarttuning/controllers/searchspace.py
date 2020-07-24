@@ -28,8 +28,9 @@ def searchspace_controller(event):
         del search_spaces[name]
 
 def context(name) -> SearchSpaceContext:
-    if name in search_spaces:
-        return search_spaces[name]
+    return search_spaces.get(name, None)
+    # if name in search_spaces:
+    #     return search_spaces[name]
 
 class SearchSpaceContext:
     def __init__(self, name: str, namespace: str = config.NAMESPACE, manifests = []):

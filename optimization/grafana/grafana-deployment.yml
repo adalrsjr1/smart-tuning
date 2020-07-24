@@ -28,10 +28,10 @@ metadata:
   name: grafana-config
   namespace: kube-monitoring
 data:
+  # [server]
+  # root_url = http://localhost:8001/api/v1/namespaces/kube-monitoring/services/grafana-service/proxy/
+  # server_from_sub_path = true
   grafana.ini: |-
-    [server]
-    root_url = http://localhost:8001/api/v1/namespaces/kube-monitoring/services/grafana-service/proxy/
-    serve_from_sub_path = true
     [auth.anonymous]
     enabled = true
     # Organization name that should be used for unauthenticated users

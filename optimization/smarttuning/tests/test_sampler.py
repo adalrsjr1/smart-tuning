@@ -2,6 +2,7 @@ import unittest
 from sampler import PrometheusSampler, Metric
 import pandas as pd
 import sampler
+import math
 import json
 
 class TestPrometheusSampling(unittest.TestCase):
@@ -80,36 +81,55 @@ class TestPrometheusSampling(unittest.TestCase):
         print(metric)
 
     def test_metric_operation(self):
+        m1 = Metric(cpu=1, memory=1, throughput=1, process_time=1, in_out=1, errors=1)
+        m2 = Metric(cpu=3, memory=3, throughput=3, process_time=3, in_out=3, errors=3)
+
+        result = m1.__operation__(m2, lambda a, b: a + b)
+        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, in_out=4, errors=4))
+        result = m1 + m2
+        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, in_out=4, errors=4))
+
         m1 = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1)
         m2 = Metric(cpu=3, memory=3, throughput=3, process_time=3, errors=3)
 
+        # cannot compare NaN -- in_out property
         result = m1.__operation__(m2, lambda a, b: a + b)
-        print(result)
-        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, errors=4))
+        self.assertNotEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, errors=4))
         result = m1 + m2
-        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, errors=4))
+        self.assertNotEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, errors=4))
+
 
     def test_metric_operation_scalar(self):
-        m1 = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1)
-
+        m1 = Metric(cpu=1, memory=1, throughput=1, process_time=1, in_out=1, errors=1)
         result = m1 * 4
-        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, errors=4))
+        self.assertEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, errors=4, in_out=4))
+
+        # cannot compare NaN -- in_out property
+        m1 = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1)
+        result = m1 * 4
+        self.assertNotEqual(result, Metric(cpu=4, memory=4, throughput=4, process_time=4, errors=4))
 
     def test_metric_logic_op(self):
-        m1 = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1, to_eval='cpu+memory+throughput+latency+errors')
-        m2 = Metric(cpu=3, memory=3, throughput=3, process_time=3, errors=3, to_eval='cpu+memory+throughput+latency+errors')
+        m1 = Metric(cpu=1, memory=1, throughput=1, process_time=1, in_out=1, errors=1,
+                    to_eval='cpu+memory+throughput+process_time+in_out+errors')
+        m2 = Metric(cpu=3, memory=3, throughput=3, process_time=3, errors=3,
+                    to_eval='cpu+memory+throughput+process_time+errors')
+
+        m3 = Metric(cpu=3, memory=3, throughput=3, process_time=3, errors=3,
+                    to_eval='cpu+memory+throughput+process_time+in_out+errors')
 
         print(m1)
         print(m2)
+        self.assertEqual(6, m1.objective())
         self.assertLess(m1, m2)
         self.assertLessEqual(m1, m2)
         self.assertLessEqual(m1, m1)
         self.assertGreater(m2, m1)
         self.assertGreaterEqual(m2, m2)
+        self.assertTrue(math.isinf(m3.objective()))
 
     def test_metric_serialization(self):
         print(self.client().metric().serialize())
-
 
 
 if __name__ == '__main__':

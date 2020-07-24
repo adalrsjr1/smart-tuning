@@ -1,11 +1,11 @@
 apiVersion: "smarttuning.ibm.com/v1alpha1"
 kind: SearchSpace
 metadata:
-  name: nginx-test
+  name: acmeair-nginx-test-service-ss
 spec:
   manifests:
-    - name: "nginx-test-smarttuning"
-      nameProd: "nginx-test"
+    - name: "acmeair-nginx-test-servicesmarttuning"
+      nameProd: "acmeair-nginx-test-service"
       namespace: "default"
       type:
         deployment: true
@@ -27,7 +27,7 @@ spec:
             upper: 512
             step: 32
             continuous: false
-    - name: "nginx-test-cm-2-smarttuning"
+    - name: "nginx-test-cm-2smarttuning"
       nameProd: "nginx-test-cm-2"
       namespace: "default"
       type:

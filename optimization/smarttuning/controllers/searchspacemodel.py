@@ -38,7 +38,7 @@ class ManifestBase:
         return {self.name: hyper_params}
 
     def patch(self, new_config: dict, production=False):
-        self.type.patch(new_config, production)
+        return self.type.patch(new_config, production)
 
     def __repr__(self):
         return str(self.__dict__)
@@ -130,17 +130,9 @@ class ManifestConfigMap:
         name = self.parent.nameProd if production else self.parent.name
         namespace = self.parent.namespace
         filename = self.parent.type.filename
-        data = new_config
+        data = copy.deepcopy(new_config)
 
-        params = [item for item in new_config.values()]
-        if '-Xmx' in data:
-            params.append('-Xmx' + str(data['-Xmx']) + 'm')
-
-        if '-Xnojit' in data and data['-Xnojit']:
-            params.append('-Xnojit')
-
-        if '-Xnoaot' in data and data['-Xnoaot']:
-            params.append('-Xnoaot')
+        params = dict_to_jvmoptions(data)
 
         body = {
             "kind": "ConfigMap",
@@ -153,6 +145,29 @@ class ManifestConfigMap:
 
         return api_instance.patch_namespaced_config_map(name, namespace, body, pretty='true')
 
+def dict_to_jvmoptions(data):
+    params = []
+    if '-Xmx' in data:
+        params.append('-Xmx' + str(data['-Xmx']) + 'm')
+        del (data['-Xmx'])
+
+    if '-Dhttp.keepalive' in data:
+        params.append('-Dhttp.keepalive=' + str(data['-Dhttp.keepalive']))
+        del (data['-Dhttp.keepalive'])
+
+    if '-Dhttp.maxConnections' in data:
+        params.append('-Dhttp.maxConnectionse=' + str(data['-Dhttp.maxConnections']))
+        del (data['-Dhttp.maxConnections'])
+
+    if '-Xnojit' in data and data['-Xnojit']:
+        params.append('-Xnojit')
+        del (data['-Xnojit'])
+
+    if '-Xnoaot' in data and data['-Xnoaot']:
+        params.append('-Xnoaot')
+        del (data['-Xnoaot'])
+
+    return params + [item for item in data.values()]
 
 class BaseParam:
     def __init__(self, manifest):

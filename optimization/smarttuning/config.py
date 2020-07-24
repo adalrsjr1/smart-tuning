@@ -29,7 +29,7 @@ def init_k8s(hostname='localhost'):
 
 K8S_HOST = 'trxrhel7perf-1'
 K8S_CONF = '/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config'
-LOCALHOST = 'trxrhel7perf-1.canlab.ibm.com'
+LOCALHOST = '9.26.100.254'
 ## to disable loggers
 FORMAT = '%(asctime)-15s - %(name)-30s %(levelname)-7s - %(threadName)-30s: %(message)s'
 INJECTOR_LOGGER = 'injector.smarttuning.ibm'
@@ -39,7 +39,7 @@ INJECTOR_LOGGER = 'injector.smarttuning.ibm'
 # logging.getLogger('kubernetes.client.rest').addHandler(logging.NullHandler())
 # logging.getLogger('kubernetes.client.rest').propagate = False
 #
-SAMPLER_LOGGER = 'sapler.smarttuning.ibm'
+SAMPLER_LOGGER = 'sampler.smarttuning.ibm'
 # logging.getLogger(SAMPLER_LOGGER).addHandler(logging.NullHandler())
 # logging.getLogger(SAMPLER_LOGGER).propagate = False
 #
@@ -72,7 +72,7 @@ MONGO_DB = os.environ.get('MONGO_DB', default='smarttuning')
 # prometheus config
 PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', default=LOCALHOST)
 PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', default='30099')
-SAMPLING_METRICS_TIMEOUT = int(os.environ.get('SAMPLING_METRICS_TIMEOUT', default=15))
+SAMPLING_METRICS_TIMEOUT = int(os.environ.get('SAMPLING_METRICS_TIMEOUT', default=5))
 
 # classification config
 K = int(os.environ.get('K', default='3'))
@@ -88,12 +88,12 @@ GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
-OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='memory'), '<string>', 'eval')
+OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='throughput / memory'), '<string>', 'eval')
 # sampling config
-SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='1.0'))
-WAITING_TIME = int(os.environ.get('WAITING_TIME', default='2'))
-POD_REGEX = os.environ.get('POD_REGEX', default='.*tuning.*')
-POD_PROD_REGEX = os.environ.get('POD_PROD_REGEX', default='.*tuningprod.*')
+SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
+WAITING_TIME = int(os.environ.get('WAITING_TIME', default='300'))
+POD_REGEX = os.environ.get('POD_REGEX', default='acmeair-.+servicessmarttuning-.+')
+POD_PROD_REGEX = os.environ.get('POD_PROD_REGEX', default='acmeair-.+services-.+')
 QUANTILE = float(os.environ.get('QUANTILE', default='1.0'))
 
 # actuator config
@@ -111,10 +111,10 @@ _executor = None
 _client = None
 
 
-def executor(max_workers=None):
+def executor():
     global _executor
     if not _executor:
-        _executor = ThreadPoolExecutor(max_workers=max_workers)
+        _executor = ThreadPoolExecutor()
     return _executor
 
 
@@ -163,3 +163,6 @@ def shutdown():
             terminate_thread(t)
         except SystemError:
             logging.exception('error while shutdown thread pool')
+
+if __name__ == '__main__':
+    print(ping(PROMETHEUS_ADDR, int(PROMETHEUS_PORT)))
