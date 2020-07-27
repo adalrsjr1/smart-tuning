@@ -12,9 +12,9 @@ pd.set_option('display.max_rows', None)
 from kubernetes.client.models import *
 from prometheus_pandas import query as handler
 import time
-step = 300
+step = 900
 
-podname = '.*service-.*'
+podname = '.*servicesmarttuning-.*'
 # throughput
 q1 = f'sum( rate(in_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{step}s])) by (pod, src, dst, instance, service) /' \
      f'sum( rate(out_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{step}s])) by (pod, src, dst, instance, service) '
@@ -24,7 +24,7 @@ q1 = f'sum( rate(in_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{ste
 p = handler.Prometheus('http://trxrhel7perf-1.canlab.ibm.com:30099')
 # result = p.query(q1)
 now = time.time()
-result = p.query_range(q1, now-14400, now, step)
+result = p.query_range(q1, now-(3600*24), now, step)
 # result.to_csv('data-202007221834.csv')
 
 # result = pd.read_csv('data-202007221834.csv')

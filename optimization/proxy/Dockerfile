@@ -18,4 +18,3 @@ FROM alpine:latest
 WORKDIR /proxy
 COPY --from=0 /go/bin/proxy .
 ENTRYPOINT ["/proxy/proxy"]
-#ENTRYPOINT ["/go/bin/proxy"]

@@ -248,6 +248,7 @@ class Metric:
         try:
             result = eval(self.to_eval, globals(), self.to_dict()) if self.to_eval else float('inf')
             if math.isnan(result):
+                logger.warning(f'objective at {self.name} is NaN -> INF')
                 return float('inf')
             return result
         except ZeroDivisionError:
@@ -277,20 +278,20 @@ class PrometheusSampler:
     def throughput(self, quantile=1.0) -> Future:
         """ return future<pd.Series>"""
         logger.debug(f'sampling throughput at {self.podname}-.*')
-        query = f'quantile({quantile},rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def error(self, quantile=1.0) -> Future:
         logger.debug(f'sampling errors rate at {self.podname}-.*')
-        query = f'quantile({quantile}, rate(smarttuning_http_requests_total{{code=~"5..",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s])) /' \
-                f'quantile({quantile}, rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(rate(smarttuning_http_requests_total{{code=~"5..",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s])) /' \
+                f'sum(rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def process_time(self, quantile=1.0) -> Future:
         """ return a concurrent.futures.Future<pandas.Series> with the processtime_sum/processtime_count rate of an specific pod"""
         logger.debug(f'sampling process time at {self.podname}.*')
-        query = f'quantile({quantile}, rate(smarttuning_http_processtime_seconds_sum{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s])) / ' \
-                f'quantile({quantile}, rate(smarttuning_http_processtime_seconds_count{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(rate(smarttuning_http_processtime_seconds_sum{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s])) / ' \
+                f'sum(rate(smarttuning_http_processtime_seconds_count{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 
@@ -298,8 +299,9 @@ class PrometheusSampler:
         """ return a concurrent.futures.Future<pandas.Series> with the memory (bytes) quantile over time of an specific pod
             :param quantile a value 0.0 - 1.0
         """
+        # The better metric is container_memory_working_set_bytes as this is what the OOM killer is watching for.
         logger.debug(f'sampling memory at {self.podname}.*')
-        query = f'quantile({quantile}, quantile_over_time({quantile},container_memory_working_set_bytes{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(max_over_time(container_memory_working_set_bytes{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 
@@ -307,7 +309,7 @@ class PrometheusSampler:
         """ return a concurrent.futures.Future<pandas.Series> with the CPU (milicores) rate over time of an specific pod
         """
         logger.debug(f'sampling cpu at {self.podname}-.*')
-        query = f'quantile({quantile},rate(container_cpu_usage_seconds_total{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(rate(container_cpu_usage_seconds_total{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def workload(self) -> Future:
@@ -344,7 +346,7 @@ class PrometheusSampler:
         return self.__do_sample__(query)
 
 if __name__ == '__main__':
-    s = PrometheusSampler('acmeair-nginxservice', config.WAITING_TIME * config.SAMPLE_SIZE)
+    s = PrometheusSampler('acmeair-nginxservicesmarttuning', config.WAITING_TIME * config.SAMPLE_SIZE)
     # s = PrometheusSampler("acmeair-flightservicesmarttuning.*", config.WAITING_TIME * config.SAMPLE_SIZE)
     timeout = 10
     # print(s.cpu().result(timeout=timeout))

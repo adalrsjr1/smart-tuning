@@ -137,8 +137,6 @@ def create_context(production_microservice, training_microservice):
             training_workload = sampler_training.workload()
 
             # fix this for production deployment
-            overall_production_metric = overall_metrics_prod.metric()
-            overall_training_metric = overall_metrics_train.metric()
             metrics_prod = overall_metrics_prod.metric()
             metrics_train = overall_metrics_train.metric()
 
@@ -154,11 +152,11 @@ def create_context(production_microservice, training_microservice):
             best_config, best_loss = best_loss_so_far(search_space_ctx)
 
             evaluation = loss <= best_loss * (1 - config.METRIC_THRESHOLD) \
-                    and training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD) \
-                    and overall_metrics_train.metric().objective() <= overall_metrics_prod.metric().objective()
+                    and training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD)
+                    # and overall_metrics_train.metric().objective() <= overall_metrics_prod.metric().objective()
             logger.info(f'loss:{loss} <= best_loss:{best_loss} '
                         f'and training:{training_metric.objective()} <= production:{production_metric.objective()} '
-                        f'and overall_t:{overall_production_metric.objective()} <= overall_p:{overall_production_metric.objective()} '
+                        # f'and overall_t:{metrics_train.objective()} <= overall_p:{metrics_prod.objective()} '
                         f'== {evaluation}')
             if evaluation:
                 if last_config != best_config or last_class != production_class:

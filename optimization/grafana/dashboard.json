@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1594948313541,
+  "iteration": 1595875849240,
   "links": [],
   "panels": [
     {
@@ -67,13 +67,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile(1,rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (quantile(1, quantile_over_time(1,container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / 1024 / 1024)",
+          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (sum( sum_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / 1024 / 1024)",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "quantile(1,rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (quantile(1, quantile_over_time(1,container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / 1024 / 1024)",
+          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (sum( sum_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / 1024 / 1024)",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
@@ -168,15 +168,15 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile(1,rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "quantile(1,rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
-          "legendFormat": "PROD $train_podname",
+          "legendFormat": "TRAIN $train_podname",
           "refId": "B"
         }
       ],
@@ -269,13 +269,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile(1,rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "quantile(1,rate(container_cpu_usage_seconds_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
@@ -370,13 +370,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile(1, quantile_over_time(1, container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "quantile(1, quantile_over_time(1, container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
@@ -471,13 +471,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile(1, rate(smarttuning_http_processtime_seconds_sum{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / quantile(1, rate(smarttuning_http_processtime_seconds_count{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(smarttuning_http_processtime_seconds_sum{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / sum( rate(smarttuning_http_processtime_seconds_count{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "quantile(1, rate(smarttuning_http_processtime_seconds_sum{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / quantile(1, rate(smarttuning_http_processtime_seconds_count{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(smarttuning_http_processtime_seconds_sum{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / sum( rate(smarttuning_http_processtime_seconds_count{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
@@ -572,13 +572,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "quantile(1, rate(smarttuning_http_requests_total{code=~\"[4|5]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) /quantile(1, rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[4|5]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) /sum( rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "quantile(1, rate(smarttuning_http_requests_total{code=~\"[4|5]..\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) /quantile(1, rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[4|5]..\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) /sum( rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
@@ -743,8 +743,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "acmeair-nginx",
-          "value": "acmeair-nginx"
+          "text": "acmeair-authservice",
+          "value": "acmeair-authservice"
         },
         "datasource": "prometheus",
         "definition": "container_cpu_usage_seconds_total",
@@ -769,8 +769,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "acmeair-nginxsmarttuning",
-          "value": "acmeair-nginxsmarttuning"
+          "text": "acmeair-authservicesmarttuning",
+          "value": "acmeair-authservicesmarttuning"
         },
         "datasource": "prometheus",
         "definition": "container_cpu_usage_seconds_total",
@@ -794,7 +794,7 @@
     ]
   },
   "time": {
-    "from": "2020-07-17T15:49:28.000Z",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -813,5 +813,5 @@
   "timezone": "",
   "title": "smarttuning",
   "uid": "8RkJTIzGz",
-  "version": 10
+  "version": 2
 }

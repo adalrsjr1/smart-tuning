@@ -128,6 +128,16 @@ class TestPrometheusSampling(unittest.TestCase):
         self.assertGreaterEqual(m2, m2)
         self.assertTrue(math.isinf(m3.objective()))
 
+    def test_objective(self):
+        m = Metric(cpu=1, memory=1, throughput=1, process_time=1, in_out=0, errors=1,
+                   to_eval='cpu/in_out')
+        self.assertTrue(math.isinf(m.objective()))
+
+        m = Metric(cpu=1, memory=1, throughput=1, process_time=1, in_out=0, errors=1,
+                   to_eval='cpu / (10e-15 if in_out == 0 else in_out)')
+        print(m.objective())
+        self.assertFalse(math.isinf(m.objective()))
+
     def test_metric_serialization(self):
         print(self.client().metric().serialize())
 

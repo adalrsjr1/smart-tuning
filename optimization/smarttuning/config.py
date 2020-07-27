@@ -61,7 +61,7 @@ PROXY_PORT = int(os.environ.get('PROXY_PORT', default=80))
 METRICS_PORT = int(os.environ.get('METRICS_PORT', default=9090))
 PROXY_NAME = os.environ.get('PROXY_NAME', default='proxy')
 PROXY_TAG = os.environ.get('PROXY_TAG', default='smarttuning')  # this should be the same name as in prometheus config
-PROXY_IMAGE = os.environ.get('PROXY_IMAGE', default='smarttuning/proxy')
+PROXY_IMAGE = os.environ.get('PROXY_IMAGE', default='smarttuning/proxy:latest')
 PROXY_CONFIG_MAP = os.environ.get('PROXY_CONFIG_MAP', default='smarttuning-proxy-config')
 
 # mongo config
