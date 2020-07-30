@@ -301,7 +301,7 @@ class PrometheusSampler:
         """
         # The better metric is container_memory_working_set_bytes as this is what the OOM killer is watching for.
         logger.debug(f'sampling memory at {self.podname}.*')
-        query = f'sum(max_over_time(container_memory_working_set_bytes{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(max_over_time(container_memory_working_set_bytes{{container=~"",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 
@@ -309,7 +309,7 @@ class PrometheusSampler:
         """ return a concurrent.futures.Future<pandas.Series> with the CPU (milicores) rate over time of an specific pod
         """
         logger.debug(f'sampling cpu at {self.podname}-.*')
-        query = f'sum(rate(container_cpu_usage_seconds_total{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(rate(container_cpu_usage_seconds_total{{container=~"",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def workload(self) -> Future:
