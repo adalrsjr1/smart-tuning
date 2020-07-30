@@ -147,15 +147,16 @@ def create_context(production_microservice, training_microservice):
             training_class, training_hits = classify_workload(training_metric, training_result)
 
             loss = update_loss(training_class, training_metric, search_space_ctx)
+            loss = update_loss(production_class, production_metric, search_space_ctx)
 
             time.sleep(2)  # to avoid race condition when iterating over Trials
             best_config, best_loss = best_loss_so_far(search_space_ctx)
 
-            evaluation = loss <= best_loss * (1 - config.METRIC_THRESHOLD) \
-                    and training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD)
+            evaluation = loss <= best_loss * (1 - config.METRIC_THRESHOLD) #\
+                    # and training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD)
                     # and overall_metrics_train.metric().objective() <= overall_metrics_prod.metric().objective()
             logger.info(f'loss:{loss} <= best_loss:{best_loss} '
-                        f'and training:{training_metric.objective()} <= production:{production_metric.objective()} '
+                        # f'and training:{training_metric.objective()} <= production:{production_metric.objective()} '
                         # f'and overall_t:{metrics_train.objective()} <= overall_p:{metrics_prod.objective()} '
                         f'== {evaluation}')
             if evaluation:

@@ -1,7 +1,12 @@
+.PHONY:
+	build push
+
 build:
 	echo "building image: smarttuning"
 	docker build -t smarttuning/smarttuning .
 	docker build -t smarttuning .
+
+push:
 	docker push smarttuning/smarttuning
 
 deploy:

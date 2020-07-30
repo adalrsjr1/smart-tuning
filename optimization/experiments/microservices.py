@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from itertools import combinations
 import sys
 
-FILEPATH='resources/logging-202007221347.csv'
+FILEPATH='resources/logging-202007281830.csv'
 
 def extract_data_frames(filepath) -> pd.DataFrame:
     return pd.read_csv(filepath)
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     # # print(booking.columns.values)
     # # print(customer.columns.values)
 
-    training = False
+    training = True
     gw = extract_metrics(df, 'nginx', training=training, k=0)
     booking = extract_metrics(df, 'acmeair-bookingservice', training=training, k=0)
     customer = extract_metrics(df, 'acmeair-customerservice', training=training, k=1)
@@ -121,7 +121,8 @@ if __name__ == '__main__':
     metric_name = 'throughput'
     joined = pd.DataFrame({'booking': booking[metric_name], 'customer': customer[metric_name], 'flight': flight[metric_name],
                            'gateway': gw[metric_name]})
-    headers = ['booking', 'customer', 'flight']
+
+    headers = ['booking', 'customer']
     # print(joined)
     # # #
     joined = joined.drop(joined.index[0])
@@ -135,12 +136,13 @@ if __name__ == '__main__':
     # ax = joined.plot.scatter(ax=ax, x='booking', y='customer',  c='gateway', colormap=colormap, marker=2, figsize=(12,8))
     title = metric_name
     fig:plt.Figure
-    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(16,4))
+    fig, axes = plt.subplots(nrows=1, ncols=1)
     all_headers_permuations = list(combinations(headers, 2))
 
-    _axes = list(axes)
+    # _axes = list(axes)
+    _axes = [axes]
     fig.suptitle(title)
-    fig.set_tight_layout(True)
+    # fig.set_tight_layout(True)
     for ax, permutation in zip(_axes, all_headers_permuations):
         x, y = permutation
         print(ax, x, y)
@@ -150,6 +152,7 @@ if __name__ == '__main__':
         # label_point(joined.booking, joined.customer, pd.Series(joined.index), _ax)
         _ax.set_xlabel(f'{x} {title}')
         _ax.set_ylabel(f'{y} {title}')
+        label_point(joined.booking, joined.customer, pd.Series(joined.index), _ax)
 
 
     # ax = joined.plot.hexbin(x='booking', y='customer',  C='gateway', reduce_C_function=np.max, gridsize=20, colormap=colormap)
@@ -159,5 +162,5 @@ if __name__ == '__main__':
     # ax.set_xlabel('booking throughput')
     # ax.set_ylabel('customer throughput')
     #
-    plt.savefig(f'cor-{title}2.png', dpi=300)
+    plt.savefig(f'cor-{title}-{"train" if training else "prod"}.png', dpi=300)
     plt.show()
