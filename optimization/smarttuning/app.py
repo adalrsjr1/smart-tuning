@@ -147,23 +147,50 @@ def create_context(production_microservice, training_microservice):
             training_class, training_hits = classify_workload(training_metric, training_result)
 
             loss = update_loss(training_class, training_metric, search_space_ctx)
-            loss = update_loss(production_class, production_metric, search_space_ctx)
+            # loss = update_loss(production_class, production_metric, search_space_ctx)
 
             time.sleep(2)  # to avoid race condition when iterating over Trials
             best_config, best_loss = best_loss_so_far(search_space_ctx)
 
-            evaluation = loss <= best_loss * (1 - config.METRIC_THRESHOLD) #\
-                    # and training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD)
-                    # and overall_metrics_train.metric().objective() <= overall_metrics_prod.metric().objective()
-            logger.info(f'loss:{loss} <= best_loss:{best_loss} '
-                        # f'and training:{training_metric.objective()} <= production:{production_metric.objective()} '
-                        # f'and overall_t:{metrics_train.objective()} <= overall_p:{metrics_prod.objective()} '
-                        f'== {evaluation}')
+            evaluation = training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD)
+            logger.info(
+                f'training:{training_metric.objective()} <= production:{production_metric.objective()} '
+                f'| loss:{loss} <= best_loss:{best_loss}')
             if evaluation:
-                if last_config != best_config or last_class != production_class:
-                    update_production(production_microservice, best_config, search_space_ctx)
-                    last_config = best_config
-                    last_class = production_class
+                if best_loss < loss:
+
+                    if last_config != best_config or last_class != production_class:
+                        logger.info(
+                            f'training:{training_metric.objective()} <= production:{production_metric.objective()} '
+                            f'| loss:{loss} <= best_loss:{best_loss} '
+                            f'== {evaluation and (best_loss < loss)}')
+                        last_class = production_class
+                        update_production(production_microservice, best_config, search_space_ctx)
+                        last_config = best_config
+                else:
+
+                    if last_config != config_to_apply or last_class != production_class:
+                        logger.info(
+                            f'training:{training_metric.objective()} <= production:{production_metric.objective()} '
+                            f'| loss:{loss} <= best_loss:{best_loss} '
+                            f'== {evaluation and (best_loss >= loss)}')
+                        last_class = production_class
+                        update_production(production_microservice, config_to_apply, search_space_ctx)
+                        last_config = best_config = config_to_apply
+
+
+            # evaluation = best_loss <= loss * (1 - config.METRIC_THRESHOLD) \
+            #         and training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD)
+            #         # and overall_metrics_train.metric().objective() <= overall_metrics_prod.metric().objective()
+            # logger.info(f'loss:{loss} <= best_loss:{best_loss} '
+            #             f'and training:{training_metric.objective()} <= production:{production_metric.objective()} '
+            #             # f'and overall_t:{metrics_train.objective()} <= overall_p:{metrics_prod.objective()} '
+            #             f'== {evaluation}')
+            # if evaluation:
+            #     if last_config != best_config or last_class != production_class:
+            #         update_production(production_microservice, best_config, search_space_ctx)
+            #         last_config = best_config
+            #         last_class = production_class
 
             save(
                 timestamp=time.time_ns(),

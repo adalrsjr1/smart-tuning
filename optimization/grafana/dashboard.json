@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1595875849240,
+  "iteration": 1596139575877,
   "links": [],
   "panels": [
     {
@@ -67,13 +67,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (sum( sum_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / 1024 / 1024)",
+          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (sum( max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 1024 / 1024)",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (sum( sum_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / 1024 / 1024)",
+          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (sum( max_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 1024 / 1024)",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
@@ -370,13 +370,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "sum(max_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
@@ -665,15 +665,15 @@
         "auto_min": "10s",
         "current": {
           "selected": false,
-          "text": "15m",
-          "value": "15m"
+          "text": "1m",
+          "value": "1m"
         },
         "hide": 0,
         "label": null,
         "name": "time_interval_m",
         "options": [
           {
-            "selected": false,
+            "selected": true,
             "text": "1m",
             "value": "1m"
           },
@@ -688,7 +688,7 @@
             "value": "10m"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "15m",
             "value": "15m"
           },
@@ -743,8 +743,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "acmeair-authservice",
-          "value": "acmeair-authservice"
+          "text": "acmeair-nginxservice",
+          "value": "acmeair-nginxservice"
         },
         "datasource": "prometheus",
         "definition": "container_cpu_usage_seconds_total",
@@ -769,8 +769,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "acmeair-authservicesmarttuning",
-          "value": "acmeair-authservicesmarttuning"
+          "text": "acmeair-nginxservicesmarttuning",
+          "value": "acmeair-nginxservicesmarttuning"
         },
         "datasource": "prometheus",
         "definition": "container_cpu_usage_seconds_total",
@@ -794,7 +794,7 @@
     ]
   },
   "time": {
-    "from": "now-5m",
+    "from": "2020-07-30T20:04:35.000Z",
     "to": "now"
   },
   "timepicker": {
@@ -813,5 +813,5 @@
   "timezone": "",
   "title": "smarttuning",
   "uid": "8RkJTIzGz",
-  "version": 2
+  "version": 3
 }

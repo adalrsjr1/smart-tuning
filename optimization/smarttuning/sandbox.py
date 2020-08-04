@@ -6,6 +6,7 @@ import pandas as pd
 import math
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 import re
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -14,6 +15,49 @@ from prometheus_pandas import query as handler
 import time
 step = 900
 
+G = nx.Graph()
+G.add_weighted_edges_from([
+('0', '1', 0),
+('0', '2', 0),
+('0', '3', 0),
+('0', '4', 0),
+('0', '5', 0),
+('0', '6', 0),
+('6', '1', 0.13),
+('6', '2', 0.12),
+('6', '3', 0.14),
+('6', '4', 0.24),
+('6', '5', 0),
+('1', '3', 0.45),
+('2', '3', 0.44),
+('2', '4', 0.48),
+])
+
+pr = nx.algorithms.link_analysis.pagerank(G, weight='weight')
+rank_vector=np.array([[*pr.values()]])
+best_node=np.argmax(rank_vector)
+print(pr, best_node)
+
+G.add_weighted_edges_from([
+('1', '6', 0.13),
+('2', '6', 0.12),
+('3', '6', 0.14),
+('4', '6', 0.24),
+('5', '6', 0),
+('3', '1', 0.45),
+('3', '2', 0.44),
+('4', '2', 0.48),
+])
+
+pr = nx.algorithms.link_analysis.pagerank(G)
+rank_vector=np.array([[*pr.values()]])
+best_node=np.argmax(rank_vector)
+print(pr, best_node)
+
+
+
+
+sys.exit(0)
 podname = '.*servicesmarttuning-.*'
 # throughput
 q1 = f'sum( rate(in_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{step}s])) by (pod, src, dst, instance, service) /' \
