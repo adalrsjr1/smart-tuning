@@ -10,7 +10,7 @@ echo -e "\ndeploying grafana\n"
 kubectl delete --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  ../grafana
 sleep 1
 echo -e "\ndeploying searchspace\n"
-kubectl delete --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  search-space/search-space-crd.yaml
+kubectl delete --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  search-space/search-space-crd-2.yaml
 sleep 1
 echo -e "\nproxy config\n"
 kubectl delete --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  proxy-config.yaml

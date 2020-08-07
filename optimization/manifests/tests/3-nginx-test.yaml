@@ -37,6 +37,16 @@ data:
   key: "value"
   foo: "bar"
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-test-cm-3
+data:
+  ss.txt: |-
+    t1: false
+    t2: 0
+    t3: test
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -73,10 +83,16 @@ spec:
             - mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
               name: nginx-test-vm
+            - mountPath: /etc/smarttuning/ss.txt
+              subPath: ss.txt
+              name: cm-file
       volumes:
         - name: nginx-test-vm
           configMap:
             name: nginx-test-cm
+        - name: cm-file
+          configMap:
+            name: nginx-test-cm-3
       restartPolicy: Always
   selector:
     matchLabels:

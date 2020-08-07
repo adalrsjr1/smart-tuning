@@ -1,0 +1,59 @@
+apiVersion: "smarttuning.ibm.com/v1alpha2"
+kind: SearchSpace
+metadata:
+  name: test
+spec:
+  deployment: "acmeair-nginx-test-service"
+  namespace: "default"
+  service: "nginx-test-svc"
+  manifests:
+    - name: "acmeair-nginx-test-service"
+      type: "deployment"
+    - name: "nginx-test-cm-2"
+      type: "configMap"
+    - name: "nginx-test-cm-3"
+      type: "configMap"
+data:
+  - name: "acmeair-nginx-test-service"
+    tunables:
+      number:
+        - name: "cpu"
+          lower: 1
+          upper: 5
+        - name: "memory"
+          lower: 128
+          upper: 1024
+          step: 32
+        - name: "replicas"
+          lower: 1
+          upper: 3
+  - name: "nginx-test-cm-2"
+    tunables:
+      number:
+        - name: "key"
+          lower: -10
+          upper: 3
+          real: true
+      option:
+        - name: "foo"
+          values:
+            - bar-0
+            - bar-1
+            - bar-2
+  - name: "nginx-test-cm-3"
+    filename: "jvm.options"
+    tunables:
+      boolean:
+        - name: "t1"
+      number:
+        - name: "t2"
+          lower: 0
+          upper: 10
+          step: 1
+          real: True
+      option:
+        - name: "t3"
+          values:
+            - value1
+            - value2
+            - value3

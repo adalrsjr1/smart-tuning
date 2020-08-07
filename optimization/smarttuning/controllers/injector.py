@@ -14,7 +14,7 @@ from controllers.k8seventloop import EventLoop, ListToWatch
 config.init_k8s(hostname=config.K8S_HOST)
 
 logger = logging.getLogger(config.INJECTOR_LOGGER)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(config.LOGGING_LEVEL)
 
 # (key, value) == (production_name, training_name)
 duplicated_cm = {}
@@ -28,7 +28,7 @@ def update_service(event):
     if evaluate_event(event):
         try:
             last_applied_service = inject_proxy_into_service(event)
-            duplicate_service_for_training(last_applied_service)
+            # duplicate_service_for_training(last_applied_service)
         except Exception:
             logger.exception(f'error caused when updating {kind(event["object"])}: {name(event["object"])}')
 
@@ -101,7 +101,8 @@ def inject_proxy_into_service(event: dict):
 
     config.init_k8s(config.K8S_HOST)
     try:
-        return client.CoreV1Api().patch_namespaced_service(name(service), service.metadata.namespace, patch_body)
+
+        return config.coreApi().patch_namespaced_service(name(service), service.metadata.namespace, patch_body)
     except ApiException as e:
         if 409 == e.status:
             logger.exception(f'service {name(service)} conflict')
@@ -131,7 +132,7 @@ def duplicate_service_for_training(service: V1Service):
     if name(service).endswith(training_name()):
         return None
 
-    logger.info(f'dupplicating {kind(service)}: {name(service)}')
+    logger.info(f'duplicating {kind(service)}: {name(service)}')
 
     old_name = name(service)
     service.metadata.name += training_name()
@@ -143,7 +144,7 @@ def duplicate_service_for_training(service: V1Service):
                 update_node_port(port, set_as_none=True)
 
     try:
-        client.CoreV1Api().create_namespaced_service(namespace=config.NAMESPACE, body=duplicate_service(service))
+        config.coreApi().create_namespaced_service(namespace=config.NAMESPACE, body=duplicate_service(service))
         duplicated_svc[old_name] = service.metadata.name
     except ApiException as e:
         if 409 == e.status:
@@ -164,7 +165,7 @@ def duplicate_service(service: V1Service):
 def update_deployment(event):
     if evaluate_event(event):
         last_applied_deployment = inject_proxy_to_deployment(event)
-        duplicate_deployment_for_training(last_applied_deployment)
+        # duplicate_deployment_for_training(last_applied_deployment)
 
     # fetch from this annotation to avoid race condition
     annotations = extracts_annotations(event)
@@ -227,7 +228,7 @@ def inject_proxy_to_deployment(event):
         }
     }
 
-    return client.AppsV1Api().patch_namespaced_deployment(deployment.metadata.name, deployment.metadata.namespace,
+    return config.appsApi().patch_namespaced_deployment(deployment.metadata.name, deployment.metadata.namespace,
                                                           patch_body)
 
 
@@ -317,11 +318,15 @@ def duplicate_deployment_for_training(deployment: V1Deployment):
     old_name = deployment.metadata.name
     deployment.spec.replicas = 1
     deployment.metadata.name += training_name()
-    deployment.metadata.labels.update({config.PROXY_TAG: 'true'})
-    deployment.spec.template.metadata.labels.update({config.PROXY_TAG: 'true'})
-    deployment.spec.selector.match_labels.update({config.PROXY_TAG: 'true'})
+    # deployment.metadata.labels.update({config.PROXY_TAG: 'true'})
+    deployment.metadata.labels.update({config.PROXY_TAG: 'false'})
+    # deployment.spec.template.metadata.labels.update({config.PROXY_TAG: 'true'})
+    deployment.spec.template.metadata.labels.update({config.PROXY_TAG: 'false'})
+    # deployment.spec.selector.match_labels.update({config.PROXY_TAG: 'true'})
+    deployment.spec.selector.match_labels.update({config.PROXY_TAG: 'false'})
 
-    duplicating_deployment_configs(extract_configs_names(deployment))
+    configs = extract_configs_names(deployment)
+    duplicating_deployment_configs(configs)
 
     config_maps = append_suffix_to_configs_names(deployment, suffix=training_name())
     deployment.metadata.annotations.update(
@@ -330,7 +335,7 @@ def duplicate_deployment_for_training(deployment: V1Deployment):
     duplicate_deployment(deployment)
 
     try:
-        client.AppsV1Api().create_namespaced_deployment(namespace=config.NAMESPACE,
+        config.appsApi().create_namespaced_deployment(namespace=config.NAMESPACE,
                                                         body=duplicate_deployment(deployment))
         duplicated_dep[old_name] = deployment.metadata.name
     except ApiException as e:
@@ -414,12 +419,13 @@ def append_suffix_to_configs_names(deployment: V1Deployment, suffix=training_nam
 
 def duplicating_deployment_configs(config_maps):
     config_map: V1ConfigMap
-    for config_map in client.CoreV1Api().list_namespaced_config_map(namespace=config.NAMESPACE).items:
+    for config_map in config.coreApi().list_namespaced_config_map(namespace=config.NAMESPACE).items:
+        logger.debug(f'duplicating cm: {config_map.metadata.name} data: {config_map.data}')
         if config_map.metadata.name in config_maps and not config_map.metadata.name.endswith(training_name()):
             old_name = config_map.metadata.name
             config_map.metadata.name += training_name()
             try:
-                client.CoreV1Api().create_namespaced_config_map(namespace=config.NAMESPACE,
+                config.coreApi().create_namespaced_config_map(namespace=config.NAMESPACE,
                                                                 body=duplicate_config_map(config_map))
                 duplicated_cm[old_name] = config_map.metadata.name
             except ApiException as e:

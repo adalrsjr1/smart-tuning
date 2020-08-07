@@ -59,7 +59,7 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
                 else:
                     w.stop()
     except:
-        logger.exception('error outside loop')
+        logger.exception('error outside loop ', name(event))
 
 
 class EventLoop:
@@ -87,6 +87,11 @@ class EventLoop:
         return True
 
     def shutdown(self):
+
+        keys = [key for key in self.loops.keys()]
+        for key in keys:
+            self.unregister(key)
+
         logger.info(f'shutdown event loop ')
         w: watch.Watch
         f: Future

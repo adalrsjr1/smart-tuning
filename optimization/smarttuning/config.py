@@ -27,6 +27,7 @@ def init_k8s(hostname='localhost'):
             logging.info('loading localhost configuration')
             kubernetes.config.load_kube_config()
 
+
 K8S_HOST = 'trxrhel7perf-1'
 K8S_CONF = '/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config'
 LOCALHOST = '9.26.100.254'
@@ -54,7 +55,7 @@ EVENT_LOOP_LOGGER = 'eventloop.smarttuning.ibm'
 # debug config
 MOCK = eval(os.environ.get('MOCK', default='True'))
 PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='False'))
-LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='DEBUG').upper()
+LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='NOTSET').upper()
 logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format=FORMAT)
 # proxy config
 PROXY_PORT = int(os.environ.get('PROXY_PORT', default=80))
@@ -88,7 +89,7 @@ GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
-OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='throughput / memory'), '<string>', 'eval')
+OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='-throughput/(memory / 2 ** 20)'), '<string>', 'eval')
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
 WAITING_TIME = int(os.environ.get('WAITING_TIME', default='300'))
@@ -109,6 +110,20 @@ SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH', default='')
 print_config(PRINT_CONFIG)
 _executor = None
 _client = None
+
+__coreV1Api = None
+def coreApi():
+    global __coreV1Api
+    if not __coreV1Api:
+        __coreV1Api = kubernetes.client.CoreV1Api()
+    return __coreV1Api
+
+__appsApi = None
+def appsApi():
+    global __appsApi
+    if not __appsApi:
+        __appsApi = kubernetes.client.AppsV1Api()
+    return __appsApi
 
 
 def executor():

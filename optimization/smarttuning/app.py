@@ -15,7 +15,7 @@ from controllers.searchspace import SearchSpaceContext
 from seqkmeans import Container, KmeansContext, Metric, Cluster
 
 logger = logging.getLogger(config.APP_LOGGER)
-logger.setLevel(logging.INFO)
+logger.setLevel('INFO')
 
 
 def warmup():
@@ -128,6 +128,7 @@ def create_context(production_microservice, training_microservice):
                 logger.debug(f'no searchspace configuration available for microservice {production_name}')
                 time.sleep(1)
                 continue
+
             config_to_apply = update_training_config(training_microservice, search_space_ctx)
             wait(config.WAITING_TIME)
 
@@ -214,14 +215,16 @@ def create_context(production_microservice, training_microservice):
 
 def sample_config(microservice) -> SearchSpaceContext:
     logger.debug(f'lookup {microservice} in {searchspace.search_spaces.keys()}')
-    return searchspace.search_spaces.get(f'{microservice}-ss', None)
+    return searchspace.search_spaces.get(f'{microservice}', None)
 
 
 def update_training_config(name, new_config_ctx: SearchSpaceContext):
     config_to_apply = new_config_ctx.get_from_engine()
     logger.info(f'updating training microservice {name} with config {config_to_apply}')
 
-    manifests = new_config_ctx.manifests
+    # manifests = new_config_ctx.manifests
+    manifests = new_config_ctx.model.manifests
+
     do_patch(manifests, config_to_apply)
     return config_to_apply
 
@@ -229,6 +232,7 @@ def update_training_config(name, new_config_ctx: SearchSpaceContext):
 def do_patch(manifests, configuration, production=False):
     for key, value in configuration.items():
         for manifest in manifests:
+            logger.info(f'checking to patch {key} into {manifest.name}')
             if key == manifest.name:
                 logger.info(f'patching new config at {manifest.name}')
                 manifest.patch(value, production=production)
@@ -258,7 +262,7 @@ def best_loss_so_far(search_space_ctx: SearchSpaceContext):
 
 def update_production(name, config, search_space_ctx: SearchSpaceContext):
     logger.info(f'updating production microservice {name} with config {config}')
-    manifests = search_space_ctx.manifests
+    manifests = search_space_ctx.model.manifests
     do_patch(manifests, config, production=True)
 
 
@@ -323,6 +327,9 @@ def main():
     init()
     while True:
         try:
+            # duplicate microservices
+
+            # create optimization contexts
             create_contexts(get_microservices())
             time.sleep(1)
         except:

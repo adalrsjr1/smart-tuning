@@ -1,42 +1,244 @@
-[
-  {
-      "key": "TEST1",
-      "type": "int",
-      "lower": 4,
-      "upper": 20,
-      "step": 5,
-      "options": null
-  },
-  {
-      "key": "TEST2",
-      "type": "bool",
-      "lower": null,
-      "upper": null,
-      "step": null,
-      "options": null
-  },
-  {
-      "key": "TEST3",
-      "type": "str",
-      "lower": null,
-      "upper": null,
-      "step": null,
-      "options": ["phi", "e", "pi"]
-  },
-  {
-      "key": "TEST4",
-      "type": "int",
-      "lower": 4,
-      "upper": 20,
-      "step": null,
-      "options": null
-  },
-  {
-      "key": "TEST5",
-      "type": "float",
-      "lower": 0.0,
-      "upper": 100.0,
-      "step": null,
-      "options": null
-  }
-]
+{
+   "type":"ADDED",
+   "object":{
+      "apiVersion":"smarttuning.ibm.com/v1alpha2",
+      "data":[
+         {
+            "filename":"",
+            "name":"acmeair-nginx-test-service",
+            "tunables":{
+               "number":[
+                  {
+                     "lower":1,
+                     "name":"cpu",
+                     "real":false,
+                     "upper":5
+                  },
+                  {
+                     "lower":128,
+                     "name":"memory",
+                     "real":false,
+                     "step":32,
+                     "upper":1024
+                  },
+                  {
+                     "lower":1,
+                     "name":"replicas",
+                     "real":false,
+                     "upper":3
+                  }
+               ]
+            }
+         },
+         {
+            "filename":"",
+            "name":"nginx-test-cm-2",
+            "tunables":{
+               "number":[
+                  {
+                     "lower":-10,
+                     "name":"key",
+                     "real":true,
+                     "upper":3
+                  }
+               ],
+               "option":[
+                  {
+                     "name":"foo",
+                     "values":[
+                        "bar-0",
+                        "bar-1",
+                        "bar-2"
+                     ]
+                  }
+               ]
+            }
+         },
+         {
+            "filename":"jvm.options",
+            "name":"nginx-test-cm-3",
+            "tunables":{
+               "boolean":[
+                  {
+                     "name":"t1"
+                  }
+               ],
+               "number":[
+                  {
+                     "lower":32,
+                     "name":"-Xmx",
+                     "real":false,
+                     "step":32,
+                     "upper":256
+                  },
+                  {
+                     "lower":32,
+                     "name":"-Dhttp.maxConnections",
+                     "real":false,
+                     "step":32,
+                     "upper":256
+                  }
+               ],
+               "option":[
+                  {
+                     "name":"t3",
+                     "values":[
+                        "value1",
+                        "value2",
+                        "value3"
+                     ]
+                  }
+               ]
+            }
+         }
+      ],
+      "kind":"SearchSpace",
+      "metadata":{
+         "annotations":{
+            "kubectl.kubernetes.io/last-applied-configuration":"{\"apiVersion\":\"smarttuning.ibm.com/v1alpha2\",\"data\":[{\"name\":\"acmeair-nginx-test-service\",\"tunables\":{\"number\":[{\"lower\":1,\"name\":\"cpu\",\"upper\":5},{\"lower\":128,\"name\":\"memory\",\"step\":32,\"upper\":1024},{\"lower\":1,\"name\":\"replicas\",\"upper\":3}]}},{\"name\":\"nginx-test-cm-2\",\"tunables\":{\"number\":[{\"lower\":-10,\"name\":\"key\",\"real\":true,\"upper\":3}],\"option\":[{\"name\":\"foo\",\"values\":[\"bar-0\",\"bar-1\",\"bar-2\"]}]}},{\"filename\":\"ss.txt\",\"name\":\"nginx-test-cm-3\",\"tunables\":{\"boolean\":[{\"name\":\"t1\"}],\"number\":[{\"lower\":0,\"name\":\"t2\",\"real\":true,\"step\":1,\"upper\":10}],\"option\":[{\"name\":\"t3\",\"values\":[\"value1\",\"value2\",\"value3\"]}]}}],\"kind\":\"SearchSpace\",\"metadata\":{\"annotations\":{},\"name\":\"test\",\"namespace\":\"default\"},\"spec\":{\"deployment\":\"acmeair-nginx-test-service\",\"manifests\":[{\"name\":\"acmeair-nginx-test-service\",\"type\":\"deployment\"},{\"name\":\"nginx-test-cm-2\",\"type\":\"configMap\"},{\"name\":\"nginx-test-cm-3\",\"type\":\"configMap\"}],\"namespace\":\"default\"}}\n"
+         },
+         "creationTimestamp":"2020-08-04T16:47:26Z",
+         "generation":3,
+         "name":"test",
+         "namespace":"default",
+         "resourceVersion":"40150",
+         "selfLink":"/apis/smarttuning.ibm.com/v1alpha2/namespaces/default/searchspaces/test",
+         "uid":"e712e11e-6edb-44ba-b603-0c531f50adc7"
+      },
+      "spec":{
+         "deployment":"acmeair-nginx-test-service",
+         "manifests":[
+            {
+               "name":"acmeair-nginx-test-service",
+               "type":"deployment"
+            },
+            {
+               "name":"nginx-test-cm-2",
+               "type":"configMap"
+            },
+            {
+               "name":"nginx-test-cm-3",
+               "type":"configMap"
+            }
+         ],
+         "namespace":"default"
+      }
+   },
+   "raw_object":{
+      "apiVersion":"smarttuning.ibm.com/v1alpha2",
+      "data":[
+         {
+            "filename":"",
+            "name":"acmeair-nginx-test-service",
+            "tunables":{
+               "number":[
+                  {
+                     "lower":1,
+                     "name":"cpu",
+                     "real":false,
+                     "upper":5
+                  },
+                  {
+                     "lower":128,
+                     "name":"memory",
+                     "real":false,
+                     "step":32,
+                     "upper":1024
+                  },
+                  {
+                     "lower":1,
+                     "name":"replicas",
+                     "real":false,
+                     "upper":3
+                  }
+               ]
+            }
+         },
+         {
+            "filename":"",
+            "name":"nginx-test-cm-2",
+            "tunables":{
+               "number":[
+                  {
+                     "lower":-10,
+                     "name":"key",
+                     "real":true,
+                     "upper":3
+                  }
+               ],
+               "option":[
+                  {
+                     "name":"foo",
+                     "values":[
+                        "bar-0",
+                        "bar-1",
+                        "bar-2"
+                     ]
+                  }
+               ]
+            }
+         },
+         {
+            "filename":"ss.txt",
+            "name":"nginx-test-cm-3",
+            "tunables":{
+               "boolean":[
+                  {
+                     "name":"t1"
+                  }
+               ],
+               "number":[
+                  {
+                     "lower":0,
+                     "name":"t2",
+                     "real":true,
+                     "step":1,
+                     "upper":10
+                  }
+               ],
+               "option":[
+                  {
+                     "name":"t3",
+                     "values":[
+                        "value1",
+                        "value2",
+                        "value3"
+                     ]
+                  }
+               ]
+            }
+         }
+      ],
+      "kind":"SearchSpace",
+      "metadata":{
+         "annotations":{
+            "kubectl.kubernetes.io/last-applied-configuration":"{\"apiVersion\":\"smarttuning.ibm.com/v1alpha2\",\"data\":[{\"name\":\"acmeair-nginx-test-service\",\"tunables\":{\"number\":[{\"lower\":1,\"name\":\"cpu\",\"upper\":5},{\"lower\":128,\"name\":\"memory\",\"step\":32,\"upper\":1024},{\"lower\":1,\"name\":\"replicas\",\"upper\":3}]}},{\"name\":\"nginx-test-cm-2\",\"tunables\":{\"number\":[{\"lower\":-10,\"name\":\"key\",\"real\":true,\"upper\":3}],\"option\":[{\"name\":\"foo\",\"values\":[\"bar-0\",\"bar-1\",\"bar-2\"]}]}},{\"filename\":\"ss.txt\",\"name\":\"nginx-test-cm-3\",\"tunables\":{\"boolean\":[{\"name\":\"t1\"}],\"number\":[{\"lower\":0,\"name\":\"t2\",\"real\":true,\"step\":1,\"upper\":10}],\"option\":[{\"name\":\"t3\",\"values\":[\"value1\",\"value2\",\"value3\"]}]}}],\"kind\":\"SearchSpace\",\"metadata\":{\"annotations\":{},\"name\":\"test\",\"namespace\":\"default\"},\"spec\":{\"deployment\":\"acmeair-nginx-test-service\",\"manifests\":[{\"name\":\"acmeair-nginx-test-service\",\"type\":\"deployment\"},{\"name\":\"nginx-test-cm-2\",\"type\":\"configMap\"},{\"name\":\"nginx-test-cm-3\",\"type\":\"configMap\"}],\"namespace\":\"default\"}}\n"
+         },
+         "creationTimestamp":"2020-08-04T16:47:26Z",
+         "generation":3,
+         "name":"test",
+         "namespace":"default",
+         "resourceVersion":"40150",
+         "selfLink":"/apis/smarttuning.ibm.com/v1alpha2/namespaces/default/searchspaces/test",
+         "uid":"e712e11e-6edb-44ba-b603-0c531f50adc7"
+      },
+      "spec":{
+         "deployment":"acmeair-nginx-test-service",
+         "manifests":[
+            {
+               "name":"acmeair-nginx-test-service",
+               "type":"deployment"
+            },
+            {
+               "name":"nginx-test-cm-2",
+               "type":"configMap"
+            },
+            {
+               "name":"nginx-test-cm-3",
+               "type":"configMap"
+            }
+         ],
+         "namespace":"default"
+      }
+   }
+}

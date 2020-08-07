@@ -1,0 +1,129 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tuning
+rules:
+  - apiGroups: ["*"]
+    resources:
+      - configmaps
+      - deployments
+      - searchspaces
+    verbs: ["get","list","watch","create","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tuning
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tuning
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+---
+# https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: searchspaces.smarttuning.ibm.com
+spec:
+  group: smarttuning.ibm.com
+  scope: Namespaced
+  names:
+    plural: searchspaces
+    singular: searchspace
+    kind: SearchSpace
+    shortNames:
+      - ss
+  versions:
+    - name: v1alpha2
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                deployment:
+                  description: "deployment name"
+                  type: string
+                namespace:
+                  type: string
+                  default: "default"
+                service:
+                  description: "service name"
+                  type: string
+                manifests:
+                  description: "tunable manifests"
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      type:
+                        type: string
+                        pattern: "(configMap|deployment)"
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  filename:
+                    type: string
+                    default: ""
+                  tunables:
+                    type: object
+                    properties:
+                      boolean:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                      number:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            lower:
+                              type: number
+                            upper:
+                              type: number
+                            step:
+                              type: number
+                            real:
+                              type: boolean
+                              default: false
+                      option:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            values:
+                              type: array
+                              items:
+                                type: string
+      additionalPrinterColumns:
+        - jsonPath: .spec.deployment
+          name: Deployment
+          type: string
+        - jsonPath: .spec.namespace
+          name: Namespace
+          type: string
+        - jsonPath: .spec.service
+          name: Service
+          type: string
+# https://kubernetes.io/docs/reference/kubectl/jsonpath/
+# https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/
