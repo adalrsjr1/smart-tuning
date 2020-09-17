@@ -279,7 +279,7 @@ class OptionRangeModel:
         return self.cast(self.values, self.type)
 
     def get_hyper_interval(self):
-        return {self.name: hyperopt.hp.choice(self.name, self.values)}
+        return {self.name: hyperopt.hp.choice(self.name, self.get_values())}
 
 
 def dict_to_jvmoptions(data):
