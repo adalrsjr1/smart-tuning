@@ -116,11 +116,14 @@ def create_context(production_microservice, training_microservice):
     sampler_production = sampler.PrometheusSampler(production_sanitized, config.WAITING_TIME * config.SAMPLE_SIZE)
     sampler_training = sampler.PrometheusSampler(training_sanitized, config.WAITING_TIME * config.SAMPLE_SIZE)
 
-    overall_metrics_prod = sampler.PrometheusSampler('acmeair-nginxservice', config.WAITING_TIME * config.SAMPLE_SIZE)
-    overall_metrics_train = sampler.PrometheusSampler('acmeair-nginxservicesmarttuning', config.WAITING_TIME * config.SAMPLE_SIZE)
+    overall_metrics_prod = sampler.PrometheusSampler(config.GATEWAY_NAME, config.WAITING_TIME * config.SAMPLE_SIZE)
+    overall_metrics_train = sampler.PrometheusSampler(config.GATEWAY_NAME+config.PROXY_TAG, config.WAITING_TIME * config.SAMPLE_SIZE)
 
     last_config = None
     last_class = None
+
+    last_metrics_prod = Metric.zero()
+    last_metrics_train = Metric.zero()
     while production_name and training_name:
         try:
             search_space_ctx: SearchSpaceContext = sample_config(production_name)
@@ -137,9 +140,24 @@ def create_context(production_microservice, training_microservice):
             training_metric = sampler_training.metric()
             training_workload = sampler_training.workload()
 
-            # fix this for production deployment
             metrics_prod = overall_metrics_prod.metric()
             metrics_train = overall_metrics_train.metric()
+
+            # update metrics with gw performance
+            old_metrics_prod = metrics_prod
+            old_metrics_train = metrics_train
+            production_metric = Metric(cpu=production_metric.cpu(), memory=production_metric.memory(), throughput=metrics_prod.throughput(), process_time=production_metric.process_time(), errors=production_metric.errors(), in_out=production_metric.in_out(), to_eval=production_metric.to_eval)
+            training_metric = Metric(cpu=training_metric.cpu(), memory=training_metric.memory(), throughput=metrics_prod.throughput(), process_time=training_metric.process_time(), errors=training_metric.errors(), in_out=training_metric.in_out(), to_eval=training_metric.to_eval)
+
+            # fix this for production deployment
+            #
+            # Traceback (most recent call last):
+            #   File "./app.py", line 144, in create_context
+            #     last_metrics_prod = metrics_prod
+            # UnboundLocalError: local variable 'metrics_prod' referenced before assignment
+            #
+            # last_metrics_prod = production_metric
+            # last_metrics_train = training_metric
 
             production_result = production_workload.result(config.SAMPLING_METRICS_TIMEOUT)
             production_class, production_hits = classify_workload(production_metric, production_result)
@@ -153,10 +171,13 @@ def create_context(production_microservice, training_microservice):
             time.sleep(2)  # to avoid race condition when iterating over Trials
             best_config, best_loss = best_loss_so_far(search_space_ctx)
 
-            evaluation = training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD)
+            evaluation = training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD) #\
+                # and metrics_train.throughput() > last_metrics_prod.throughput()
             logger.info(
+                # f' last gw throughput: {last_metrics_prod.throughput()} <= current gw throughput: {metrics_train.throughput() > last_metrics_prod.throughput()}'
                 f'training:{training_metric.objective()} <= production:{production_metric.objective()} '
                 f'| loss:{loss} <= best_loss:{best_loss}')
+            tuned = False
             if evaluation:
                 if best_loss < loss:
 
@@ -168,6 +189,7 @@ def create_context(production_microservice, training_microservice):
                         last_class = production_class
                         update_production(production_microservice, best_config, search_space_ctx)
                         last_config = best_config
+                        tuned = True
                 else:
 
                     if last_config != config_to_apply or last_class != production_class:
@@ -178,6 +200,7 @@ def create_context(production_microservice, training_microservice):
                         last_class = production_class
                         update_production(production_microservice, config_to_apply, search_space_ctx)
                         last_config = best_config = config_to_apply
+                        tuned = True
 
 
             # evaluation = best_loss <= loss * (1 - config.METRIC_THRESHOLD) \
@@ -196,7 +219,9 @@ def create_context(production_microservice, training_microservice):
             save(
                 timestamp=time.time_ns(),
                 config=config_to_apply,
+                old_production_metric=old_metrics_prod.serialize(),
                 production_metric=production_metric.serialize(),
+                old_train_metric=old_metrics_train.serialize(),
                 training_metric=training_metric.serialize(),
                 production_workload=sampler.series_to_dict(production_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
                 overall_metrics_train=metrics_train.serialize(),
@@ -207,6 +232,7 @@ def create_context(production_microservice, training_microservice):
                 best_loss=best_loss,
                 best_config=best_config,
                 update_production=best_config,
+                tuned=tuned
             )
 
         except:
@@ -336,7 +362,8 @@ def main():
             logger.exception(f'error on main loop')
             break
 
-
+# https://github.com/kubernetes-client/python/blob/cef5e9bd10a6d5ca4d9c83da46ccfe2114cdaaf8/examples/notebooks/intro_notebook.ipynb
+# repactor injector using this approach
 if __name__ == '__main__':
     try:
         main()

@@ -28,9 +28,11 @@ def init_k8s(hostname='localhost'):
             kubernetes.config.load_kube_config()
 
 
-K8S_HOST = 'trxrhel7perf-1'
+# K8S_HOST = 'trxrhel7perf-1'
+K8S_HOST = 'localhost'
 K8S_CONF = '/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config'
-LOCALHOST = '9.26.100.254'
+# LOCALHOST = '9.26.100.254'
+LOCALHOST = 'localhost'
 ## to disable loggers
 FORMAT = '%(asctime)-15s - %(name)-30s %(levelname)-7s - %(threadName)-30s: %(message)s'
 INJECTOR_LOGGER = 'injector.smarttuning.ibm'
@@ -81,32 +83,33 @@ DISTANCE_METHOD = os.environ.get('DISTANCE_METHOD', default='hellinger')
 URL_SIMILARITY_THRESHOLD = float(os.environ.get('URL_SIMILARITY_THRESHOLD', default='0.1'))
 
 # optimization config
-SEARCH_SPACE_NAME = os.environ.get('SEARCH_SPACE_NAME', default='default')
 BAYESIAN = eval(os.environ.get('OPTIMIZATION_METHOD', default='True'))
 N_STARTUP_JOBS = int(os.environ.get('N_STARTUP_JOBS', default=20))
 N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
 GAMMA = float(os.environ.get('GAMMA', default=0.25))
-NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3'))
+NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3')) # check if hyperopt version is updated to use stop iterations
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
 OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='-throughput/(memory / 2 ** 20)'), '<string>', 'eval')
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
 WAITING_TIME = int(os.environ.get('WAITING_TIME', default='300'))
-POD_REGEX = os.environ.get('POD_REGEX', default='acmeair-.+servicessmarttuning-.+')
-POD_PROD_REGEX = os.environ.get('POD_PROD_REGEX', default='acmeair-.+services-.+')
+GATEWAY_NAME = os.environ.get('GATEWAY_NAME', default='acmeair-nginxservice')
+
 QUANTILE = float(os.environ.get('QUANTILE', default='1.0'))
 
 # actuator config
-CONFIGMAP_NAME = os.environ.get('CONFIGMAP_NAME', default='tuning-config')
-CONFIGMAP_PROD_NAME = os.environ.get('CONFIGMAP_PROD_NAME', default='tuning-config')
-NAMESPACE = os.environ.get('NAMESPACE', 'default')
+NAMESPACE = os.environ.get('NAMESPACE', 'uapp')
 
 # deprecated -- to remove
+SEARCH_SPACE_NAME = os.environ.get('SEARCH_SPACE_NAME', default='default')
 NAMESPACE_PROD = os.environ.get('NAMESPACE_PROD', 'default')
 SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH', default='')
-
-
+CONFIGMAP_NAME = os.environ.get('CONFIGMAP_NAME', default='tuning-config')
+CONFIGMAP_PROD_NAME = os.environ.get('CONFIGMAP_PROD_NAME', default='tuning-config')
+POD_REGEX = os.environ.get(''
+                           'POD_REGEX', default='acmeair-.+servicessmarttuning-.+')
+POD_PROD_REGEX = os.environ.get('POD_PROD_REGEX', default='acmeair-.+services-.+')
 print_config(PRINT_CONFIG)
 _executor = None
 _client = None

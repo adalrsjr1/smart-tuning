@@ -185,7 +185,10 @@ class ConfigMapSearhSpaceModel:
 
         for key, param in self.tunables.items():
             if isinstance(param, NumberRangeModel):
-                new_config[key] = str(int(new_config[key]))
+                if param.get_real():
+                    new_config[key] = str(float(new_config[key]))
+                else:
+                    new_config[key] = str(int(new_config[key]))
             else:
                 new_config[key] = str(new_config[key])
 
@@ -227,7 +230,7 @@ class NumberRangeModel:
         self.real = r.get('real', False)
 
     def __repr__(self):
-        return f'{{"name": "{self.name}", "lower": {self.lower}, "upper": {self.upper}, "real": "{self.real}", "step": {self.step}}}'
+        return f'{{"name": "{self.name}", "lower": {self.get_lower()}, "upper": {self.get_upper()}, "real": "{self.get_real()}", "step": {self.get_step()}}}'
 
     def get_upper(self):
         return float(self.upper)
@@ -244,17 +247,18 @@ class NumberRangeModel:
         return strtobool(self.real)
 
     def get_hyper_interval(self):
-        to_int = lambda x: scope.int(x) if not self.get_real() else x
+        to_int = lambda x: x if self.get_real() else scope.int(x)
 
         upper = self.get_upper()
         if self.get_lower() == upper:
             upper += 0.1
 
+        logger.debug(f'{self}')
         if self.get_step():
             return {
-                self.name: to_int(hyperopt.hp.quniform(self.name, self.get_lower(), upper, self.get_step()))}
+                self.name: to_int(hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step()))}
         else:
-            return {self.name: to_int(hyperopt.hp.uniform(self.name, self.get_lower(), upper))}
+            return {self.name: to_int(hyperopt.hp.uniform(self.name, self.get_lower(), self.get_upper()))}
 
 
 class OptionRangeModel:

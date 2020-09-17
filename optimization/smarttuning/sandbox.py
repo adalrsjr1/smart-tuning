@@ -13,62 +13,67 @@ pd.set_option('display.max_rows', None)
 from kubernetes.client.models import *
 from prometheus_pandas import query as handler
 import time
-step = 900
-
-G = nx.Graph()
-G.add_weighted_edges_from([
-('0', '1', 0),
-('0', '2', 0),
-('0', '3', 0),
-('0', '4', 0),
-('0', '5', 0),
-('0', '6', 0),
-('6', '1', 0.13),
-('6', '2', 0.12),
-('6', '3', 0.14),
-('6', '4', 0.24),
-('6', '5', 0),
-('1', '3', 0.45),
-('2', '3', 0.44),
-('2', '4', 0.48),
-])
-
-pr = nx.algorithms.link_analysis.pagerank(G, weight='weight')
-rank_vector=np.array([[*pr.values()]])
-best_node=np.argmax(rank_vector)
-print(pr, best_node)
-
-G.add_weighted_edges_from([
-('1', '6', 0.13),
-('2', '6', 0.12),
-('3', '6', 0.14),
-('4', '6', 0.24),
-('5', '6', 0),
-('3', '1', 0.45),
-('3', '2', 0.44),
-('4', '2', 0.48),
-])
-
-pr = nx.algorithms.link_analysis.pagerank(G)
-rank_vector=np.array([[*pr.values()]])
-best_node=np.argmax(rank_vector)
-print(pr, best_node)
-
-
-
-
-sys.exit(0)
-podname = '.*servicesmarttuning-.*'
+step = 7200
+#
+# G = nx.Graph()
+# G.add_weighted_edges_from([
+# ('0', '1', 0),
+# ('0', '2', 0),
+# ('0', '3', 0),
+# ('0', '4', 0),
+# ('0', '5', 0),
+# ('0', '6', 0),
+# ('6', '1', 0.13),
+# ('6', '2', 0.12),
+# ('6', '3', 0.14),
+# ('6', '4', 0.24),
+# ('6', '5', 0),
+# ('1', '3', 0.45),
+# ('2', '3', 0.44),
+# ('2', '4', 0.48),
+# ])
+#
+# pr = nx.algorithms.link_analysis.pagerank(G, weight='weight')
+# rank_vector=np.array([[*pr.values()]])
+# best_node=np.argmax(rank_vector)
+# print(pr, best_node)
+#
+# G.add_weighted_edges_from([
+# ('1', '6', 0.13),
+# ('2', '6', 0.12),
+# ('3', '6', 0.14),
+# ('4', '6', 0.24),
+# ('5', '6', 0),
+# ('3', '1', 0.45),
+# ('3', '2', 0.44),
+# ('4', '2', 0.48),
+# ])
+#
+# pr = nx.algorithms.link_analysis.pagerank(G)
+# rank_vector=np.array([[*pr.values()]])
+# best_node=np.argmax(rank_vector)
+# print(pr, best_node)
+#
+#
+#
+#
+# sys.exit(0)
+podname = '.*service-.*'
 # throughput
-q1 = f'sum( rate(in_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{step}s])) by (pod, src, dst, instance, service) /' \
-     f'sum( rate(out_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{step}s])) by (pod, src, dst, instance, service) '
+q1 = f'sum( count_over_time(in_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{step}s])) by (pod, src, dst, instance, service) /' \
+     f'sum( count_over_time(out_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{step}s])) by (pod, src, dst, instance, service) '
+
+q1 = f'sum(count_over_time(smarttuning_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{step}s])) by (pod, src, dst, instance, service)'
+
+q1 = f'(sum(count_over_time(smarttuning_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{step}s])) by (src, dst, instance, service, pod)) / ' \
+     f'ignoring(src, dst, instance, service, pod) group_left sum(count_over_time(smarttuning_http_requests_total{{pod=~"{podname}",name!~".*POD.*"}}[{step}s]))'
 
 # t = None
 # timeout = None
 p = handler.Prometheus('http://trxrhel7perf-1.canlab.ibm.com:30099')
-# result = p.query(q1)
+result = p.query(q1)
 now = time.time()
-result = p.query_range(q1, now-(3600*4), now, step)
+result = p.query_range(q1, now-(3600*2), now, step)
 # result.to_csv('data-202007221834.csv')
 
 # result = pd.read_csv('data-202007221834.csv')
@@ -119,9 +124,9 @@ for _i, _item in enumerate(new_result.iteritems()):
             if G.has_edge(row['src'], row['dst']):
                 weight = G[row['src']][row['dst']]['weight']
                 G[row['src']][row['dst']]['weight'] += v
-                G[row['src']][row['dst']]['label'] = f"[{G[row['src']][row['dst']]['weight']:.2f}]"
+                G[row['src']][row['dst']]['label'] = f"[{G[row['src']][row['dst']]['weight']:.5f}]"
             else:
-                G.add_edge(row['src'], row['dst'], weight=v, label=f'[{v:.2f}]')
+                G.add_edge(row['src'], row['dst'], weight=1, label=f'[{v:.5f}]')
 
     # remove cycles
     gateway = ''
@@ -133,11 +138,17 @@ for _i, _item in enumerate(new_result.iteritems()):
     # print('degree', G.degree(weight='weight'))
     # print()
     # if not gateway:
-    #     # raise Exception('gateway is null')
-    #     print('gateway is null')
-    #     continue
+        # raise Exception('gateway is null')
+        # print('gateway is null')
+        # continue
     # print(gateway)
 
+    if gateway:
+        for edge in G.edges:
+            if edge[0] == gateway:
+                if not G.has_edge(edge[1], gateway):
+                    G.add_edge(edge[1], gateway, weight=1)
+            # G.add_edge(node, gateway, weight=float('1'))
     # while True:
     #     shortest = ()
     #     shortest_value = float('inf')
@@ -161,5 +172,9 @@ for _i, _item in enumerate(new_result.iteritems()):
 
     # print(f'best {_i}', path[shortest[0]])
     nx.drawing.nx_pydot.write_dot(G, f'graph_{_i:02}.dot')
+    pr = nx.algorithms.link_analysis.pagerank(G, weight='weight')
+    rank_vector=np.array([[*pr.values()]])
+    best_node=np.argmax(rank_vector)
+    print(pr, best_node, rank_vector[0,best_node])
 
 

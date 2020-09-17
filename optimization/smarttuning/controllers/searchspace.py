@@ -21,7 +21,6 @@ def searchspace_controller(event):
     if 'ADDED' == t:
         name = event['object']['metadata']['name']
         ctx = SearchSpaceContext(name, SearchSpaceModel(event['object']))
-        k8s.config.load_kube_config(config_file=config.K8S_CONF)
 
         deployment = get_deployment(ctx.model.deployment, ctx.model.namespace)
         duplicate_deployment_for_training(deployment)
@@ -68,6 +67,7 @@ class SearchSpaceContext:
 
     def delete_bayesian_searchspace(self):
         BayesianChannel.unregister(self.name)
+        self.engine.stop()
         logger.warning(f'cannot stop engine "{self.name}" -- method not implemented yet')
         return
 

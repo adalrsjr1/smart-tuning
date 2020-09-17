@@ -76,6 +76,7 @@ class BayesianEngine:
         self._running = False
         self._trials = Trials()
         self._space = space
+        self.stoped = False
 
         surrogate = rand.suggest
         if is_bayesian:
@@ -108,6 +109,19 @@ class BayesianEngine:
         return self._running
 
     def objective(self, params):
+        logger.debug(f'params at bayesian obj: {params}')
+        if self.stoped:
+            return {
+                'loss': float('inf'),
+                'status': STATUS_FAIL,
+                # -- store other results like this
+                'eval_time': time.time(),
+                'classification': None,
+                # -- attachments are handled differently
+                # https://github.com/hyperopt/hyperopt/wiki/FMin
+                # 'attachments':
+                #     {'classification': pickle.dumps(classficiation)}
+            }
 
         # follow this hint for implement multiple workload types
         # https://github.com/hyperopt/hyperopt/issues/181
@@ -134,6 +148,9 @@ class BayesianEngine:
                 # 'attachments':
                 #     {'classification': pickle.dumps(classficiation)}
             }
+
+    def stop(self):
+        self.stoped = True
 
     def get(self):
         parameters = BayesianChannel.get_out(self.id())

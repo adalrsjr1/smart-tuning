@@ -56,7 +56,7 @@ data:
   RANDOM_SEED: '31'
   ## the objective is always to minimize
   ## 2 ** 20 transforms bytes to megabytes
-  OBJECTIVE: '-(throughput / (memory / (2 ** 20)))'
+  OBJECTIVE: '-(throughput / (memory / (2 ** 20))) * (1.0 - errors)'
   ##OBJECTIVE: '-(throughput / (memory / (2**20))) / (1.0 if in_out == 0 else in_out)'
   #OBJECTIVE: 'in_out'
   SAMPLE_SIZE: '0.3334'

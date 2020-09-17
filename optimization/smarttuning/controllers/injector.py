@@ -88,7 +88,7 @@ def inject_proxy_into_service(event: dict):
     }
 
     ports.append(port)
-
+    config.coreApi().patch_namespaced_pod
     patch_body = {
         "kind": service.kind,
         "apiVersion": service.api_version,

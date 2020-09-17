@@ -257,7 +257,7 @@ class Metric:
 
 
 class PrometheusSampler:
-    def __init__(self, podname: str, interval: int, executor=config.executor(), addr=config.PROMETHEUS_ADDR,
+    def __init__(self, podname: str, interval: int, namespace:str = config.NAMESPACE, executor=config.executor(), addr=config.PROMETHEUS_ADDR,
                  port=config.PROMETHEUS_PORT, api_url=''):
         if not api_url:
             api_url = f'http://{addr}:{port}'
@@ -266,6 +266,7 @@ class PrometheusSampler:
         self.executor = executor
         self.podname = podname
         self.interval = int(interval)
+        self.namespace = namespace
 
     def __do_sample__(self, query: str) -> Future:
         logger.debug(f'sampling:{query}')
@@ -277,21 +278,21 @@ class PrometheusSampler:
 
     def throughput(self, quantile=1.0) -> Future:
         """ return future<pd.Series>"""
-        logger.debug(f'sampling throughput at {self.podname}-.*')
-        query = f'sum(rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        logger.debug(f'sampling throughput at {self.podname}-.* in namespace {self.namespace}')
+        query = f'sum(rate(smarttuning_http_requests_total{{namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def error(self, quantile=1.0) -> Future:
-        logger.debug(f'sampling errors rate at {self.podname}-.*')
-        query = f'sum(rate(smarttuning_http_requests_total{{code=~"5..",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s])) /' \
-                f'sum(rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        logger.debug(f'sampling errors rate at {self.podname}-.* in {self.namespace}')
+        query = f'sum(rate(smarttuning_http_requests_total{{code=~"[4|5]..",namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s])) /' \
+                f'sum(rate(smarttuning_http_requests_total{{namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def process_time(self, quantile=1.0) -> Future:
         """ return a concurrent.futures.Future<pandas.Series> with the processtime_sum/processtime_count rate of an specific pod"""
-        logger.debug(f'sampling process time at {self.podname}.*')
-        query = f'sum(rate(smarttuning_http_processtime_seconds_sum{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s])) / ' \
-                f'sum(rate(smarttuning_http_processtime_seconds_count{{pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        logger.debug(f'sampling process time at {self.podname}.* in {self.namespace}')
+        query = f'sum(rate(smarttuning_http_processtime_seconds_sum{{namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s])) / ' \
+                f'sum(rate(smarttuning_http_processtime_seconds_count{{namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 
@@ -300,16 +301,16 @@ class PrometheusSampler:
             :param quantile a value 0.0 - 1.0
         """
         # The better metric is container_memory_working_set_bytes as this is what the OOM killer is watching for.
-        logger.debug(f'sampling memory at {self.podname}.*')
-        query = f'sum(max_over_time(container_memory_working_set_bytes{{container=~"",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        logger.debug(f'sampling memory at {self.podname}.* in {self.namespace}')
+        query = f'sum(max_over_time(container_memory_working_set_bytes{{namespace="{self.namespace}", container=~"",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 
     def cpu(self, quantile=1.0) -> Future:
         """ return a concurrent.futures.Future<pandas.Series> with the CPU (milicores) rate over time of an specific pod
         """
-        logger.debug(f'sampling cpu at {self.podname}-.*')
-        query = f'sum(rate(container_cpu_usage_seconds_total{{container=~"",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        logger.debug(f'sampling cpu at {self.podname}-.* in {self.namespace}')
+        query = f'sum(rate(container_cpu_usage_seconds_total{{namespace="{self.namespace}", container=~"",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def workload(self) -> Future:
@@ -325,23 +326,23 @@ class PrometheusSampler:
         are grouped into /my/url/using/path-parameter/uid153@email.com
 
         """
-        logger.debug(f'sampling urls at {self.podname}-.*')
+        logger.debug(f'sampling urls at {self.podname}-.* in {self.namespace}')
 
-        query = f'sum by (path)(rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*"}}[{self.interval}s]))' \
+        query = f'sum by (path)(rate(smarttuning_http_requests_total{{namespace="{self.namespace}", pod=~"{self.podname}-.*"}}[{self.interval}s]))' \
                 f' / ignoring ' \
-                f'(path) group_left sum(rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*"}}[{self.interval}s]))'
+                f'(path) group_left sum(rate(smarttuning_http_requests_total{{namespace="{self.namespace}", pod=~"{self.podname}-.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 
     def in_out(self, quantile=1.0) -> Future:
-        logger.debug(f'sampling in_out R at {self.podname}-.*')
+        logger.debug(f'sampling in_out R at {self.podname}-.* in {self.namespace}')
         is_training = config.PROXY_TAG in self.podname
         if is_training:
-            query = f'sum(rate(in_http_requests_total{{pod=~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
-                    f'sum(rate(out_http_requests_total{{pod=~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
+            query = f'sum(rate(in_http_requests_total{{namespace="{self.namespace}", pod=~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
+                    f'sum(rate(out_http_requests_total{{namespace="{self.namespace}", pod=~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
         else:
-            query = f'sum(rate(in_http_requests_total{{pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
-                    f'sum(rate(out_http_requests_total{{pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
+            query = f'sum(rate(in_http_requests_total{{namespace="{self.namespace}", pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
+                    f'sum(rate(out_http_requests_total{{namespace="{self.namespace}", pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
 
         return self.__do_sample__(query)
 
