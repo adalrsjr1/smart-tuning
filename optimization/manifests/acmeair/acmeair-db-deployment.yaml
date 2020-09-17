@@ -12,20 +12,10 @@ spec:
       labels:
         app: acmeair-db
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values:
-                      - kind-worker6
-                      - docker-desktop
       containers:
         - name: acmeair-db
           image: mongo
-          imagePullPolicy: Never
+          imagePullPolicy: Always
           ports:
             - containerPort: 27017
       restartPolicy: Always

@@ -1,13 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: acmeair-tuning
+  name: acmeair-dep
   labels:
     app: "acmeair"
-    tuning: "true"
   annotations:
-    # https://github.com/stakater/Reloader
-    configmap.reloader.stakater.com/reload: "jvm-config-train,acmeair-config-train,proxy-config-train"
+    injection.smarttuning.ibm.com: "true"
 spec:
   replicas: 1
   template:
@@ -15,91 +13,40 @@ spec:
       name: acmeair
       labels:
         app: "acmeair"
-        tuning: "true"
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values:
-                      - kind-worker2
-                      - docker-desktop
       containers:
-        - name: proxy
-          image: smarttuning-proxy
-          imagePullPolicy: Never
-          envFrom:
-            - configMapRef:
-                name: proxy-config-train
+        - name: acmeair
+          image: smarttuning/liberty-acmeair-k8s
           resources:
             limits:
-              memory: "100Mi"
-          env:
-            - name: NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-            - name: POD_SERVICE_ACCOUNT
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.serviceAccountName
-          ports:
-            - containerPort: 8888
-            - containerPort: 9090
-        - name: service
-          image: liberty-acmeair-k8s
-          resources:
-            requests:
-              memory: "256Mi"
-            limits:
-              memory: "256Mi"
-          imagePullPolicy: Never
+              cpu: "2"
+              memory: "4096Mi"
+          imagePullPolicy: Always
           readinessProbe:
             httpGet:
-              port: 80
+              port: 9080
               path: /acmeair-webapp/
             initialDelaySeconds: 60
             failureThreshold: 2
             periodSeconds: 10
           ports:
-            - containerPort: 80
+            - containerPort: 9080
           envFrom:
             - configMapRef:
-                name: acmeair-config-train
+                name: acmeair-config-app
           volumeMounts:
-            - mountPath: /etc/acmeair-config
-              name: acmeair-config
-            - mountPath: /etc/proxy-config
-              name: proxy-config
+            - mountPath: /etc/acmeair-config-app
+              name: acmeair-config-app
             - mountPath: /config/jvm.options
               subPath: jvm.options
-              name: jvm-config
+              name: acmeair-config-jvm
       volumes:
-        - name: acmeair-config
+        - name: acmeair-config-app
           configMap:
-            name: acmeair-config-train
-        - name: proxy-config
+            name: acmeair-config-app
+        - name: acmeair-config-jvm
           configMap:
-            name: proxy-config-train
-        - name: jvm-config
-          configMap:
-            name: jvm-config-train
+            name: acmeair-config-jvm
   selector:
     matchLabels:
-      app: "acmeair"
-      tuning: "true"
+      app: acmeair

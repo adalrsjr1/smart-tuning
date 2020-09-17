@@ -1,0 +1,67 @@
+apiVersion: "smarttuning.ibm.com/v1alpha2"
+kind: SearchSpace
+metadata:
+  name: acmeair-booking-ss
+spec:
+  deployment: acmeair-dep
+  service: acmeair-svc
+  namespace: "default"
+  manifests:
+    - name: acmeair-dep
+      type: "deployment"
+    - name: acmeair-config-app
+      type: "configMap"
+    - name: acmeair-config-jvm
+      type: "configMap"
+data:
+  - name: acmeair-dep
+    tunables:
+      option:
+        - name: "cpu"
+          values:
+            - 2
+            - 4
+            - 8
+            - 16
+        - name: "memory"
+          values:
+            - 512
+            - 1024
+            - 8192
+            - 16384
+            - 32768
+  - name: acmeair-config-app
+    tunables:
+      number:
+        - name: "HTTP_MAX_KEEP_ALIVE_REQUESTS"
+          lower: 10
+          upper: 200
+          step: 25
+          real: False
+        - name: "HTTP_PERSIST_TIMEOUT"
+          lower: 15
+          upper: 45
+          step: 5
+          real: False
+        - name: "MONGO_MAX_CONNECTIONS"
+          lower: 10
+          upper: 200
+          step: 25
+          real: False
+  - name: acmeair-config-jvm
+    filename: "jvm.options"
+    tunables:
+      boolean:
+        - name: "-Xtune:virtualized"
+      option:
+        - name: "gc"
+          values:
+            - "-Xgcpolicy:gencon"
+            - "-Xgc:concurrentScavenge"
+            - "-Xgcpolicy:metronome"
+            - "-Xgcpolicy:optavgpause"
+            - "-Xgcpolicy:optthruput"
+        - name: "container_support"
+          values:
+            - "-XX:+UseContainerSupport"
+            - "-XX:-UseContainerSupport"

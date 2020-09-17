@@ -22,7 +22,7 @@
     <!-- To access this server from a remote client add a host attribute to the following element, e.g. host="*" -->
     <httpEndpoint id="defaultHttpEndpoint"
       host="*"
-      httpPort="80"
+      httpPort="${SERVER_PORT}"
       httpsPort="493">
       <!-- https://openliberty.io/blog/2018/12/20/http-forwarded-header.html -->
       <remoteIp proxies="" useRemoteIpInAccessLog="false"/>

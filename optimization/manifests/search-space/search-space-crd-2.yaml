@@ -111,6 +111,10 @@ spec:
                           properties:
                             name:
                               type: string
+                            type:
+                              type: string
+                              pattern: "(string|real|integer)"
+                              default: string
                             values:
                               type: array
                               items:
