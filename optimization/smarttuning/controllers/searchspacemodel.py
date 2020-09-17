@@ -264,10 +264,19 @@ class NumberRangeModel:
 class OptionRangeModel:
     def __init__(self, r):
         self.name = r['name']
+        self.type = r['type']
         self.values = r['values']
 
     def __repr__(self):
-        return f'{{"name": "{self.name}, "values": {json.dumps(self.values)} }}'
+        return f'{{"name": "{self.name}, "type":{self.type}, "values": {json.dumps(self.values)} }}'
+
+    def cast(self, values, new_type):
+        types = {'integer': int, 'real': float, 'string': str}
+
+        return [types[new_type](value) for value in values]
+
+    def get_values(self):
+        return self.cast(self.values, self.type)
 
     def get_hyper_interval(self):
         return {self.name: hyperopt.hp.choice(self.name, self.values)}
