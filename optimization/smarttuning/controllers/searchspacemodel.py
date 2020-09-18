@@ -67,7 +67,8 @@ class DeploymentSearchSpaceModel:
         for type_range, list_tunables in tunables.items():
             for r in list_tunables:
                 if 'boolean' == type_range:
-                    r['values'] = [True, False]
+                    r['values'] = ['True', 'False']
+                    r['type'] = 'bool'
                     parameters[r['name']] = OptionRangeModel(r)
                 elif 'number' == type_range:
                     parameters[r['name']] = NumberRangeModel(r)
@@ -157,7 +158,8 @@ class ConfigMapSearhSpaceModel:
         for type_range, list_tunables in tunables.items():
             for r in list_tunables:
                 if 'boolean' == type_range:
-                    r['values'] = [True, False]
+                    r['values'] = ['True', 'False']
+                    r['type'] = 'bool'
                     parameters[r['name']] = OptionRangeModel(r)
                 elif 'number' == type_range:
                     parameters[r['name']] = NumberRangeModel(r)
@@ -271,8 +273,9 @@ class OptionRangeModel:
         return f'{{"name": "{self.name}, "type":{self.type}, "values": {json.dumps(self.values)} }}'
 
     def cast(self, values, new_type):
-        types = {'integer': int, 'real': float, 'string': str}
-
+        to_bool = lambda x : bool(strtobool(x))
+        types = {'integer': int, 'real': float, 'string': str, 'bool': to_bool}
+        print(f'>>> {new_type}: {values}')
         return [types[new_type](value) for value in values]
 
     def get_values(self):

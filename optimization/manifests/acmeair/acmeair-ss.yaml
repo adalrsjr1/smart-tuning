@@ -1,35 +1,37 @@
 apiVersion: "smarttuning.ibm.com/v1alpha2"
 kind: SearchSpace
 metadata:
-  name: acmeair-booking-ss
+  name: acmeair-ss
 spec:
-  deployment: acmeair-dep
+  deployment: acmeair-service
   service: acmeair-svc
   namespace: "default"
   manifests:
-    - name: acmeair-dep
+    - name: acmeair-service
       type: "deployment"
     - name: acmeair-config-app
       type: "configMap"
     - name: acmeair-config-jvm
       type: "configMap"
 data:
-  - name: acmeair-dep
+  - name: acmeair-service
     tunables:
       option:
         - name: "cpu"
+          type: "integer"
           values:
-            - 2
-            - 4
-            - 8
-            - 16
+            - "2"
+            - "4"
+            - "8"
+            - "16"
         - name: "memory"
+          type: "integer"
           values:
-            - 512
-            - 1024
-            - 8192
-            - 16384
-            - 32768
+            - "512"
+            - "1024"
+            - "8192"
+            - "16384"
+            - "32768"
   - name: acmeair-config-app
     tunables:
       number:

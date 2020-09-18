@@ -1,0 +1,112 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tuning
+rules:
+  - apiGroups: ["*"]
+    resources:
+      - configmaps
+      - services
+      - deployments
+      - searchspaces
+    verbs: ["get","list","watch","create","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tuning
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tuning
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smarttuning-config
+data:
+  # test config
+  MOCK: "False"
+  PRINT_CONFIG: "True"
+  # mongo config
+  MONGO_ADDR: 'mongo-workload-service.default.svc.cluster.local'
+  MONGO_PORT: '27017'
+  MONGO_DB: 'smarttuning'
+  # prometheus config
+  PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
+  PROMETHEUS_PORT: '9090'
+  SAMPLING_METRICS_TIMEOUT: '300'
+  # classification config
+  K: '1'
+  DISTANCE_METHOD: "hellinger"
+  URL_SIMILARITY_THRESHOLD: "0.1"
+  # optimization config
+  #SEARCH_SPACE_NAME: 'acmeair-searchspace'
+  BAYESIAN: 'True'
+  N_STARTUP_JOBS: '20'
+  N_EI_CANDIDATES: '24'
+  GAMMA: '0.25'
+  NUMBER_ITERATIONS: '0'
+  METRIC_THRESHOLD: '0.0'
+  RANDOM_SEED: '31'
+  ## the objective is always to minimize
+  ## 2 ** 20 transforms bytes to megabytes
+  OBJECTIVE: '-(throughput / (memory / (2 ** 20)))'
+  ##OBJECTIVE: '-(throughput / (memory / (2**20))) / (1.0 if in_out == 0 else in_out)'
+  #OBJECTIVE: 'in_out'
+  SAMPLE_SIZE: '0.3334'
+  WAITING_TIME: '300'
+  POD_REGEX: 'acmeair-.*servicesmarttuning-.+'
+  POD_PROD_REGEX: 'acmeair-.*service-.+'
+  QUANTILE: '1.0'
+  NAMESPACE: 'default'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smarttuning
+  labels:
+    app: smarttuning
+    config: "0"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: smarttuning
+      labels:
+        app: smarttuning
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - kind-worker
+                      - docker-desktop
+      containers:
+        - name: smarttuning
+          image: smarttuning/smarttuning:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: smarttuning-config
+          volumeMounts:
+            - mountPath: /etc/smart-tuning
+              name: smarttuning-config
+      volumes:
+        - name: smarttuning-config
+          configMap:
+            name: smarttuning-config
+  selector:
+    matchLabels:
+      app: smarttuning

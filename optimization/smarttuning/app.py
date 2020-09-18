@@ -183,7 +183,7 @@ def create_context(production_microservice, training_microservice):
 
                     if last_config != best_config or last_class != production_class:
                         logger.info(
-                            f'training:{training_metric.objective()} <= production:{production_metric.objective()} '
+                            f'[best] training:{training_metric.objective()} <= production:{production_metric.objective()} '
                             f'| loss:{loss} <= best_loss:{best_loss} '
                             f'== {evaluation and (best_loss < loss)}')
                         last_class = production_class
@@ -194,7 +194,7 @@ def create_context(production_microservice, training_microservice):
 
                     if last_config != config_to_apply or last_class != production_class:
                         logger.info(
-                            f'training:{training_metric.objective()} <= production:{production_metric.objective()} '
+                            f'[curr] training:{training_metric.objective()} <= production:{production_metric.objective()} '
                             f'| loss:{loss} <= best_loss:{best_loss} '
                             f'== {evaluation and (best_loss >= loss)}')
                         last_class = production_class
@@ -219,9 +219,9 @@ def create_context(production_microservice, training_microservice):
             save(
                 timestamp=time.time_ns(),
                 config=config_to_apply,
-                old_production_metric=old_metrics_prod.serialize(),
+                gw_production_metric=old_metrics_prod.serialize(),
                 production_metric=production_metric.serialize(),
-                old_train_metric=old_metrics_train.serialize(),
+                gw_train_metric=old_metrics_train.serialize(),
                 training_metric=training_metric.serialize(),
                 production_workload=sampler.series_to_dict(production_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
                 overall_metrics_train=metrics_train.serialize(),
@@ -260,7 +260,7 @@ def do_patch(manifests, configuration, production=False):
         for manifest in manifests:
             logger.info(f'checking to patch {key} into {manifest.name}')
             if key == manifest.name:
-                logger.info(f'patching new config at {manifest.name}')
+                logger.info(f'patching new config={value} at {manifest.name}')
                 manifest.patch(value, production=production)
 
 

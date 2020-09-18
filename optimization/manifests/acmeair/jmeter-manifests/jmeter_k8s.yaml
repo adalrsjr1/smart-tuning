@@ -1,0 +1,149 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jmeter-prod
+  labels:
+    app: jmeter
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - kind-worker5
+                  - docker-desktop
+  containers:
+    - name: jmeter
+      image: jmeter_acmeair
+      lifecycle:
+        preStop:
+          exec:
+            command:
+              - "sh"
+              - "-c"
+              - |
+                shutdown.sh
+      imagePullPolicy: Never
+      env:
+        - name: LIBERTYHOST
+          value: 'acmeair-prod.default.svc.cluster.local'
+      envFrom:
+        - configMapRef:
+            name: jmeter-config
+      volumeMounts:
+        - mountPath: /etc/jmeter
+          name: jmeter-config
+        - mountPath: /output
+          name: jmeter-output
+  terminationGracePeriodSeconds: 60
+  volumes:
+    - name: jmeter-config
+      configMap:
+        name: jmeter-config
+    - name: jmeter-output
+      hostPath:
+        path: /smarttuning/jmeter/prod
+  restartPolicy: Never
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jmeter-train
+  labels:
+    app: jmeter
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - kind-worker5
+                  - docker-desktop
+  containers:
+    - name: jmeter
+      image: jmeter_acmeair
+      lifecycle:
+        preStop:
+          exec:
+            command:
+              - "sh"
+              - "-c"
+              - |
+                shutdown.sh
+      imagePullPolicy: Never
+      env:
+        - name: LIBERTYHOST
+          value: 'acmeair-train.default.svc.cluster.local'
+      envFrom:
+        - configMapRef:
+            name: jmeter-config
+      volumeMounts:
+        - mountPath: /etc/jmeter
+          name: jmeter-config
+        - mountPath: /output
+          name: jmeter-output
+  terminationGracePeriodSeconds: 60
+  volumes:
+    - name: jmeter-config
+      configMap:
+        name: jmeter-config
+    - name: jmeter-output
+      hostPath:
+        path: /smarttuning/jmeter/train
+  restartPolicy: Never
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jmeter-default
+  labels:
+    app: jmeter
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - kind-worker5
+                  - docker-desktop
+  containers:
+    - name: jmeter
+      image: jmeter_acmeair
+      lifecycle:
+        preStop:
+          exec:
+            command:
+              - "sh"
+              - "-c"
+              - |
+                shutdown.sh
+      imagePullPolicy: Never
+      env:
+        - name: LIBERTYHOST
+          value: 'acmeair-default.default.svc.cluster.local'
+      envFrom:
+        - configMapRef:
+            name: jmeter-config
+      volumeMounts:
+        - mountPath: /etc/jmeter
+          name: jmeter-config
+        - mountPath: /output
+          name: jmeter-output
+  terminationGracePeriodSeconds: 60
+  volumes:
+    - name: jmeter-config
+      configMap:
+        name: jmeter-config
+    - name: jmeter-output
+      hostPath:
+        path: /smarttuning/jmeter/default
+  restartPolicy: Never

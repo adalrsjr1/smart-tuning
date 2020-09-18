@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: acmeair-dep
+  name: acmeair-service
   labels:
     app: "acmeair"
   annotations:
@@ -19,7 +19,7 @@ spec:
           image: smarttuning/liberty-acmeair-k8s
           resources:
             limits:
-              cpu: "2"
+              cpu: 2
               memory: "4096Mi"
           imagePullPolicy: Always
           readinessProbe:

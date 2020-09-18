@@ -49,6 +49,20 @@ class TestSearchModel(TestCase):
                     '-Xgcpolicy:gencon': '-Xgcpolicy:gencon'
                 }, production=True)
 
+    def test_Option_range(self):
+        r = {'name': 'test_name', 'type': 'bool', 'values': ['True', 'False']}
+        orm = OptionRangeModel(r)
+        self.assertListEqual([True, False], orm.get_values())
+
+        r = {'name': 'test_name', 'type': 'integer', 'values': [1,2,3]}
+        orm = OptionRangeModel(r)
+        self.assertListEqual([1,2,3], orm.get_values())
+
+        r = {'name': 'test_name', 'type': 'real', 'values': [3.14, 2.71, 1.618]}
+        orm = OptionRangeModel(r)
+        self.assertListEqual([3.14, 2.71, 1.618], orm.get_values())
+
+
 
 if __name__ == '__main__':
     main()
