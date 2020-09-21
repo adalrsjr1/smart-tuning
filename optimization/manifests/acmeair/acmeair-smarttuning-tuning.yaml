@@ -19,7 +19,7 @@ spec:
           image: smarttuning/liberty-acmeair-k8s
           resources:
             limits:
-              cpu: 2
+              cpu: "2"
               memory: "4096Mi"
           imagePullPolicy: Always
           readinessProbe:

@@ -1,0 +1,115 @@
+apiVersion: "smarttuning.ibm.com/v1alpha2"
+kind: SearchSpace
+metadata:
+  name: daytrader-ss
+spec:
+  deployment: daytrader-service
+  service: daytrader
+  namespace: "default"
+  manifests:
+    - name: daytrader-service
+      type: "deployment"
+    - name: daytrader-config-app
+      type: "configMap"
+    - name: daytrader-config-jvm
+      type: "configMap"
+data:
+  - name: daytrader-service
+    tunables:
+      option:
+        - name: "cpu"
+          type: "integer"
+          values:
+            - "2"
+            - "4"
+            - "8"
+            - "16"
+        - name: "memory"
+          type: "integer"
+          values:
+            - "512"
+            - "1024"
+            - "2048"
+            - "4096"
+            - "8192"
+  - name: daytrader-config-app
+    tunables:
+      number:
+        - name: "CONMGR1_MAX_POOL_SIZE"
+          lower: 10
+          upper: 200
+          step: 25
+          real: False
+        - name: "CONMGR1_CONN_PER_THREAD"
+          lower: 1
+          upper: 200
+          step: 5
+          real: False
+        - name: "CONMGR1_MAX_POOL_SIZE"
+          lower: 10
+          upper: 200
+          step: 25
+          real: False
+        - name: "CONMGR3_CONN_PER_THREAD"
+          lower: 1
+          upper: 200
+          step: 5
+          real: False
+        - name: "CONMGR3_MAX_POOL_SIZE"
+          lower: 10
+          upper: 200
+          step: 25
+          real: False
+        - name: "CONMGR3_CONN_PER_THREAD"
+          lower: 1
+          upper: 200
+          step: 5
+          real: False
+        - name: "CONMGR4_CONN_PER_THREAD"
+          lower: 1
+          upper: 200
+          step: 5
+          real: False
+        - name: "CONMGR4_MAX_POOL_SIZE"
+          lower: 10
+          upper: 200
+          step: 25
+          real: False
+        - name: "CONMGR4_CONN_PER_THREAD"
+          lower: 1
+          upper: 200
+          step: 5
+          real: False
+      option:
+        - name: "CONMGR1_PURGE_POLICY"
+          values:
+            - "EntirePool"
+            - "FailingConnectionOnly"
+            - "ValidateAllConnections"
+        - name: "CONMGR3_PURGE_POLICY"
+          values:
+            - "EntirePool"
+            - "FailingConnectionOnly"
+            - "ValidateAllConnections"
+        - name: "CONMGR4_PURGE_POLICY"
+          values:
+            - "EntirePool"
+            - "FailingConnectionOnly"
+            - "ValidateAllConnections"
+  - name: daytrader-config-jvm
+    filename: "jvm.options"
+    tunables:
+      boolean:
+        - name: "-Xtune:virtualized"
+      option:
+        - name: "gc"
+          values:
+            - "-Xgcpolicy:gencon"
+            - "-Xgc:concurrentScavenge"
+            - "-Xgcpolicy:metronome"
+            - "-Xgcpolicy:optavgpause"
+            - "-Xgcpolicy:optthruput"
+        - name: "container_support"
+          values:
+            - "-XX:+UseContainerSupport"
+            - "-XX:-UseContainerSupport"

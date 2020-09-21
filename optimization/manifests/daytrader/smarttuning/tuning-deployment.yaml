@@ -64,8 +64,8 @@ data:
   OBJECTIVE: '-(throughput / ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))'
   SAMPLE_SIZE: '0.3334'
   WAITING_TIME: '300'
-  POD_REGEX: 'acmeair-.*servicesmarttuning-.+'
-  POD_PROD_REGEX: 'acmeair-.*service-.+'
+  POD_REGEX: 'daytrader-.*servicesmarttuning-.+'
+  POD_PROD_REGEX: 'daytrader-.*service-.+'
   QUANTILE: '1.0'
   NAMESPACE: 'default'
 ---

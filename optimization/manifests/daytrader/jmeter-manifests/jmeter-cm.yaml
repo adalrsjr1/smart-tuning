@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jmeter-config
+data:
+  JTOPUID: "499"
+  JPORT: "9080"
+  JMAXTHINKTIME: "0"
+  JSTOCKS: "999"
+  JTHREADS: "200"
+  JRAMP: "10"
+  JDURATION: "15000"

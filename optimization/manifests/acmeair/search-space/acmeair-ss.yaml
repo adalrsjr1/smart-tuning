@@ -29,9 +29,9 @@ data:
           values:
             - "512"
             - "1024"
+            - "2048"
+            - "4096"
             - "8192"
-            - "16384"
-            - "32768"
   - name: acmeair-config-app
     tunables:
       number:
