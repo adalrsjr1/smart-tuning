@@ -84,10 +84,13 @@ URL_SIMILARITY_THRESHOLD = float(os.environ.get('URL_SIMILARITY_THRESHOLD', defa
 
 # optimization config
 BAYESIAN = eval(os.environ.get('OPTIMIZATION_METHOD', default='True'))
-N_STARTUP_JOBS = int(os.environ.get('N_STARTUP_JOBS', default=20))
+# n_startup_jobs: # of jobs doing random search at begining of optimization
+N_STARTUP_JOBS = int(os.environ.get('N_STARTUP_JOBS', default=10))
+# n_EI_candidades: number of config samples draw before select the best. lower number encourages exploration
 N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
+# gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
 GAMMA = float(os.environ.get('GAMMA', default=0.25))
-NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='3')) # check if hyperopt version is updated to use stop iterations
+NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='1e15')) # check if hyperopt version is updated to use stop iterations
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
 OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='-throughput/(memory / 2 ** 20)'), '<string>', 'eval')

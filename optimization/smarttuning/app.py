@@ -119,7 +119,7 @@ def create_context(production_microservice, training_microservice):
     overall_metrics_prod = sampler.PrometheusSampler(config.GATEWAY_NAME, config.WAITING_TIME * config.SAMPLE_SIZE)
     overall_metrics_train = sampler.PrometheusSampler(config.GATEWAY_NAME+config.PROXY_TAG, config.WAITING_TIME * config.SAMPLE_SIZE)
 
-    last_config = None
+    last_config = {}
     last_class = None
 
     last_metrics_prod = Metric.zero()
@@ -140,14 +140,14 @@ def create_context(production_microservice, training_microservice):
             training_metric = sampler_training.metric()
             training_workload = sampler_training.workload()
 
-            metrics_prod = overall_metrics_prod.metric()
-            metrics_train = overall_metrics_train.metric()
+            # metrics_prod = overall_metrics_prod.metric()
+            # metrics_train = overall_metrics_train.metric()
 
             # update metrics with gw performance
-            old_metrics_prod = metrics_prod
-            old_metrics_train = metrics_train
-            production_metric = Metric(cpu=production_metric.cpu(), memory=production_metric.memory(), throughput=metrics_prod.throughput(), process_time=production_metric.process_time(), errors=production_metric.errors(), in_out=production_metric.in_out(), to_eval=production_metric.to_eval)
-            training_metric = Metric(cpu=training_metric.cpu(), memory=training_metric.memory(), throughput=metrics_prod.throughput(), process_time=training_metric.process_time(), errors=training_metric.errors(), in_out=training_metric.in_out(), to_eval=training_metric.to_eval)
+            # old_metrics_prod = metrics_prod
+            # old_metrics_train = metrics_train
+            # production_metric = Metric(cpu=production_metric.cpu(), memory=production_metric.memory(), throughput=metrics_prod.throughput(), process_time=production_metric.process_time(), errors=production_metric.errors(), in_out=production_metric.in_out(), to_eval=production_metric.to_eval)
+            # training_metric = Metric(cpu=training_metric.cpu(), memory=training_metric.memory(), throughput=metrics_prod.throughput(), process_time=training_metric.process_time(), errors=training_metric.errors(), in_out=training_metric.in_out(), to_eval=training_metric.to_eval)
 
             # fix this for production deployment
             #
@@ -156,8 +156,8 @@ def create_context(production_microservice, training_microservice):
             #     last_metrics_prod = metrics_prod
             # UnboundLocalError: local variable 'metrics_prod' referenced before assignment
             #
-            # last_metrics_prod = production_metric
-            # last_metrics_train = training_metric
+            last_metrics_prod = production_metric
+            last_metrics_train = training_metric
 
             production_result = production_workload.result(config.SAMPLING_METRICS_TIMEOUT)
             production_class, production_hits = classify_workload(production_metric, production_result)
@@ -171,7 +171,10 @@ def create_context(production_microservice, training_microservice):
             time.sleep(2)  # to avoid race condition when iterating over Trials
             best_config, best_loss = best_loss_so_far(search_space_ctx)
 
+
             evaluation = training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD) #\
+            logger.info(f'[objective] training:{training_metric.objective()} production:{production_metric.objective()} best:{best_loss}')
+
                 # and metrics_train.throughput() > last_metrics_prod.throughput()
             logger.info(
                 # f' last gw throughput: {last_metrics_prod.throughput()} <= current gw throughput: {metrics_train.throughput() > last_metrics_prod.throughput()}'
@@ -179,23 +182,21 @@ def create_context(production_microservice, training_microservice):
                 f'| loss:{loss} <= best_loss:{best_loss}')
             tuned = False
             if evaluation:
-                if best_loss < loss:
-
+                if best_loss <= loss:
                     if last_config != best_config or last_class != production_class:
                         logger.info(
                             f'[best] training:{training_metric.objective()} <= production:{production_metric.objective()} '
-                            f'| loss:{loss} <= best_loss:{best_loss} '
+                            f'| best_loss:{best_loss} < loss:{loss}'
                             f'== {evaluation and (best_loss < loss)}')
                         last_class = production_class
                         update_production(production_microservice, best_config, search_space_ctx)
                         last_config = best_config
                         tuned = True
                 else:
-
                     if last_config != config_to_apply or last_class != production_class:
                         logger.info(
                             f'[curr] training:{training_metric.objective()} <= production:{production_metric.objective()} '
-                            f'| loss:{loss} <= best_loss:{best_loss} '
+                            f'| best_loss:{best_loss} >= loss:{loss}'
                             f'== {evaluation and (best_loss >= loss)}')
                         last_class = production_class
                         update_production(production_microservice, config_to_apply, search_space_ctx)
@@ -218,20 +219,22 @@ def create_context(production_microservice, training_microservice):
 
             save(
                 timestamp=time.time_ns(),
-                config=config_to_apply,
-                gw_production_metric=old_metrics_prod.serialize(),
+
+                last_config=last_config,
+                # gw_production_metric=old_metrics_prod.serialize(),
                 production_metric=production_metric.serialize(),
-                gw_train_metric=old_metrics_train.serialize(),
+                # gw_train_metric=old_metrics_train.serialize(),
+                config_to_eval=config_to_apply,
                 training_metric=training_metric.serialize(),
                 production_workload=sampler.series_to_dict(production_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
-                overall_metrics_train=metrics_train.serialize(),
-                overall_metrics_prod=metrics_prod.serialize(),
+                # overall_metrics_train=metrics_train.serialize(),
+                # overall_metrics_prod=metrics_prod.serialize(),
                 # extract to dict
                 training_workload=sampler.series_to_dict(training_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
                 # extract to dict
                 best_loss=best_loss,
                 best_config=best_config,
-                update_production=best_config,
+                update_production=last_config,
                 tuned=tuned
             )
 
