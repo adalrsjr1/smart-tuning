@@ -15,9 +15,6 @@ spec:
       containers:
         - name: daytrader-db
           image: smarttuning/derby
-          resources:
-            limits:
-              memory: "4096Mi"
           ports:
             - containerPort: 1527
               protocol: TCP
