@@ -11,6 +11,7 @@ import (
 	"net/http/pprof"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/valyala/fasthttp"
@@ -203,7 +204,8 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 			metric.responseSize = 0
 		}
 
-		strPath := string(metric.path)
+		// this is a workaround for daytrader8 app remove it for acmeair
+		strPath := strings.Split(string(metric.path), "&")[0]
 
 		code := strconv.Itoa(metric.statusCode)
 		if httpRequestsTotal != nil {
