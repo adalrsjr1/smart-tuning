@@ -80,6 +80,21 @@ data:
           upper: 200
           step: 5
           real: False
+        - name: "HTTP_MAX_KEEP_ALIVE_REQUESTS"
+          lower: 10
+          upper: 200
+          step: 25
+          real: False
+        - name: "HTTP_PERSIST_TIMEOUT"
+          lower: 15
+          upper: 45
+          step: 5
+          real: False
+        - name: "MONGO_MAX_CONNECTIONS"
+          lower: 10
+          upper: 200
+          step: 25
+          real: False
       option:
         - name: "CONMGR1_PURGE_POLICY"
           values:
@@ -96,6 +111,23 @@ data:
             - "EntirePool"
             - "FailingConnectionOnly"
             - "ValidateAllConnections"
+        - name: "ORDER_PROCESSING_MODE"
+          # SYNC:0, ASYNC:1, ASYNC_2P:2
+          values:
+            - "0"
+            - "1"
+            - "2"
+        - name: "RUNTIME_MODE"
+          # FULL_EJB:0, DIRECT:1, SESSION:2
+          values:
+            - "0"
+            - "1"
+            - "2"
+        - name: "WEB_INTERFACE"
+          # JSP: 0, JSP-IMG: 1
+          values:
+            - "0"
+            - "1"
   - name: daytrader-config-jvm
     filename: "jvm.options"
     tunables:
