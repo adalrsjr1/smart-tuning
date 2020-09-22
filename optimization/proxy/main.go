@@ -41,19 +41,32 @@ var (
 	connTimeout, _  = strconv.Atoi(getEnvOrDefault("MAX_CONNECTION_TIMEOUT", "30"))
 
 
-	proxyClient = &fasthttp.HostClient{
-		Addr:                          upstreamAddr,
-		NoDefaultUserAgentHeader:      true, // Don't send: User-Agent: fasthttp
-		MaxConns:                      maxConn,
-		ReadBufferSize:                readBuffer,  // Make sure to set this big enough that your whole request can be read at once.
-		WriteBufferSize:               writeBuffer, // Same but for your response.
-		ReadTimeout:                   time.Duration(readTimeout) * time.Second,
-		WriteTimeout:                  time.Duration(writeTimeout) * time.Second,
-		MaxIdleConnDuration:           time.Duration(connDuration) * time.Second,
-		MaxConnWaitTimeout:            time.Duration(connTimeout) * time.Second,
-		DisableHeaderNamesNormalizing: true, // If you set the case on your headers correctly you can enable this.
+	//proxyClient = &fasthttp.HostClient{
+	//	Addr:                          upstreamAddr,
+	//	NoDefaultUserAgentHeader:      true, // Don't send: User-Agent: fasthttp
+	//	MaxConns:                      maxConn,
+	//	ReadBufferSize:                readBuffer,  // Make sure to set this big enough that your whole request can be read at once.
+	//	WriteBufferSize:               writeBuffer, // Same but for your response.
+	//	ReadTimeout:                   time.Duration(readTimeout) * time.Second,
+	//	WriteTimeout:                  time.Duration(writeTimeout) * time.Second,
+	//	MaxIdleConnDuration:           time.Duration(connDuration) * time.Second,
+	//	MaxConnWaitTimeout:            time.Duration(connTimeout) * time.Second,
+	//	DisableHeaderNamesNormalizing: true, // If you set the case on your headers correctly you can enable this.
+	//}
+	proxyClient = CookieClient{
+		fasthttp.HostClient {
+			Addr:                          upstreamAddr,
+			NoDefaultUserAgentHeader:      true, // Don't send: User-Agent: fasthttp
+			MaxConns:                      maxConn,
+			ReadBufferSize:                readBuffer,  // Make sure to set this big enough that your whole request can be read at once.
+			WriteBufferSize:               writeBuffer, // Same but for your response.
+			ReadTimeout:                   time.Duration(readTimeout) * time.Second,
+			WriteTimeout:                  time.Duration(writeTimeout) * time.Second,
+			MaxIdleConnDuration:           time.Duration(connDuration) * time.Second,
+			MaxConnWaitTimeout:            time.Duration(connTimeout) * time.Second,
+			DisableHeaderNamesNormalizing: true, // If you set the case on your headers correctly you can enable this.
+		},
 	}
-
 	countingRequests, _     = strconv.ParseBool(getEnvOrDefault("COUNT_REQUESTS", "true"))
 	countingProcessTime, _  = strconv.ParseBool(getEnvOrDefault("COUNT_PROC_TIME", "true"))
 	countingReqSize, _		= strconv.ParseBool(getEnvOrDefault("COUNT_REQ_SIZE", "true"))
@@ -136,22 +149,37 @@ type PromMetric struct {
 	podIP        string
 }
 
+// CookieClient struct
+type CookieClient struct {
+	fasthttp.HostClient
+}
+
+// Do func handling cookies
+func (c *CookieClient) Do(req *fasthttp.Request, resp *fasthttp.Response, cookies []*fasthttp.Cookie) error {
+	// Send all cookies with each request.
+	for _, c := range cookies {
+		req.Header.SetCookieBytesKV(c.Key(), c.Value())
+	}
+
+	return c.HostClient.Do(req, resp)
+}
+
 func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	req := &ctx.Request
-
 	resp := &ctx.Response
 	client := ctx.RemoteIP()
 	requestSize := len(req.Body()) + len(req.URI().QueryString())
 
 	tStart := time.Now()
-	prepareRequest(req, ctx)
+	cookies := prepareRequest(req, ctx)
 
-	if err := proxyClient.Do(req, resp); err != nil {
+	if err := proxyClient.Do(req, resp, cookies); err != nil {
 		resp.SetStatusCode(fasthttp.StatusBadGateway)
 		ctx.Logger().Printf("error when proxying the request: %s", err)
 	}
 
 	responseSize := resp.Header.ContentLength()
+
 	postprocessResponse(resp, ctx)
 	tEnd := time.Now()
 
@@ -233,10 +261,20 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 	}(promChan)
 }
 
-func prepareRequest(req *fasthttp.Request, ctx *fasthttp.RequestCtx) {
+func prepareRequest(req *fasthttp.Request, ctx *fasthttp.RequestCtx) []*fasthttp.Cookie {
 	// do not proxy "Connection" header.
 	ctxReq := &ctx.Request
 	req.SetHost(proxyClient.Addr)
+
+	var cookies []*fasthttp.Cookie
+	// Get all cookies received with the request.
+	req.Header.VisitAllCookie(func(key, value []byte) {
+		c := fasthttp.AcquireCookie()
+		c.ParseBytes(value)
+
+		cookies = append(cookies, c)
+	})
+
 
 	clientIp := ctx.RemoteIP().String()
 
@@ -248,7 +286,6 @@ func prepareRequest(req *fasthttp.Request, ctx *fasthttp.RequestCtx) {
 	}
 
 	req.Header.Set("X-Forwarded-Host", proxyClient.Addr)
-
 	if inTotal != nil {
 		inTotal.With(prometheus.Labels{
 			"node":      nodeName,
@@ -264,7 +301,7 @@ func prepareRequest(req *fasthttp.Request, ctx *fasthttp.RequestCtx) {
 	// strip other unneeded headers.
 
 	// alter other request params before sending them to upstream host
-
+	return cookies
 }
 
 func postprocessResponse(resp *fasthttp.Response, ctx *fasthttp.RequestCtx) {
