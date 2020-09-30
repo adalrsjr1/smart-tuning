@@ -11,6 +11,7 @@ import (
 	"net/http/pprof"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/valyala/fasthttp"
@@ -176,6 +177,7 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 		}
 
 		strPath := string(metric.path)
+		strPath = strings.Split(strPath, "&")[0]
 
 		code := strconv.Itoa(metric.statusCode)
 		if httpRequestsTotal != nil {
