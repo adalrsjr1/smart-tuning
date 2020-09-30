@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: daytrader-db
+  labels:
+    app: daytrader-db
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: daytrader-db
+      labels:
+        app: daytrader-db
+    spec:
+      volumes:
+        - name: db2-volume
+          emptyDir: {}
+      containers:
+        - name: daytrader-db
+          image: smarttuning/db2
+          volumeMounts:
+            - mountPath: /database
+              name: db2-volume
+          securityContext:
+            privileged: true
+          env:
+            - name: LICENSE
+              value: accept
+            - name: DB2COMM
+              value: tcpip
+#            - name: DB2_DEFERRED_PREPARE_SEMANTICS
+#              value: "YES"
+#            - name: DB2_COMPATIBILITY_VECTOR
+#              value: ORA
+            - name: DB2INST1_PASSWORD
+              value: db2pass
+          ports:
+            - containerPort: 50000
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+#      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: daytrader-db
