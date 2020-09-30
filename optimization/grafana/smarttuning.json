@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1600713886168,
+  "iteration": 1601389787897,
   "links": [],
   "panels": [
     {
@@ -168,25 +168,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\".*nginx.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\".*nginx.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "gw",
           "refId": "C"
         },
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$prod_podname.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "prod+train",
           "refId": "D"
@@ -281,22 +281,28 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "prod + train",
           "refId": "C"
+        },
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\".*-db-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "database",
+          "refId": "D"
         }
       ],
       "thresholds": [],
@@ -388,22 +394,28 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "sum(max_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{id=~\".kubepods.*\",pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
         },
         {
-          "expr": "sum(max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{id=~\".kubepods.*\",pod=~\"$prod_podname.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "prod + train",
           "refId": "C"
+        },
+        {
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{id=~\".kubepods.*\",pod=~\".*-db-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
+          "interval": "",
+          "legendFormat": "database",
+          "refId": "D"
         }
       ],
       "thresholds": [],
@@ -842,5 +854,5 @@
   "timezone": "",
   "title": "smarttuning",
   "uid": "8RkJTIzGz",
-  "version": 2
+  "version": 1
 }
