@@ -35,10 +35,10 @@ spec:
               mountPath: /etc/prometheus/
             - name: prometheus-storage-volume
               mountPath: /prometheus/
-#          resources:
-#              limits:
-#                memory: "8Gi"
-#                cpu: "4"
+          resources:
+              limits:
+                memory: "8Gi"
+                cpu: "4"
       volumes:
         - name: prometheus-config-volume
           configMap:
