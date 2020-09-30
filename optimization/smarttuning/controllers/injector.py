@@ -252,9 +252,10 @@ def init_proxy_container(proxy_port: int, service_port: int):
                 'add': [
                     'NET_ADMIN'
                 ]
-            }
+            },
+            'privileged': 'true'
         },
-        'privileged': 'true'
+
     }
 
 

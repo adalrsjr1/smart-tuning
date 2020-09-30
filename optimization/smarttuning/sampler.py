@@ -279,7 +279,7 @@ class PrometheusSampler:
     def throughput(self, quantile=1.0) -> Future:
         """ return future<pd.Series>"""
         logger.debug(f'sampling throughput at {self.podname}-.* in namespace {self.namespace}')
-        query = f'sum(rate(smarttuning_http_requests_total{{namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(rate(smarttuning_http_requests_total{{code=~"[2|3]..",namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def error(self, quantile=1.0) -> Future:
@@ -302,7 +302,7 @@ class PrometheusSampler:
         """
         # The better metric is container_memory_working_set_bytes as this is what the OOM killer is watching for.
         logger.debug(f'sampling memory at {self.podname}.* in {self.namespace}')
-        query = f'sum(max_over_time(container_memory_working_set_bytes{{namespace="{self.namespace}", container=~"",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(max_over_time(container_memory_working_set_bytes{{id=~".kubepods.*",namespace="{self.namespace}", container!~"",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 
@@ -310,7 +310,7 @@ class PrometheusSampler:
         """ return a concurrent.futures.Future<pandas.Series> with the CPU (milicores) rate over time of an specific pod
         """
         logger.debug(f'sampling cpu at {self.podname}-.* in {self.namespace}')
-        query = f'sum(rate(container_cpu_usage_seconds_total{{namespace="{self.namespace}", container=~"",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(rate(container_cpu_usage_seconds_total{{id=~".kubepods.*",namespace="{self.namespace}", container!~"",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def workload(self) -> Future:
@@ -345,6 +345,8 @@ class PrometheusSampler:
                     f'sum(rate(out_http_requests_total{{namespace="{self.namespace}", pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
 
         return self.__do_sample__(query)
+
+
 
 if __name__ == '__main__':
     s = PrometheusSampler('acmeair-nginxservicesmarttuning', config.WAITING_TIME * config.SAMPLE_SIZE)
