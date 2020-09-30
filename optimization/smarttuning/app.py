@@ -173,6 +173,8 @@ def create_context(production_microservice, training_microservice):
 
 
             evaluation = training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD) #\
+            logger.info(f'[t metric] {training_metric}')
+            logger.info(f'[p metric] {production_metric}')
             logger.info(f'[objective] training:{training_metric.objective()} production:{production_metric.objective()} best:{best_loss}')
 
                 # and metrics_train.throughput() > last_metrics_prod.throughput()
@@ -181,17 +183,25 @@ def create_context(production_microservice, training_microservice):
                 f'training:{training_metric.objective()} <= production:{production_metric.objective()} '
                 f'| loss:{loss} <= best_loss:{best_loss}')
             tuned = False
+            updated_config = {}
             if evaluation:
-                if best_loss <= loss:
+                if best_loss < loss:
                     if last_config != best_config or last_class != production_class:
+                        update_best_loss(search_space_ctx, training_metric.objective())
+                        best_config, best_loss = best_loss_so_far(search_space_ctx)
+
                         logger.info(
                             f'[best] training:{training_metric.objective()} <= production:{production_metric.objective()} '
                             f'| best_loss:{best_loss} < loss:{loss}'
                             f'== {evaluation and (best_loss < loss)}')
+
                         last_class = production_class
+
                         update_production(production_microservice, best_config, search_space_ctx)
                         last_config = best_config
-                        tuned = True
+                        tuned = 'best'
+                        # update loss
+
                 else:
                     if last_config != config_to_apply or last_class != production_class:
                         logger.info(
@@ -200,8 +210,8 @@ def create_context(production_microservice, training_microservice):
                             f'== {evaluation and (best_loss >= loss)}')
                         last_class = production_class
                         update_production(production_microservice, config_to_apply, search_space_ctx)
-                        last_config = best_config = config_to_apply
-                        tuned = True
+                        last_config = updated_config = config_to_apply
+                        tuned = 'curr'
 
 
             # evaluation = best_loss <= loss * (1 - config.METRIC_THRESHOLD) \
@@ -234,7 +244,7 @@ def create_context(production_microservice, training_microservice):
                 # extract to dict
                 best_loss=best_loss,
                 best_config=best_config,
-                update_production=last_config,
+                update_production=updated_config,
                 tuned=tuned
             )
 
@@ -288,6 +298,9 @@ def best_loss_so_far(search_space_ctx: SearchSpaceContext):
     logger.info(f'getting best loss at BayesianEngine: {search_space_ctx.engine.id()}')
     return search_space_ctx.get_best_so_far()
 
+def update_best_loss(search_space_ctx: SearchSpaceContext, new_loss:float):
+    logger.info(f'updating best loss at trials to {new_loss}')
+    search_space_ctx.update_best_loss(new_loss)
 
 def update_production(name, config, search_space_ctx: SearchSpaceContext):
     logger.info(f'updating production microservice {name} with config {config}')
@@ -367,6 +380,10 @@ def main():
 
 # https://github.com/kubernetes-client/python/blob/cef5e9bd10a6d5ca4d9c83da46ccfe2114cdaaf8/examples/notebooks/intro_notebook.ipynb
 # repactor injector using this approach
+
+# TODO: Stop iteration after k iterations
+# TODO: Change training and production pod without restart them
+# TODO: Stop iteration when throughput goes to 0 or below a given threshold
 if __name__ == '__main__':
     try:
         main()

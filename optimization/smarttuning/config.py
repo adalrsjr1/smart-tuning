@@ -90,7 +90,7 @@ N_STARTUP_JOBS = int(os.environ.get('N_STARTUP_JOBS', default=10))
 N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
 # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
 GAMMA = float(os.environ.get('GAMMA', default=0.25))
-NUMBER_ITERATIONS = int(os.environ.get('NUMBER_ITERATIONS', default='1e15')) # check if hyperopt version is updated to use stop iterations
+NUMBER_ITERATIONS = int(float(os.environ.get('NUMBER_ITERATIONS', default='1e15'))) # check if hyperopt version is updated to use stop iterations
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
 OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='-throughput/(memory / 2 ** 20)'), '<string>', 'eval')

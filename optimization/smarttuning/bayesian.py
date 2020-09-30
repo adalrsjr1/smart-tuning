@@ -169,6 +169,15 @@ class BayesianEngine:
         best = self.trials().argmin
         return space_eval(self._space, best), loss
 
+    def update_best_trial(self, value:float):
+        best_idx = list(self.trials().best_trial['misc']['idxs'].values())[0][0]
+        for i, trial in enumerate(self.trials()):
+            if i == best_idx:
+                trial['result']['loss'] = value
+                logger.info(f'updating best config loss to {value}')
+                break
+        self.trials().refresh()
+
     def sample(self, metric):
         parameters = BayesianChannel.get_out(self.id())
         BayesianChannel.put_in(self.id(), metric)

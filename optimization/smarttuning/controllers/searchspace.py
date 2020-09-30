@@ -84,3 +84,7 @@ class SearchSpaceContext:
         if self.engine:
             return self.engine.best_so_far()
         return None
+
+    def update_best_loss(self, new_loss:float):
+        if self.engine:
+            self.engine.update_best_trial(new_loss)
