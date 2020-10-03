@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1601389787897,
+  "iteration": 1601656901178,
   "links": [],
   "panels": [
     {
@@ -34,7 +34,7 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 7,
         "w": 12,
         "x": 0,
         "y": 0
@@ -67,13 +67,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
@@ -121,7 +121,9 @@
       }
     },
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "TRAIN daytrader-servicesmarttuning": "super-light-yellow"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -135,7 +137,7 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 7,
         "w": 12,
         "x": 12,
         "y": 0
@@ -190,6 +192,12 @@
           "interval": "",
           "legendFormat": "prod+train",
           "refId": "D"
+        },
+        {
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod)",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "E"
         }
       ],
       "thresholds": [],
@@ -248,10 +256,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 0,
-        "y": 9
+        "y": 7
       },
       "hiddenSeries": false,
       "id": 2,
@@ -361,10 +369,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 12,
-        "y": 9
+        "y": 7
       },
       "hiddenSeries": false,
       "id": 4,
@@ -460,7 +468,9 @@
       }
     },
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "TRAIN daytrader-servicesmarttuning": "super-light-yellow"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -477,7 +487,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 18
+        "y": 15
       },
       "hiddenSeries": false,
       "id": 8,
@@ -517,6 +527,12 @@
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
+        },
+        {
+          "expr": "sum(rate(smarttuning_http_processtime_seconds_sum{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod) / sum( rate(smarttuning_http_processtime_seconds_count{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod)",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "C"
         }
       ],
       "thresholds": [],
@@ -578,7 +594,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 18
+        "y": 15
       },
       "hiddenSeries": false,
       "id": 10,
@@ -662,7 +678,7 @@
       }
     }
   ],
-  "refresh": "10s",
+  "refresh": false,
   "schemaVersion": 25,
   "style": "dark",
   "tags": [],
@@ -700,18 +716,13 @@
         "auto_min": "10s",
         "current": {
           "selected": false,
-          "text": "100s",
-          "value": "100s"
+          "text": "400s",
+          "value": "400s"
         },
         "hide": 0,
         "label": null,
         "name": "time_interval_m",
         "options": [
-          {
-            "selected": true,
-            "text": "100s",
-            "value": "100s"
-          },
           {
             "selected": false,
             "text": "1m",
@@ -719,8 +730,28 @@
           },
           {
             "selected": false,
+            "text": "100s",
+            "value": "100s"
+          },
+          {
+            "selected": false,
+            "text": "200s",
+            "value": "200s"
+          },
+          {
+            "selected": false,
             "text": "5m",
             "value": "5m"
+          },
+          {
+            "selected": false,
+            "text": "6m",
+            "value": "6m"
+          },
+          {
+            "selected": true,
+            "text": "400s",
+            "value": "400s"
           },
           {
             "selected": false,
@@ -731,6 +762,11 @@
             "selected": false,
             "text": "15m",
             "value": "15m"
+          },
+          {
+            "selected": false,
+            "text": "20m",
+            "value": "20m"
           },
           {
             "selected": false,
@@ -773,7 +809,7 @@
             "value": "30d"
           }
         ],
-        "query": "100s,1m,5m,10m,15m,30m,1h,6h,12h,1d,7d,14d,30d",
+        "query": "1m,100s,200s,5m,6m,400s,10m,15m,20m,30m,1h,6h,12h,1d,7d,14d,30d",
         "queryValue": "",
         "refresh": 2,
         "skipUrlSync": false,
@@ -835,7 +871,7 @@
     ]
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -845,6 +881,7 @@
       "1m",
       "5m",
       "15m",
+      "20m",
       "30m",
       "1h",
       "2h",
