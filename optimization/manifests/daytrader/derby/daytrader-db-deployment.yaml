@@ -25,40 +25,27 @@ spec:
       volumes:
         - name: db2-volume
 #          emptyDir: {}
-#          emptyDir:
-#            medium: "Memory"
-          hostPath:
-            type: DirectoryOrCreate
-            path: /database
+          emptyDir:
+            medium: "Memory"
+#          hostPath:
+#            type: DirectoryOrCreate
+#            path: /database
       containers:
         # use su - db2inst1 when inspecting the container
         - name: daytrader-db
-          image: smarttuning/db2
+          image: smarttuning/derby
           volumeMounts:
-            - mountPath: /database
+            - mountPath: /data
               name: db2-volume
           securityContext:
             privileged: true
-          env:
-            - name: LICENSE
-              value: accept
-            - name: DB2COMM
-              value: tcpip
-            - name: "DB2_LOGGER_NON_BUFFERED_IO"
-              value: "OFF"
-#            - name: DB2_DEFERRED_PREPARE_SEMANTICS
-#              value: "YES"
-#            - name: DB2_COMPATIBILITY_VECTOR
-#              value: ORA
-            - name: DB2INST1_PASSWORD
-              value: db2pass
           ports:
-            - containerPort: 50000
+            - containerPort: 1527
               protocol: TCP
-          resources:
-            limits:
-              cpu: "4"
-              memory: "16Gi"
+#          resources:
+#            limits:
+#              cpu: "16"
+#              memory: "8Gi"
 #      restartPolicy: Always
   selector:
     matchLabels:

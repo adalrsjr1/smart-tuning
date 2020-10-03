@@ -14,6 +14,7 @@ spec:
       labels:
         app: daytrader
     spec:
+      restartPolicy: Always
       containers:
         - name: daytrader
           image: smarttuning/daytrader8-k8s
@@ -28,16 +29,50 @@ spec:
               value: daytrader-db.default.svc.cluster.local
             - name: DB_PORT
               value: "1527"
+#              value: "50000"
+#            - name: DB_NAME
+#              value: "tradedb"
+#            - name: DB_USER
+#              value: "db2inst1"
+#            - name: DB_PASS
+#              value: "db2pass"
             - name: MAX_QUOTES
               value: "1000"
             - name: MAX_USERS
               value: "500"
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: "http"
-            initialDelaySeconds: 5
+          # avoid to send requests
+#          readinessProbe:
+#            httpGet:
+#              path: /daytrader
+#              port: 9080
+#            initialDelaySeconds: 40
+#            periodSeconds: 5
+          # avoid to send requests if it already restarted
+          readinessProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - /opt/readness_probe.sh
+            initialDelaySeconds: 30
+            failureThreshold: 1
             periodSeconds: 5
+          startupProbe:
+            httpGet:
+              port: 9080
+              path: /daytrader
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            # force restart
+          livenessProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - /opt/liveness_probe.sh 100
+            initialDelaySeconds: 100
+            failureThreshold: 1
+            periodSeconds: 10
           envFrom:
             - configMapRef:
                 name: daytrader-config-app
