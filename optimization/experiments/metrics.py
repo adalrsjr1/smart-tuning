@@ -37,7 +37,7 @@ def load_rawdata(filepath:str, default:dict) -> (pd.DataFrame, pd.DataFrame):
 def plot(filename, data_p: pd.DataFrame, data_t: pd.DataFrame, data_d: pd.DataFrame):
     n_cols = data_p.count(axis=1)[1]
     n_rows = data_p.count(axis=0)[1]
-    fig, axs = plt.subplots(nrows=n_cols, ncols=1, figsize=(12, 8), sharex='col')
+    fig, axs = plt.subplots(nrows=n_cols, ncols=1, figsize=(12, 8), sharex='col',)
 
     data_p.plot(ax=axs, linewidth=0.7, drawstyle='steps-post', style=['b-']*n_cols, subplots=True)
     data_t.plot(ax=axs, linewidth=0.7, drawstyle='steps-post', style=['r-']*n_cols, subplots=True)
@@ -67,6 +67,8 @@ def plot(filename, data_p: pd.DataFrame, data_t: pd.DataFrame, data_d: pd.DataFr
     handles, labels = axs[0].get_legend_handles_labels()
     axs[0].legend(handles, ['production', 'training', 'default'], bbox_to_anchor=(0., 1.3, 1., .102), loc='upper center',
            ncol=2,  borderaxespad=0., frameon=False, )
+
+
 
     plt.savefig(filename)
     plt.show()

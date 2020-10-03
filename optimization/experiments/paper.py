@@ -1,6 +1,12 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
+                               AutoMinorLocator, FixedLocator)
+
+import matplotlib.lines as mlines
+
+
 
 def load_data(filename:str) -> pd.DataFrame:
     return pd.read_csv(filename)
@@ -35,12 +41,42 @@ def split_table(table: pd.DataFrame) -> pd.DataFrame:
         'tuned'
     ]].copy()
 
-    return metrics_table[0], workload_table
+    metrics_table = metrics_table[0]
+    # row0 = metrics_table.iloc[[0]]
+    # row0.loc[0, 'training_metric.cpu'] = None
+    # row0.loc[0, 'training_metric.memory'] = None
+    # row0.loc[0, 'training_metric.throughput'] = None
+    # row0.loc[0, 'training_metric.process_time'] = None
+    # row0.loc[0, 'training_metric.errors'] = None
+    # row0.loc[0, 'training_metric.objective'] = 0
+    # row0.loc[0, 'tuning'] = False
+    # metrics_table = row0.iloc[[0]].append(metrics_table, ignore_index=False)
+    #
+    # rowN = metrics_table.iloc[[-1]]
+    # print(rowN)
+    # rowN.loc[0, 'training_metric.cpu'] = None
+    # rowN.loc[0, 'training_metric.memory'] = None
+    # rowN.loc[0, 'training_metric.throughput'] = None
+    # rowN.loc[0, 'training_metric.process_time'] = None
+    # rowN.loc[0, 'training_metric.errors'] = None
+    # rowN.loc[0, 'training_metric.objective'] = 0
+    #
+    # # metrics_table = metrics_table.append(rowN, ignore_index=False)
 
-def plot_metrics(table:pd.DataFrame):
-    nrows = 6
-    fig, axs = plt.subplots(nrows=nrows, ncols=1, figsize=(12, 8), sharex='col', gridspec_kw = {'wspace':0, 'hspace':0})
+
+    return metrics_table, workload_table
+
+def plot_metrics(table:pd.DataFrame, title:str):
+    nmetrics = 6
+    nrows = len(table.index)
+    fig, axs = plt.subplots(nrows=nmetrics, ncols=1, figsize=(12, 8), sharex='col', gridspec_kw = {'wspace':0, 'hspace':0.5})
     target = [axs[0], axs[1], axs[2], axs[3], axs[4], axs[5]]
+
+    table['production_metric.objective'] *= -1
+    table['training_metric.objective'] *= -1
+    table['production_metric.memory'] /= 2**20
+    table['training_metric.memory'] /= 2**20
+    table['tuned'] = table['tuned'].apply(lambda row: 0 if row == 'false' or row == False else 1)
 
     table[[
         'production_metric.cpu',
@@ -48,7 +84,7 @@ def plot_metrics(table:pd.DataFrame):
         'production_metric.throughput',
         'production_metric.process_time',
         'production_metric.errors',
-        'production_metric.objective']].plot(ax=target, linewidth=0.7, drawstyle='steps-post', style=['b-']*nrows, subplots=True)
+        'production_metric.objective']].plot(ax=target, linewidth=0.7, drawstyle='steps-post', style=['b-']*nmetrics, subplots=True)
 
     table[[
         'training_metric.cpu',
@@ -56,31 +92,126 @@ def plot_metrics(table:pd.DataFrame):
         'training_metric.throughput',
         'training_metric.process_time',
         'training_metric.errors',
-        'training_metric.objective']].plot(ax=target, linewidth=0.7, drawstyle='steps-post', style=['r-']*nrows, subplots=True)
+        'training_metric.objective']].plot(ax=target, linewidth=0.7, drawstyle='steps-post', style=['r-']*nmetrics, subplots=True)
 
+    # table[['tuned']*nmetrics].plot(ax=target, linewidth=0.7, style=['k:']*nmetrics, subplots=True, )
+
+    for it, istuned in enumerate(table['tuned']):
+        if istuned:
+            newline([it, 0], [it, 10], axs[0])
+            newline([it, 0], [it, 10], axs[1])
+            newline([it, 0], [it, 10], axs[2])
+            newline([it, 0], [it, 10], axs[3])
+            newline([it, 0], [it, 10], axs[4])
+            newline([it, 0], [it, 10], axs[5])
+
+    # set cpu axis
     ax2 = axs[0].twinx()
-    axs[0].set_ylabel('cpu')
-    ax2.set_yticks(np.linspace(0, 16, 4, dtype=float))
+    axs[0].set_ylabel('cpu\n(cores)')
+    ax2.set_yticks([2,4,8,16])
     axs[0].set_yticks([])
-    axs[0].xaxis.set_ticks(np.arange(0, nrows, 1))
+    axs[0].xaxis.set_ticks([])
+    axs[0].set_xlim([0, nrows-1])
+    # axs[0].set_ylim([0, 16])
+
+
+    # set memory axis
+    ax2 = axs[1].twinx()
+    axs[1].set_ylabel('memory\n(GiB)')
+    ax2.set_yticks([0.5, 1, 2, 4, 8])
+    axs[1].set_yticks([])
+    axs[1].xaxis.set_ticks(np.arange(0, nrows, 2))
+    axs[1].set_xlim([0, nrows - 1])
+    # axs[1].set_ylim([0, 8])
+
+
+    ax2.yaxis.set_major_locator(FixedLocator([0.5,2,8]))
+    ax2.yaxis.set_minor_locator(FixedLocator([1,4]))
+    ax2.yaxis.set_minor_formatter(FormatStrFormatter("%.1f"))
+    ax2.tick_params(which='major', pad=20, axis='y')
+
+    # set throughput axis
+    ax2 = axs[2].twinx()
+    axs[2].set_ylabel('throughput\n(rqps)')
+    ax2.set_yticks(np.arange(0, max(table['training_metric.throughput'])+1, max(table['training_metric.throughput'])/4))
+    axs[2].set_yticks([])
+    axs[2].xaxis.set_ticks(np.arange(0, nrows, 2))
+    axs[2].set_xlim([0, nrows - 1])
+    # axs[2].set_ylim([0, 10000])
+    print(table['training_metric.throughput'])
+
+    # set process axis
+    ax2 = axs[3].twinx()
+    axs[3].set_ylabel('process time\n(s)')
+    ax2.set_yticks(np.linspace(0, max(table['training_metric.process_time'])+0.1, 4))
+    axs[3].set_yticks([])
+    axs[3].xaxis.set_ticks(np.arange(0, nrows, 2))
+    axs[3].set_xlim([0, nrows - 1])
+    ax2.set_ylim([0, max(table['training_metric.process_time'])+0.1])
+    # print(table['training_metric.process_time'])
+    # print(table['production_metric.process_time'])
+
+    # set errors axis
+    ax2 = axs[4].twinx()
+    axs[4].set_ylabel('errors (%)')
+    ax2.set_yticks(np.arange(0, 125, 25))
+    axs[4].set_yticks([])
+    axs[4].xaxis.set_ticks(np.arange(0, nrows, 2))
+    axs[4].set_xlim([0, nrows - 1])
+    # axs[4].set_ylim([0, 100])
+
+    # set objective axis
+    ax2 = axs[5].twinx()
+    axs[5].set_ylabel('requests/$')
+    ax2.set_yticks(np.linspace(0, max(table['training_metric.objective']),4))
+    axs[5].set_yticks([])
+    axs[5].xaxis.set_ticks(np.arange(0, nrows, 2))
+    axs[5].set_xlim([0, nrows - 1])
+    # axs[5].set_ylim([0, max(table['training_metric.objective'])])
 
     axs[1].legend(frameon=False, )
-    for i in range(1,nrows):
+    for i in range(1,nmetrics):
         axs[i].get_legend().remove()
-    # ax.margins(x=0)
+        axs[i].margins(x=0)
+
     handles, labels = axs[0].get_legend_handles_labels()
-    axs[0].legend(handles, ['production', 'training'], bbox_to_anchor=(0., 1.3, 1., .102),
+    handles.append(mlines.Line2D([0], [0], color='black', linestyle=':', linewidth=1))
+
+    axs[0].legend(handles, ['production', 'training', 'tuning'], bbox_to_anchor=(0., 1.3, 1., .102),
                   loc='upper center',
-                  ncol=2, borderaxespad=0., frameon=False, )
+                  ncol=3, borderaxespad=0., frameon=False, )
     axs[-1].set_xlabel('iterations')
+    axs[-1].xaxis.set_minor_locator(MultipleLocator(1))
+
+    axs[0].set_title(title, loc='left')
+
     plt.show()
+
+def newline(p1, p2, ax):
+    xmin, xmax = ax.get_xbound()
+
+    if(p2[0] == p1[0]):
+        xmin = xmax = p1[0]
+        ymin, ymax = ax.get_ybound()
+    else:
+        ymax = p1[1]+(p2[1]-p1[1])/(p2[0]-p1[0])*(xmax-p1[0])
+        ymin = p1[1]+(p2[1]-p1[1])/(p2[0]-p1[0])*(xmin-p1[0])
+
+    l = mlines.Line2D([xmin,xmax], [ymin, ymax], color='black', linestyle=':', linewidth=0.7)
+    ax.add_line(l)
+    return l
 
 if __name__ == '__main__':
     # pd.set_option('display.max_columns', None)
     # pd.set_option('display.max_rows', None)
 
-    df = load_data('./resources/logging-202009281720.csv')
+    # df = load_data('./resources/logging-202009281720.csv')
+    # title = 'AcmeAir'
+    # df = load_data('./resources/logging-202010010950.csv')
+    # df = load_data('./resources/logging-202010021110.csv')
+    df = load_data('./resources/logging-202010031130.csv')
+    title = 'DayTrader'
     mtable, wtable = split_table(df)
 
-    plot_metrics(mtable)
+    plot_metrics(mtable, title)
 

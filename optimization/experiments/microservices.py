@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from itertools import combinations
 import sys
 
-FILEPATH='resources/logging-202007281830.csv'
+FILEPATH='resources/logging-202009181900.csv'
 
 def extract_data_frames(filepath) -> pd.DataFrame:
     return pd.read_csv(filepath)
