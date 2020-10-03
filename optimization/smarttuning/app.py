@@ -183,22 +183,22 @@ def create_context(production_microservice, training_microservice):
                 f'training:{training_metric.objective()} <= production:{production_metric.objective()} '
                 f'| loss:{loss} <= best_loss:{best_loss}')
             tuned = False
-            updated_config = {}
+            updated_config = last_config
             if evaluation:
                 if best_loss < loss:
                     if last_config != best_config or last_class != production_class:
-                        update_best_loss(search_space_ctx, training_metric.objective())
+                        update_best_loss(search_space_ctx, production_metric.objective())
                         best_config, best_loss = best_loss_so_far(search_space_ctx)
 
                         logger.info(
                             f'[best] training:{training_metric.objective()} <= production:{production_metric.objective()} '
-                            f'| best_loss:{best_loss} < loss:{loss}'
+                            f'| best_loss:{best_loss} --> prod:{production_metric.objective()}'
                             f'== {evaluation and (best_loss < loss)}')
 
                         last_class = production_class
 
                         update_production(production_microservice, best_config, search_space_ctx)
-                        last_config = best_config
+                        updated_config = best_config
                         tuned = 'best'
                         # update loss
 
@@ -210,7 +210,7 @@ def create_context(production_microservice, training_microservice):
                             f'== {evaluation and (best_loss >= loss)}')
                         last_class = production_class
                         update_production(production_microservice, config_to_apply, search_space_ctx)
-                        last_config = updated_config = config_to_apply
+                        updated_config = config_to_apply
                         tuned = 'curr'
 
 
@@ -247,7 +247,7 @@ def create_context(production_microservice, training_microservice):
                 update_production=updated_config,
                 tuned=tuned
             )
-
+            last_config = updated_config
         except:
             logger.exception(f'error when handling microservice({production_microservice},{training_microservice})')
 

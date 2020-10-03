@@ -80,15 +80,12 @@ class TestBayesianEngine(unittest.TestCase):
         #
         # print(space_eval({"x": hp.uniform("x", -10, 10), "y": hp.uniform("y", -10, 10)}, best))
         # print(best, loss)
-        print(best)
-        print('>> ', trials.best_trial['misc']['idxs'], trials.best_trial['misc']['vals'])
-        best_idx = list(trials.best_trial['misc']['idxs'].values())[0][0]
+        best_idx1 = list(trials.best_trial['misc']['idxs'].values())[0][0]
         for i, trial in enumerate(trials):
-            if i == best_idx:
+            if i == best_idx1:
                 trial['result']['loss'] = 100000
                 print('## ',trial)
         trials.refresh()
-        print('>> ', trials.best_trial['misc']['idxs'], trials.best_trial['misc']['vals'])
         best = fmin(
             fn=fn,
             space={"x": hp.uniform("x", -10, 10), "y": hp.uniform("y", -10, 10)},
@@ -97,8 +94,9 @@ class TestBayesianEngine(unittest.TestCase):
             trials=trials,
             show_progressbar=False,
         )
-        print(best)
-        print('>> ', trials.best_trial['misc']['idxs'], trials.best_trial['misc']['vals'])
+        best_idx2 = list(trials.best_trial['misc']['idxs'].values())[0][0]
+
+        self.assertNotEqual(best_idx1, best_idx2)
 
 if __name__ == '__main__':
     unittest.main()
