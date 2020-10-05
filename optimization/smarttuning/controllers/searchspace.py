@@ -5,6 +5,7 @@ from kubernetes.client.models import *
 from controllers.searchspacemodel import *
 from controllers.k8seventloop import ListToWatch
 from controllers.injector import duplicate_deployment_for_training
+from kubernetes.client.rest import ApiException
 
 logger = logging.getLogger(config.SEARCH_SPACE_LOGGER)
 logger.setLevel(config.LOGGING_LEVEL)
@@ -19,20 +20,28 @@ search_spaces = {}
 def searchspace_controller(event):
     t = event.get('type', None)
     if 'ADDED' == t:
-        name = event['object']['metadata']['name']
-        ctx = SearchSpaceContext(name, SearchSpaceModel(event['object']))
+        try:
+            name = event['object']['metadata']['name']
+            ctx = SearchSpaceContext(name, SearchSpaceModel(event['object']))
 
-        deployment = get_deployment(ctx.model.deployment, ctx.model.namespace)
-        duplicate_deployment_for_training(deployment)
-        update_n_replicas(ctx.model.deployment, ctx.model.namespace, deployment.spec.replicas - 1)
+            deployment = get_deployment(ctx.model.deployment, ctx.model.namespace)
+            duplicate_deployment_for_training(deployment)
+            update_n_replicas(ctx.model.deployment, ctx.model.namespace, deployment.spec.replicas - 1)
 
-        ctx.create_bayesian_searchspace(is_bayesian=config.BAYESIAN)
-        search_spaces[ctx.model.deployment] = ctx
+            ctx.create_bayesian_searchspace(is_bayesian=config.BAYESIAN)
+            search_spaces[ctx.model.deployment] = ctx
+        except ApiException as e:
+            if 422 == e.status:
+                logger.warning(f'failed to duplicate deployment {name}')
+
 
     elif 'DELETED' == t:
         name = event['object']['spec']['deployment']
         ctx = search_spaces[name]
         ctx.delete_bayesian_searchspace(event)
+        deployment = get_deployment(ctx.model.deployment, ctx.model.namespace)
+        if deployment.spec.replicas > 1:
+            update_n_replicas(ctx.model.deployment, ctx.model.namespace, deployment.spec.replicas + 1)
 
         del search_spaces[name]
 

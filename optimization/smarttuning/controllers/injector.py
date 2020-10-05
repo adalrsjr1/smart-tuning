@@ -318,12 +318,14 @@ def duplicate_deployment_for_training(deployment: V1Deployment):
     old_name = deployment.metadata.name
     deployment.spec.replicas = 1
     deployment.metadata.name += training_name()
-    # deployment.metadata.labels.update({config.PROXY_TAG: 'true'})
-    deployment.metadata.labels.update({config.PROXY_TAG: 'false'})
-    # deployment.spec.template.metadata.labels.update({config.PROXY_TAG: 'true'})
-    deployment.spec.template.metadata.labels.update({config.PROXY_TAG: 'false'})
-    # deployment.spec.selector.match_labels.update({config.PROXY_TAG: 'true'})
-    deployment.spec.selector.match_labels.update({config.PROXY_TAG: 'false'})
+
+    deployment.metadata.labels.update({config.PROXY_TAG: 'true'})
+    deployment.spec.selector.match_labels.update({config.PROXY_TAG: 'true'})
+    deployment.spec.template.metadata.labels.update({config.PROXY_TAG: 'true'})
+
+    # deployment.spec.selector.match_labels.update({config.PROXY_TAG: 'false'})
+    # deployment.metadata.labels.update({config.PROXY_TAG: 'false'})
+    # deployment.spec.template.metadata.labels.update({config.PROXY_TAG: 'false'})
 
     configs = extract_configs_names(deployment)
     duplicating_deployment_configs(configs)
@@ -341,6 +343,8 @@ def duplicate_deployment_for_training(deployment: V1Deployment):
     except ApiException as e:
         if 409 == e.status:
             logger.warning(f'deployment {deployment.metadata.name} is already deployed')
+        else:
+            logger.warning(f'>>> {deployment}')
 
 def extract_configs_names(deployment: V1Deployment) -> set:
     spec: V1PodSpec = deployment.spec.template.spec
