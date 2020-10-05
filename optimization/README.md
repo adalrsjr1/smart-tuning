@@ -22,6 +22,11 @@ This folder has all manifests files necessary to deploy the `AcmeAir` or
 
 ### AcmeAir and Daytrader
 
+[AcmeAir Repo](https://github.com/OpenLiberty/sample.daytrader8)
+
+
+[Daytrader Repo](https://github.com/OpenLiberty/sample.daytrader8)
+
 The `*.config.yaml` are the configuration files to set the applications app. If
 the `*.config.yaml` has some entry named `*jvm*` this are the configurations
 related to JVM (OpenJ9) otherwise they are the configuration specific to the application
@@ -44,20 +49,20 @@ adjusted:
 This folder has the manifests related to SmartTuning deployment. Below are the
 configurations that likely will be changed between the applications
 
-* SAMPLING_METRICS_TIMEOUT: '1200' -- The interval experimenting a configuration
-* WAITING_TIME: '1200' -- The interval waiting between each deployment.
+* `SAMPLING_METRICS_TIMEOUT: '1200'` -- The interval experimenting a configuration
+* `WAITING_TIME: '1200'` -- The interval waiting between each deployment.
   `SAMPLING_METRICS_TIMEOUT` and `WAITING_TIME` should be set the same.
-* SAMPLE_SIZE: '0.3334' -- The interval used to compare two metrics. E.g.,
+* `SAMPLE_SIZE: '0.3334'` -- The interval used to compare two metrics. E.g.,
   0.3334 with sample the last 3rd part of the experimenting interval
   (WAITING_TIME) of the training and production pod. SmartTuning uses this value
   sampled to compare whether training pod has a better performance than the
   production pod.
-* K: '1': -- The max number of workload types that SmartTuning can classify
-* URL_SIMILARITY_THRESHOLD: "0.1" -- Similarity threshold that SmartTuning uses
+* `K: '1'`: -- The max number of workload types that SmartTuning can classify
+* `URL_SIMILARITY_THRESHOLD: "0.1"` -- Similarity threshold that SmartTuning uses
   to compare two URLs
-* OBJECTIVE: '-(throughput / ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))' -- Objective function to optimize the application
-* POD_REGEX: 'daytrader-.*servicesmarttuning-.+' -- Training pod regex name
-* POD_PROD_REGEX: 'daytrader-.*service-.+' -- Production pod regex name
+* `OBJECTIVE: '-(throughput / ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))'` -- Objective function to optimize the application
+* `POD_REGEX: 'daytrader-.*servicesmarttuning-.+'` -- Training pod regex name
+* `POD_PROD_REGEX: 'daytrader-.*service-.+'` -- Production pod regex name
 
 ### Other files
 
