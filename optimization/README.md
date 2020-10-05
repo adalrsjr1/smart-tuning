@@ -79,6 +79,7 @@ it accessing `http://localhost:30081`.
 
 1. run `manifests/monitoring-deploy.sh`
 2. deploy the application `manifest/acmeair` or `manifest/daytrader` -- be
+   careful with the DB deployments
 3. deploy SmartTuning from the application folder
 4. deploy jmeter from the application folder
 5. deploy the search-space from the application folder
