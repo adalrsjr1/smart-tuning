@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: jmeter
+  name: jmeter-train
   labels:
     app: jmeter
 spec:
@@ -19,14 +19,14 @@ spec:
       imagePullPolicy: Always
       env:
         - name: JHOST
-          value: 'daytrader.default.svc.cluster.local'
+          value: 'daytrader-smarttuning.default.svc.cluster.local'
       envFrom:
         - configMapRef:
             name: jmeter-config
       volumeMounts:
         - mountPath: /etc/jmeter
           name: jmeter-config
-        - mountPath: /output
+        - mountPath: /output-prod
           name: jmeter-output
   terminationGracePeriodSeconds: 5
   volumes:

@@ -8,11 +8,13 @@ spec:
   selector:
     matchLabels:
       app: daytrader
+      smarttuning: "false"
   replicas: 1
   template:
     metadata:
       labels:
         app: daytrader
+        smarttuning: "false"
     spec:
       restartPolicy: Always
       containers:

@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jmeter-prod
+  labels:
+    app: jmeter
+spec:
+  containers:
+    - name: jmeter-prod
+      image: smarttuning/jmeter_daytrader
+      lifecycle:
+        preStop:
+          exec:
+            command:
+              - "sh"
+              - "-c"
+              - |
+                shutdown.sh
+      imagePullPolicy: Always
+      env:
+        - name: JHOST
+          value: 'daytrader.default.svc.cluster.local'
+      envFrom:
+        - configMapRef:
+            name: jmeter-config
+      volumeMounts:
+        - mountPath: /etc/jmeter
+          name: jmeter-config
+        - mountPath: /output-prod
+          name: jmeter-output
+  terminationGracePeriodSeconds: 5
+  volumes:
+    - name: jmeter-config
+      configMap:
+        name: jmeter-config
+    - name: jmeter-output
+      hostPath:
+        path: /smarttuning/jmeter/prod
+  restartPolicy: Never
+
+
+
