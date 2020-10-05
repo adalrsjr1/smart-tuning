@@ -22,7 +22,7 @@ This folder has all manifests files necessary to deploy the `AcmeAir` or
 
 ### AcmeAir and Daytrader
 
-[AcmeAir Repo](https://github.com/OpenLiberty/sample.daytrader8)
+[AcmeAir Repo](https://github.com/blueperf/acmeair-mainservice-java)
 
 
 [Daytrader Repo](https://github.com/OpenLiberty/sample.daytrader8)
