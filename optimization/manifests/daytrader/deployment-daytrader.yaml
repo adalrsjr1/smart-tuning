@@ -30,14 +30,14 @@ spec:
             - name: DB_ADDRESS
               value: daytrader-db.default.svc.cluster.local
             - name: DB_PORT
-              value: "1527"
-#              value: "50000"
-#            - name: DB_NAME
-#              value: "tradedb"
-#            - name: DB_USER
-#              value: "db2inst1"
-#            - name: DB_PASS
-#              value: "db2pass"
+#              value: "1527"
+              value: "50000"
+            - name: DB_NAME
+              value: "tradedb"
+            - name: DB_USER
+              value: "db2inst1"
+            - name: DB_PASS
+              value: "db2pass"
             - name: MAX_QUOTES
               value: "1000"
             - name: MAX_USERS
@@ -50,15 +50,15 @@ spec:
 #            initialDelaySeconds: 40
 #            periodSeconds: 5
           # avoid to send requests if it already restarted
-#          readinessProbe:
-#            exec:
-#              command:
-#                - bash
-#                - -c
-#                - /opt/readness_probe.sh
-#            initialDelaySeconds: 30
-#            failureThreshold: 1
-#            periodSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - /opt/readness_probe.sh
+            initialDelaySeconds: 30
+            failureThreshold: 1
+            periodSeconds: 5
           startupProbe:
             httpGet:
               port: 9080
@@ -66,15 +66,15 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 5
             # force restart
-#          livenessProbe:
-#            exec:
-#              command:
-#                - bash
-#                - -c
-#                - /opt/liveness_probe.sh 100
-#            initialDelaySeconds: 100
-#            failureThreshold: 1
-#            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - /opt/liveness_probe.sh 100
+            initialDelaySeconds: 100
+            failureThreshold: 1
+            periodSeconds: 10
           envFrom:
             - configMapRef:
                 name: daytrader-config-app
