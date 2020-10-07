@@ -133,11 +133,18 @@ def create_context(production_microservice, training_microservice):
                 continue
 
             config_to_apply = update_training_config(training_microservice, search_space_ctx)
-            wait(config.WAITING_TIME)
+            fail_fast, production_metric, training_metric = not wait(config.WAITING_TIME, production_sanitized, training_sanitized)
 
-            production_metric = sampler_production.metric()
+            if fail_fast:
+                logger.info('fail fast')
+                update_loss(None, float('inf'), search_space_ctx)
+                continue
+
+            if not production_metric and not training_metric:
+                production_metric = sampler_production.metric()
+                training_metric = sampler_training.metric()
+
             production_workload = sampler_production.workload()
-            training_metric = sampler_training.metric()
             training_workload = sampler_training.workload()
 
             # metrics_prod = overall_metrics_prod.metric()
@@ -308,9 +315,23 @@ def update_production(name, config, search_space_ctx: SearchSpaceContext):
     do_patch(manifests, config, production=True)
 
 
-def wait(sleeptime=config.WAITING_TIME):
+def wait(sleeptime=config.WAITING_TIME, production_pod_name='', training_pod_name=''):
     logger.info(f'waiting {sleeptime}s before sampling metrics')
-    time.sleep(sleeptime)
+
+    now = time.time_ns()
+    sampler_production = sampler.PrometheusSampler(production_pod_name, sleeptime * config.SAMPLE_SIZE)
+    sampler_training = sampler.PrometheusSampler(training_pod_name, sleeptime * config.SAMPLE_SIZE)
+    while time.time_ns() - now >= sleeptime:
+        time.sleep(sleeptime * config.SAMPLE_SIZE)
+        production_metric = sampler_production.metric()
+        training_metric = sampler_training.metric()
+
+        if production_metric.objective() > training_metric.objective():
+            return False, production_metric, training_metric
+
+    # time.sleep(sleeptime)
+
+    return True, production_metric, training_metric
 
 def save(**kwargs):
     logger.info(f'logging data to mongo')
