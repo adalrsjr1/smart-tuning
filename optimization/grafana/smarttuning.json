@@ -16,110 +16,9 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1601656901178,
+  "iteration": 1601928520410,
   "links": [],
   "panels": [
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
-      "hiddenSeries": false,
-      "id": 12,
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": true,
-        "max": true,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "dataLinks": []
-      },
-      "percentage": false,
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2",
-          "interval": "",
-          "legendFormat": "PROD $prod_podname",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2",
-          "interval": "",
-          "legendFormat": "TRAIN $train_podname",
-          "refId": "B"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "requests / $",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
     {
       "aliasColors": {
         "TRAIN daytrader-servicesmarttuning": "super-light-yellow"
@@ -137,9 +36,9 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 12,
+        "h": 12,
+        "w": 24,
+        "x": 0,
         "y": 0
       },
       "hiddenSeries": false,
@@ -256,10 +155,117 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "hiddenSeries": false,
+      "id": 12,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2",
+          "interval": "",
+          "legendFormat": "PROD $prod_podname",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2",
+          "interval": "",
+          "legendFormat": "TRAIN $train_podname",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod)+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) by (pod) / 2^20)/2",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "requests / $",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 7
+        "y": 24
       },
       "hiddenSeries": false,
       "id": 2,
@@ -336,7 +342,7 @@
           "format": "short",
           "label": null,
           "logBase": 1,
-          "max": null,
+          "max": "64",
           "min": null,
           "show": true
         },
@@ -372,7 +378,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 7
+        "y": 24
       },
       "hiddenSeries": false,
       "id": 4,
@@ -447,7 +453,7 @@
       "yaxes": [
         {
           "format": "bytes",
-          "label": null,
+          "label": "",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -487,7 +493,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 15
+        "y": 32
       },
       "hiddenSeries": false,
       "id": 8,
@@ -594,7 +600,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 15
+        "y": 32
       },
       "hiddenSeries": false,
       "id": 10,
@@ -678,7 +684,7 @@
       }
     }
   ],
-  "refresh": false,
+  "refresh": "",
   "schemaVersion": 25,
   "style": "dark",
   "tags": [],
@@ -715,9 +721,9 @@
         "auto_count": 30,
         "auto_min": "10s",
         "current": {
-          "selected": false,
-          "text": "400s",
-          "value": "400s"
+          "selected": true,
+          "text": "1m",
+          "value": "1m"
         },
         "hide": 0,
         "label": null,
@@ -725,6 +731,11 @@
         "options": [
           {
             "selected": false,
+            "text": "30s",
+            "value": "30s"
+          },
+          {
+            "selected": true,
             "text": "1m",
             "value": "1m"
           },
@@ -749,7 +760,7 @@
             "value": "6m"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "400s",
             "value": "400s"
           },
@@ -809,7 +820,7 @@
             "value": "30d"
           }
         ],
-        "query": "1m,100s,200s,5m,6m,400s,10m,15m,20m,30m,1h,6h,12h,1d,7d,14d,30d",
+        "query": "30s,1m,100s,200s,5m,6m,400s,10m,15m,20m,30m,1h,6h,12h,1d,7d,14d,30d",
         "queryValue": "",
         "refresh": 2,
         "skipUrlSync": false,
@@ -844,10 +855,9 @@
       {
         "allValue": null,
         "current": {
-          "isNone": true,
           "selected": false,
-          "text": "None",
-          "value": ""
+          "text": "daytrader-servicesmarttuning",
+          "value": "daytrader-servicesmarttuning"
         },
         "datasource": "prometheus",
         "definition": "container_cpu_usage_seconds_total",
@@ -871,7 +881,7 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "2020-10-07T02:18:12.000Z",
     "to": "now"
   },
   "timepicker": {

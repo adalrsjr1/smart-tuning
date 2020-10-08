@@ -68,10 +68,11 @@ spec:
             # force restart
           livenessProbe:
             exec:
+              # /opt/liveness_probe.sh <interval> <rqps threshold>
               command:
                 - bash
                 - -c
-                - /opt/liveness_probe.sh 100
+                - /opt/liveness_probe.sh 100 10
             initialDelaySeconds: 100
             failureThreshold: 1
             periodSeconds: 10
