@@ -132,8 +132,9 @@ class BayesianEngine:
             BayesianChannel.put_out(self.id(), params)
             dto: BayesianDTO = BayesianChannel.get_in(self.id())
             loss = dto.metric.objective()
-            classification = dto.classification
-            status = STATUS_OK
+            if dto.classification:
+                classification = dto.classification
+                status = STATUS_OK
         except Exception:
             logger.exception('evalution failed at bayesian core')
         finally:

@@ -20,6 +20,7 @@ def __extract_value_from_future__(future, timeout=config.SAMPLING_METRICS_TIMEOU
     return metric[0] if not metric.empty else 0
 
 def __extract_in_out_balance__(podname, future, timeout=config.SAMPLING_METRICS_TIMEOUT):
+    return float('nan')
     try:
         df = series_to_dataframe(future.result(timeout=timeout))
         table = {}

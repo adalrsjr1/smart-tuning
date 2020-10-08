@@ -1,7 +1,7 @@
 numpy
 pandas
 prometheus-pandas
-hyperopt
+hyperopt==0.2.5
 kubernetes
 networkx
 python-Levenshtein

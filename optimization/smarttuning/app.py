@@ -133,14 +133,15 @@ def create_context(production_microservice, training_microservice):
                 continue
 
             config_to_apply = update_training_config(training_microservice, search_space_ctx)
-            fail_fast, production_metric, training_metric = not wait(config.WAITING_TIME, production_sanitized, training_sanitized)
+            fail_fast, production_metric, training_metric = wait(True, config.WAITING_TIME, production_sanitized, training_sanitized)
+            fail_fast = not fail_fast
 
             if fail_fast:
                 logger.info('fail fast')
-                update_loss(None, float('inf'), search_space_ctx)
+                update_loss(None, Metric.zero(), search_space_ctx)
                 continue
 
-            if not production_metric and not training_metric:
+            if production_metric != Metric.zero() and training_metric != Metric.zero():
                 production_metric = sampler_production.metric()
                 training_metric = sampler_training.metric()
 
@@ -296,10 +297,11 @@ def classify_workload(metric, workload) -> (Cluster, int):
 
 def update_loss(classification: Cluster, metric_value: Metric, search_space_ctx: SearchSpaceContext):
     logger.info(f'updating loss at BayesianEngine: {search_space_ctx.engine.id()}')
-    dto = BayesianDTO(metric=metric_value, classification= classification.id if classification else '')
+    dto = BayesianDTO(metric=metric_value, classification= classification.id if classification else None)
     search_space_ctx.put_into_engine(dto)
-    return metric_value.objective()
-
+    if metric_value:
+        return metric_value.objective()
+    return Metric.zero()
 
 def best_loss_so_far(search_space_ctx: SearchSpaceContext):
     logger.info(f'getting best loss at BayesianEngine: {search_space_ctx.engine.id()}')
@@ -315,20 +317,35 @@ def update_production(name, config, search_space_ctx: SearchSpaceContext):
     do_patch(manifests, config, production=True)
 
 
-def wait(sleeptime=config.WAITING_TIME, production_pod_name='', training_pod_name=''):
-    logger.info(f'waiting {sleeptime}s before sampling metrics')
+def wait(failfast=True, sleeptime=config.WAITING_TIME, production_pod_name='', training_pod_name=''):
+    if not failfast:
+        time.sleep(sleeptime)
+        return False, Metric.zero(), Metric.zero()
 
-    now = time.time_ns()
     sampler_production = sampler.PrometheusSampler(production_pod_name, sleeptime * config.SAMPLE_SIZE)
     sampler_training = sampler.PrometheusSampler(training_pod_name, sleeptime * config.SAMPLE_SIZE)
-    while time.time_ns() - now >= sleeptime:
+    now = time.time()
+    counter = 1
+    production_metric, training_metric = None, None
+    while (time.time() - now) < sleeptime:
+        logger.info(f'[{counter}] waiting {sleeptime * config.SAMPLE_SIZE}s before sampling metrics -- time:{time.time() - now} < sleeptime:{sleeptime}')
         time.sleep(sleeptime * config.SAMPLE_SIZE)
         production_metric = sampler_production.metric()
         training_metric = sampler_training.metric()
 
-        if production_metric.objective() > training_metric.objective():
+        # objective is always negative
+        # training < 50% production
+        if training_metric.throughput() <= 1 or production_metric.objective()/2 < training_metric.objective():
+            # training fail fast
+            logger.info(f'[T] fail fast -- prod:{production_metric.objective()} < train:{training_metric.objective()}')
             return False, production_metric, training_metric
-
+        elif production_metric.throughput() <= 1:
+            # production fail fast
+            logger.info(f'[P] fail fast -- prod:{production_metric.objective()} >= train:{training_metric.objective()}')
+            return True, production_metric, training_metric
+        else:
+            logger.info(f'waiting more {sleeptime * config.SAMPLE_SIZE}s -- prod:{production_metric.objective()} >= train:{training_metric.objective()}')
+            counter += 1
     # time.sleep(sleeptime)
 
     return True, production_metric, training_metric
