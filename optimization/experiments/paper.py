@@ -209,7 +209,9 @@ if __name__ == '__main__':
     # title = 'AcmeAir'
     # df = load_data('./resources/logging-202010010950.csv')
     # df = load_data('./resources/logging-202010021110.csv')
-    df = load_data('./resources/logging-202010061050.csv')
+    # df = load_data('./resources/logging-202010061050.csv')
+    # df = load_data('./resources/logging-202010071200.csv')
+    df = load_data('./resources/logging-202010081630.csv')
     title = 'DayTrader'
     mtable, wtable = split_table(df)
 
