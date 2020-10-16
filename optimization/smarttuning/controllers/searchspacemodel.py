@@ -295,10 +295,14 @@ class NumberRangeModel:
             value = hyperopt.hp.uniform(self.name, self.get_lower(), self.get_upper())
 
         value = to_scale(
-            max(lower, self.get_lower()), # x1
-            min(lower, self.get_lower()), # y1
-            max(upper, self.get_upper()), # x2
-            min(upper, self.get_upper()), # y2
+            self.get_lower(),
+            lower,
+            self.get_upper(),
+            upper,
+            # min(lower, self.get_lower()), # x1
+            # max(lower, self.get_lower()), # y1
+            # max(upper, self.get_upper()), # x2
+            # min(upper, self.get_upper()), # y2
             value)
         return {self.name: to_int(value)}
 
@@ -308,6 +312,7 @@ def to_scale(x1, y1, x2, y2, k):
 
     m = (y2 - y1) / (x2 - x1)
     b = y1 - (m * x1)
+    # print(f'{m}*x+{b} --> p=({x1},{y1}) q=({x2},{y2}) ')
     return (m * k) + b
 
 class OptionRangeModel:

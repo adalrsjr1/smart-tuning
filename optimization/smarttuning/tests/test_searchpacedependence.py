@@ -11,8 +11,40 @@ class SearchSpaceDependence(unittest.TestCase):
         with open('../../manifests/search-space/tests/search-space-dependence-full.yaml', 'r') as f:
             cls.searchspace_manifest = yaml.safe_load(f)
 
+    def test_scaling_y_within_x(self):
+        y = hp.uniform('y', 2, 3)
+        x = hp.uniform('x', 1, 4)
+        for i in range(1000):
+            value = to_scale(x1=1, y1=2, x2=4, y2=3, k=x)
+            result = pyll.stochastic.sample(value)
+            self.assertTrue(2 <= result <= 3, f'[{i}] 2 <= {result} <= 3 == False')
+
+    def test_scaling_x_within_y(self):
+        y = hp.uniform('y', 1, 4)
+        x = hp.uniform('x', 2, 3)
+        for i in range(1000):
+            value = to_scale(x1=2, y1=1, x2=3, y2=4, k=x)
+            result = pyll.stochastic.sample(value)
+            self.assertTrue(1 <= result <= 4, f'[{i}] 1 <= {result} <= 4 == False')
+
+    def test_scaling_left_y_within_x(self):
+        y = hp.uniform('y', 2, 5)
+        x = hp.uniform('x', 2, 4)
+        for i in range(1000):
+            value = to_scale(2, 2, 4, 5, x)
+            result = pyll.stochastic.sample(value)
+            self.assertTrue(2 <= result <= 5, f'[{i}] 2 <= {result} <= 5 == False')
+
+    def test_scaling_right_y_within_x(self):
+        y = hp.uniform('y', 1, 4)
+        x = hp.uniform('x', 2, 4)
+        for _ in range(1000):
+            value = to_scale(2, 1, 4, 4, x)
+            result = pyll.stochastic.sample(value)
+            self.assertTrue(1 <= result <= 4, f'1 <= {result} <= 4 == False')
+
     def test_dynamic_hp(self):
-        for _ in range(100):
+        for i in range(100):
 
             a = hp.uniform('a', 5, 10)
             # b = hp.uniform('b', 5, a)
@@ -26,7 +58,7 @@ class SearchSpaceDependence(unittest.TestCase):
             # space = {'a': a, 'b':hp.uniform('b', 0, a)}
             # space = {'a': a, 'b':hp.uniform('b', a, 20)}
             result = pyll.stochastic.sample(space)
-            self.assertTrue(5 <= result['b'] <= 10)
+            self.assertTrue(5 <= result['b'] <= 10, f'[{i}] 5 <= {result} <= 10 == False')
 
     def test_load_searchspace(self):
         """
@@ -52,10 +84,9 @@ class SearchSpaceDependence(unittest.TestCase):
         """
         model = SearchSpaceModel(self.searchspace_manifest)
         space = model.search_space()['acmeair-nginx-test-service']['downstream']
-        for _ in range(1000):
+        for i in range(1000):
             result = pyll.stochastic.sample(space)
-            print(f'xx[{result}]xx')
-            self.assertTrue(1 <= result <= 6)
+            self.assertTrue(1 <= result <= 6, f'[{i}] 1 <= {result} <=6 == False')
 
 
 if __name__ == '__main__':
