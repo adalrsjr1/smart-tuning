@@ -1,0 +1,136 @@
+apiVersion: smarttuning.ibm.com/v1alpha2
+data:
+- filename: ""
+  name: acmeair-nginx-test-service
+  tunables:
+    number:
+    - dependsOn: ""
+      lower:
+        dependsOn: ""
+        value: 1
+      name: cpu
+      real: false
+      upper:
+        dependsOn: ""
+        value: 4
+    - dependsOn: ""
+      lower:
+        dependsOn: ""
+        value: 128
+      name: memory
+      real: false
+      step: 32
+      upper:
+        dependsOn: ""
+        value: 1024
+    - dependsOn: ""
+      lower:
+        dependsOn: ""
+        value: 1
+      name: replicas
+      real: false
+      upper:
+        dependsOn: ""
+        value: 3
+    - dependsOn: ""
+      lower:
+        dependsOn: ""
+        value: 4
+      name: upstream
+      real: true
+      upper:
+        dependsOn: ""
+        value: 6
+    - dependsOn: ""
+      lower:
+        dependsOn: replicas
+        value: 5
+      name: downstream
+      real: true
+      upper:
+        dependsOn: upstream
+        value: 10
+- filename: ""
+  name: nginx-test-cm-2
+  tunables:
+    number:
+    - dependsOn: ""
+      lower:
+        dependsOn: ""
+        value: -10
+      name: key
+      real: true
+      upper:
+        dependsOn: ""
+        value: 3
+    option:
+    - name: foo
+      type: string
+      values:
+      - bar-0
+      - bar-1
+      - bar-2
+- filename: jvm.options
+  name: nginx-test-cm-3
+  tunables:
+    boolean:
+    - name: t1
+    number:
+    - dependsOn: ""
+      lower:
+        dependsOn: ""
+        value: 0
+      name: t2
+      real: true
+      step: 1
+      upper:
+        dependsOn: ""
+        value: 10
+    option:
+    - name: t3
+      type: string
+      values:
+      - value1
+      - value2
+      - value3
+kind: SearchSpace
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"smarttuning.ibm.com/v1alpha2","data":[{"name":"acmeair-nginx-test-service","tunables":{"number":[{"lower":{"value":1},"name":"cpu","upper":{"value":4}},{"lower":{"value":128},"name":"memory","step":32,"upper":{"value":1024}},{"lower":{"value":1},"name":"replicas","upper":{"value":3}},{"lower":{"value":4},"name":"upstream","real":true,"upper":{"value":6}},{"lower":{"dependsOn":"replicas","value":5},"name":"downstream","real":true,"upper":{"dependsOn":"upstream","value":10}}]}},{"name":"nginx-test-cm-2","tunables":{"number":[{"lower":{"value":-10},"name":"key","real":true,"upper":{"value":3}}],"option":[{"name":"foo","values":["bar-0","bar-1","bar-2"]}]}},{"filename":"jvm.options","name":"nginx-test-cm-3","tunables":{"boolean":[{"name":"t1"}],"number":[{"lower":{"value":0},"name":"t2","real":true,"step":1,"upper":{"value":10}}],"option":[{"name":"t3","values":["value1","value2","value3"]}]}}],"kind":"SearchSpace","metadata":{"annotations":{},"name":"test","namespace":"default"},"spec":{"deployment":"acmeair-nginx-test-service","manifests":[{"name":"acmeair-nginx-test-service","type":"deployment"},{"name":"nginx-test-cm-2","type":"configMap"},{"name":"nginx-test-cm-3","type":"configMap"}],"namespace":"default","service":"nginx-test-svc"}}
+  creationTimestamp: "2020-10-16T00:33:35Z"
+  generation: 11
+  managedFields:
+  - apiVersion: smarttuning.ibm.com/v1alpha2
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:data: {}
+      f:metadata:
+        f:annotations:
+          .: {}
+          f:kubectl.kubernetes.io/last-applied-configuration: {}
+      f:spec:
+        .: {}
+        f:deployment: {}
+        f:manifests: {}
+        f:namespace: {}
+        f:service: {}
+    manager: kubectl-client-side-apply
+    operation: Update
+    time: "2020-10-16T01:51:28Z"
+  name: test
+  namespace: default
+  resourceVersion: "469757"
+  selfLink: /apis/smarttuning.ibm.com/v1alpha2/namespaces/default/searchspaces/test
+  uid: 01f27325-df01-4bbc-b58c-f8b21aee5a49
+spec:
+  deployment: acmeair-nginx-test-service
+  manifests:
+  - name: acmeair-nginx-test-service
+    type: deployment
+  - name: nginx-test-cm-2
+    type: configMap
+  - name: nginx-test-cm-3
+    type: configMap
+  namespace: default
+  service: nginx-test-svc

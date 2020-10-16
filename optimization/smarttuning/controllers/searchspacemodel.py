@@ -17,6 +17,7 @@ class SearchSpaceModel:
     def __init__(self, o):
         if o:
             temp =  self.parse_manifests(o)
+
             self.deployment = temp['deployment']
             self.manifests = temp['models']
             self.namespace = temp['namespace']
@@ -44,7 +45,7 @@ class SearchSpaceModel:
                         models.append(ConfigMapSearhSpaceModel(name, namespace, deployment, filename, tunables))
         return {'namespace': namespace, 'service': service, 'deployment': context, 'models': models}
 
-    def search_space(self):
+    def search_space(self) -> dict:
         ss = {}
         for manifest in self.manifests:
             ss[manifest.name] = manifest.search_space()
@@ -80,7 +81,7 @@ class DeploymentSearchSpaceModel:
     def search_space(self):
         model = {}
         for key, tunable in self.tunables.items():
-            model.update(tunable.get_hyper_interval())
+            model.update(tunable.get_hyper_interval(self.tunables))
 
         logger.info(f'search space: {model}')
         return model
@@ -226,19 +227,43 @@ class ConfigMapSearhSpaceModel:
 class NumberRangeModel:
     def __init__(self, r):
         self.name = r['name']
-        self.upper = r['upper']
-        self.lower = r['lower']
+        self.upper, self.upper_dep = self.__unpack_value(r['upper'])
+        self.lower, self.lower_dep = self.__unpack_value(r['lower'])
         self.step = r.get('step', 0)
         self.real = r.get('real', False)
 
+    def __unpack_value(self, item):
+        if item and isinstance(item, dict):
+            return item['value'], item['dependsOn']
+        raise ValueError(f'{self.name} has a invalid item:{item}, expecting a dict:{{"dependsOn":"str", "value":"int-or-str"}}')
+
     def __repr__(self):
-        return f'{{"name": "{self.name}", "lower": {self.get_lower()}, "upper": {self.get_upper()}, "real": "{self.get_real()}", "step": {self.get_step()}}}'
+        return f'{{"name": "{self.name}", ' \
+               f'"lower": {self.get_lower()}, ' \
+               f'"lower_deps":{self.get_lower_dep()}, ' \
+               f'"upper": {self.get_upper()}, ' \
+               f'"upper_dep":{self.get_upper_dep()}, ' \
+               f'"real": "{self.get_real()}", ' \
+               f'"step": {self.get_step()}}}'
+
+    def __is_string(self, value):
+        return isinstance(value, str) and str.isalpha(value)
 
     def get_upper(self):
+        if self.__is_string(self.upper):
+            return self.upper
         return float(self.upper)
 
+    def get_upper_dep(self):
+        return self.upper_dep
+
     def get_lower(self):
+        if self.__is_string(self.lower):
+            return self.lower
         return float(self.lower)
+
+    def get_lower_dep(self):
+        return self.lower_dep
 
     def get_step(self):
         return float(self.step)
@@ -248,7 +273,8 @@ class NumberRangeModel:
             return self.real
         return strtobool(self.real)
 
-    def get_hyper_interval(self):
+    def get_hyper_interval(self, ctx={}):
+        """ ctx['name'] = 'NumberRangeModel'"""
         to_int = lambda x: x if self.get_real() else scope.int(x)
 
         upper = self.get_upper()
@@ -256,12 +282,33 @@ class NumberRangeModel:
             upper += 0.1
 
         logger.debug(f'{self}')
-        if self.get_step():
-            return {
-                self.name: to_int(hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step()))}
-        else:
-            return {self.name: to_int(hyperopt.hp.uniform(self.name, self.get_lower(), self.get_upper()))}
 
+        upper_dep = ctx.get(self.get_upper_dep(), None)
+        lower_dep = ctx.get(self.get_lower_dep(), None)
+
+        upper = upper_dep.get_upper() if upper_dep else self.get_upper()
+        lower = lower_dep.get_lower() if lower_dep else self.get_lower()
+
+        if self.get_step():
+            value = hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step())
+        else:
+            value = hyperopt.hp.uniform(self.name, self.get_lower(), self.get_upper())
+
+        value = to_scale(
+            max(lower, self.get_lower()), # x1
+            min(lower, self.get_lower()), # y1
+            max(upper, self.get_upper()), # x2
+            min(upper, self.get_upper()), # y2
+            value)
+        return {self.name: to_int(value)}
+
+def to_scale(x1, y1, x2, y2, k):
+    if x1 == y1 and x2 == y2:
+        return k
+
+    m = (y2 - y1) / (x2 - x1)
+    b = y1 - (m * x1)
+    return (m * k) + b
 
 class OptionRangeModel:
     def __init__(self, r):
@@ -281,7 +328,8 @@ class OptionRangeModel:
     def get_values(self):
         return self.cast(self.values, self.type)
 
-    def get_hyper_interval(self):
+    def get_hyper_interval(self, ctx={}):
+        """ ctx['name'] = 'OptionRangeModel'"""
         return {self.name: hyperopt.hp.choice(self.name, self.get_values())}
 
 

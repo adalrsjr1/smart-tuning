@@ -95,15 +95,36 @@ spec:
                           properties:
                             name:
                               type: string
-                            lower:
-                              type: number
-                            upper:
-                              type: number
+                            lower: # https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#intorstring
+                              type: object
+                              properties:
+                                dependsOn:
+                                  type: string
+                                  default: ""
+                                value:
+                                  x-kubernetes-int-or-string: true
+                                  anyOf:
+                                    - type: integer
+                                    - type: string
+                            upper: # https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#intorstringx
+                              type: object
+                              properties:
+                                dependsOn:
+                                  type: string
+                                  default: ""
+                                value:
+                                  x-kubernetes-int-or-string: true
+                                  anyOf:
+                                    - type: integer
+                                    - type: string
                             step:
                               type: number
                             real:
                               type: boolean
                               default: false
+                            dependsOn:
+                              type: string
+                              default: ""
                       option:
                         type: array
                         items:
