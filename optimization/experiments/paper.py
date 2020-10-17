@@ -1,10 +1,13 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm
+import matplotlib as mpl
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
                                AutoMinorLocator, FixedLocator)
 
 import matplotlib.lines as mlines
+from matplotlib.text import Annotation
 
 
 
@@ -41,6 +44,15 @@ def split_table(table: pd.DataFrame) -> pd.DataFrame:
         'tuned'
     ]].copy()
 
+    # configs
+    configs_table = table[[
+        'last_config.daytrader-service.cpu',
+        'last_config.daytrader-service.memory',
+        'last_config.daytrader-config-app.CONMGR1_MAX_POOL_SIZE',
+        'last_config.daytrader-config-app.HTTP_MAX_KEEP_ALIVE_REQUESTS',
+        'production_metric.objective',
+    ]]
+
     metrics_table = metrics_table[0]
     # row0 = metrics_table.iloc[[0]]
     # row0.loc[0, 'training_metric.cpu'] = None
@@ -64,7 +76,7 @@ def split_table(table: pd.DataFrame) -> pd.DataFrame:
     # # metrics_table = metrics_table.append(rowN, ignore_index=False)
 
 
-    return metrics_table, workload_table
+    return metrics_table, workload_table, configs_table
 
 def plot_metrics(table:pd.DataFrame, title:str):
     nmetrics = 6
@@ -201,8 +213,66 @@ def newline(p1, p2, ax):
     ax.add_line(l)
     return l
 
+def plot_configs(table:pd.DataFrame, title):
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(12, 8))
+
+    colormap = cm.get_cmap('jet')
+
+    def annotate_dots(t:pd.DataFrame, ax, idxs):
+        memoization = {}
+        for k, v in t.iterrows():
+            if (v[idxs[0]], v[idxs[1]]) in memoization:
+                annotation:Annotation = memoization[(v[idxs[0]], v[idxs[1]])]
+                annotation.set_text(f'{max(float(annotation.get_text()), v[-1]):.4}')
+            else:
+                value = v[-1]
+                memoization[(v[idxs[0]], v[idxs[1]])] = ax.annotate(f'{value:.4}', (v[idxs[0]], v[idxs[1]]),
+                                                                    # xytext = (10, -5),
+                                                                    # textcoords = 'offset points',
+                                                                    # family = 'sans-serif',
+                                                                    fontsize = 8,
+                                                                    # color = 'darkslategrey'
+                                                                    )
+
+
+    df.plot.scatter(
+        ax=axs[0][0],
+        x='last_config.daytrader-service.cpu',
+        y='last_config.daytrader-service.memory',
+        c='production_metric.objective',
+        cmap=colormap,
+        colorbar=False
+    )
+    annotate_dots(table, axs[0][0], [0,1])
+
+    df.plot.scatter(
+        ax=axs[0][1],
+        x='last_config.daytrader-config-app.CONMGR1_MAX_POOL_SIZE',
+        y='last_config.daytrader-service.memory',
+        c='production_metric.objective',
+        cmap=colormap,
+        colorbar=False
+    )
+    annotate_dots(table, axs[0][1], [2, 1])
+
+    df.plot.scatter(
+        ax=axs[1][0],
+        x='last_config.daytrader-config-app.HTTP_MAX_KEEP_ALIVE_REQUESTS',
+        y='last_config.daytrader-service.memory',
+        c='production_metric.objective',
+        cmap=colormap,
+        colorbar=False
+    )
+    annotate_dots(table, axs[1][0], [3, 1])
+
+    fig.tight_layout()
+    cax, kw = mpl.colorbar.make_axes([ax for ax in axs.flat])
+    plt.colorbar(axs[0][0].get_children()[0], cax=cax, **kw)
+
+    plt.show()
+
 if __name__ == '__main__':
-    # pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_columns', None)
     # pd.set_option('display.max_rows', None)
 
     # df = load_data('./resources/logging-202009281720.csv')
@@ -213,7 +283,8 @@ if __name__ == '__main__':
     # df = load_data('./resources/logging-202010071200.csv')
     df = load_data('./resources/logging-202010081630.csv')
     title = 'DayTrader'
-    mtable, wtable = split_table(df)
+    mtable, wtable, ctable = split_table(df)
 
-    plot_metrics(mtable, title)
+    # plot_metrics(mtable, title)
+    plot_configs(ctable, title)
 
