@@ -274,6 +274,7 @@ class NumberRangeModel:
         return strtobool(self.real)
 
     def get_hyper_interval(self, ctx={}):
+        print(ctx)
         """ ctx['name'] = 'NumberRangeModel'"""
         to_int = lambda x: x if self.get_real() else scope.int(x)
 
