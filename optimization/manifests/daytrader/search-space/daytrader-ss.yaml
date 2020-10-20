@@ -137,7 +137,7 @@ data:
 #            - "-Xgc:concurrentScavenge"
 #            - "-Xgcpolicy:metronome"
 #            - "-Xgcpolicy:optavgpause"
-            - "-Xgcpolicy:optthruput"
+#            - "-Xgcpolicy:optthruput"
 #        - name: "container_support"
 #          values:
 #            - "-XX:+UseContainerSupport"
