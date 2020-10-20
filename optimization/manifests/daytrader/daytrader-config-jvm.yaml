@@ -5,3 +5,4 @@ metadata:
 data:
   jvm.options: |-
     -XX:+UseContainerSupport
+    -Xgcpolicy:gencon

@@ -50,6 +50,7 @@ def split_table(table: pd.DataFrame) -> pd.DataFrame:
         'last_config.daytrader-service.memory',
         'last_config.daytrader-config-app.CONMGR1_MAX_POOL_SIZE',
         'last_config.daytrader-config-app.HTTP_MAX_KEEP_ALIVE_REQUESTS',
+        'last_config.daytrader-config-app.MAX_THREADS',
         'production_metric.objective',
     ]]
 
@@ -265,6 +266,16 @@ def plot_configs(table:pd.DataFrame, title):
     )
     annotate_dots(table, axs[1][0], [3, 1])
 
+    df.plot.scatter(
+        ax=axs[1][1],
+        x='last_config.daytrader-config-app.MAX_THREADS',
+        y='last_config.daytrader-service.memory',
+        c='production_metric.objective',
+        cmap=colormap,
+        colorbar=False
+    )
+    annotate_dots(table, axs[1][1], [4, 1])
+
     fig.tight_layout()
     cax, kw = mpl.colorbar.make_axes([ax for ax in axs.flat])
     plt.colorbar(axs[0][0].get_children()[0], cax=cax, **kw)
@@ -281,7 +292,8 @@ if __name__ == '__main__':
     # df = load_data('./resources/logging-202010021110.csv')
     # df = load_data('./resources/logging-202010061050.csv')
     # df = load_data('./resources/logging-202010071200.csv')
-    df = load_data('./resources/logging-202010081630.csv')
+    # df = load_data('./resources/logging-202010081630.csv')
+    df = load_data('./resources/logging-202010171030.csv')
     title = 'DayTrader'
     mtable, wtable, ctable = split_table(df)
 

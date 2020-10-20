@@ -134,9 +134,9 @@ data:
         - name: "gc"
           values:
             - "-Xgcpolicy:gencon"
-            - "-Xgc:concurrentScavenge"
-            - "-Xgcpolicy:metronome"
-            - "-Xgcpolicy:optavgpause"
+#            - "-Xgc:concurrentScavenge"
+#            - "-Xgcpolicy:metronome"
+#            - "-Xgcpolicy:optavgpause"
             - "-Xgcpolicy:optthruput"
 #        - name: "container_support"
 #          values:
