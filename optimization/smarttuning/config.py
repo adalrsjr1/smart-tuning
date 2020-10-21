@@ -99,6 +99,9 @@ SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
 WAITING_TIME = int(os.environ.get('WAITING_TIME', default='300'))
 GATEWAY_NAME = os.environ.get('GATEWAY_NAME', default='acmeair-nginxservice')
 
+# failfast threshold
+THROUGHPUT_THRESHOLD = int(os.environ.get('THROUGHPUT_THRESHOLD'), default=1)
+
 QUANTILE = float(os.environ.get('QUANTILE', default='1.0'))
 
 # actuator config

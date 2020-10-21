@@ -335,11 +335,11 @@ def wait(failfast=True, sleeptime=config.WAITING_TIME, production_pod_name='', t
 
         # objective is always negative
         # training < 50% production
-        if training_metric.throughput() <= 1 or production_metric.objective()/2 < training_metric.objective():
+        if training_metric.throughput() <= config.THROUGHPUT_THRESHOLD or production_metric.objective()/2 < training_metric.objective():
             # training fail fast
             logger.info(f'[T] fail fast -- prod:{production_metric.objective()} < train:{training_metric.objective()}')
             return False, production_metric, training_metric
-        elif production_metric.throughput() <= 1:
+        elif production_metric.throughput() <= config.THROUGHPUT_THRESHOLD:
             # production fail fast
             logger.info(f'[P] fail fast -- prod:{production_metric.objective()} >= train:{training_metric.objective()}')
             return True, production_metric, training_metric

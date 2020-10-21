@@ -65,6 +65,7 @@ data:
   ## AWS Cost, CPU: 0.0535/vCore Memory: 0.013375/GB --> (total_cost / CPU  + total_cost / GB) / 2
   ## M5 Instance https://aws.amazon.com/ec2/pricing/on-demand/
   OBJECTIVE: '-(throughput / ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))'
+  THROUGHPUT_THRESHOLD: '10'
   POD_REGEX: 'daytrader-.*servicesmarttuning-.+'
   POD_PROD_REGEX: 'daytrader-.*service-.+'
   QUANTILE: '1.0'
