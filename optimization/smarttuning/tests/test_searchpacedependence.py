@@ -126,8 +126,19 @@ class SearchSpaceDependence(unittest.TestCase):
             result = pyll.stochastic.sample(space)
             a = result['a']
             b = result['b']
+            print(result)
             self.assertTrue( a <= b <= 200, f'[{i}] {a} <= {b} <= 200 == False')
 
+
+    def test(self):
+        a = hp.uniform('a', 5, 10)
+        b = hp.uniform('b', 11, 20)
+        space = {
+            'a': a,
+            'b': b,
+            'c': hp.uniform('c', a, b)
+        }
+        print(pyll.stochastic.sample(space))
 
 if __name__ == '__main__':
     unittest.main()

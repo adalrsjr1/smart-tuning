@@ -48,7 +48,7 @@ data:
       name: downstream
       real: true
       upper:
-        dependsOn: upstream
+        dependsOn: "upstream"
         value: 10
     - name: a
       lower:

@@ -172,7 +172,7 @@ class ConfigMapSearhSpaceModel:
     def search_space(self):
         model = {}
         for key, tunable in self.tunables.items():
-            model.update(tunable.get_hyper_interval())
+            model.update(tunable.get_hyper_interval(self.tunables))
 
         return model
 
@@ -282,13 +282,13 @@ class NumberRangeModel:
 
         logger.debug(f'{self}')
 
-        upper_dep = ctx.get(self.get_upper_dep(), None)
-        lower_dep = ctx.get(self.get_lower_dep(), None)
-        if upper_dep or lower_dep:
-            print(upper_dep, lower_dep, ctx)
+        upper_dep:NumberRangeModel = ctx.get(self.get_upper_dep(), None)
+        lower_dep:NumberRangeModel = ctx.get(self.get_lower_dep(), None)
 
-        upper = upper_dep.get_upper() if upper_dep else self.get_upper()
-        lower = lower_dep.get_lower() if lower_dep else self.get_lower()
+
+        upper = list(upper_dep.get_hyper_interval().values())[0] if upper_dep else self.get_upper()
+        lower = list(lower_dep.get_hyper_interval().values())[0] if lower_dep else self.get_lower()
+
 
         if self.get_step():
             value = hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step())
@@ -314,7 +314,10 @@ def to_scale(x1, y1, x2, y2, k):
     m = (y2 - y1) / (x2 - x1)
     b = y1 - (m * x1)
     # print(f'{m}*x+{b} --> p=({x1},{y1}) q=({x2},{y2}) ')
-    return (m * k) + b
+    value = (m * k) + b
+    # if x1 == 100 or x2 == 200:
+    #     print(f'[{x1}]\n[{y1}]\n[{x2}]\n[{y2}]\n[{value}]')
+    return value
 
 class OptionRangeModel:
     def __init__(self, r):
