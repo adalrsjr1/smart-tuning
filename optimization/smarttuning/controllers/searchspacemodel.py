@@ -274,8 +274,6 @@ class NumberRangeModel:
         return strtobool(self.real)
 
     def get_hyper_interval(self, ctx={}):
-        print(ctx)
-        """ ctx['name'] = 'NumberRangeModel'"""
         to_int = lambda x: x if self.get_real() else scope.int(x)
 
         upper = self.get_upper()
@@ -286,6 +284,8 @@ class NumberRangeModel:
 
         upper_dep = ctx.get(self.get_upper_dep(), None)
         lower_dep = ctx.get(self.get_lower_dep(), None)
+        if upper_dep or lower_dep:
+            print(upper_dep, lower_dep, ctx)
 
         upper = upper_dep.get_upper() if upper_dep else self.get_upper()
         lower = lower_dep.get_lower() if lower_dep else self.get_lower()
@@ -335,7 +335,6 @@ class OptionRangeModel:
         return self.cast(self.values, self.type)
 
     def get_hyper_interval(self, ctx={}):
-        """ ctx['name'] = 'OptionRangeModel'"""
         return {self.name: hyperopt.hp.choice(self.name, self.get_values())}
 
 

@@ -43,8 +43,26 @@ class SearchSpaceDependence(unittest.TestCase):
             result = pyll.stochastic.sample(value)
             self.assertTrue(1 <= result <= 4, f'1 <= {result} <= 4 == False')
 
+    def test_lower(self):
+        y = hp.uniform('y', 100, 200)
+        x = hp.uniform('x', 100, 200)
+        for _ in range(1000):
+            yy = pyll.stochastic.sample(y)
+            value = to_scale(100, yy, 200, 200, x)
+            result = pyll.stochastic.sample(value)
+            self.assertTrue(yy <= result <= 200, f'{yy} <= {result} <= 200 == False')
+
+    def test_upper(self):
+        y = hp.uniform('y', 100, 200)
+        x = hp.uniform('x', 100, 200)
+        for _ in range(1000):
+            yy = pyll.stochastic.sample(y)
+            value = to_scale(100, 100, 200, yy, x)
+            result = pyll.stochastic.sample(value)
+            self.assertTrue(100 <= result <= yy, f'100 <= {result} <= {yy} == False')
+
     def test_dynamic_hp(self):
-        for i in range(100):
+        for i in range(1000):
 
             a = hp.uniform('a', 5, 10)
             # b = hp.uniform('b', 5, a)
@@ -87,6 +105,28 @@ class SearchSpaceDependence(unittest.TestCase):
         for i in range(1000):
             result = pyll.stochastic.sample(space)
             self.assertTrue(1 <= result <= 6, f'[{i}] 1 <= {result} <=6 == False')
+
+    def test_load_searchspace2(self):
+        """
+        - name: "a"
+          lower:
+            value: 100
+          upper:
+            value: 200
+        - name: "b"
+          lower:
+            value: 100
+            dependsOn: "a"
+          upper:
+            value: 200
+        """
+        model = SearchSpaceModel(self.searchspace_manifest)
+        space = model.search_space()['acmeair-nginx-test-service']
+        for i in range(1000):
+            result = pyll.stochastic.sample(space)
+            a = result['a']
+            b = result['b']
+            self.assertTrue( a <= b <= 200, f'[{i}] {a} <= {b} <= 200 == False')
 
 
 if __name__ == '__main__':

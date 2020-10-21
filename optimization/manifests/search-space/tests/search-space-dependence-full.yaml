@@ -50,6 +50,20 @@ data:
       upper:
         dependsOn: upstream
         value: 10
+    - name: a
+      lower:
+        value: 100
+        dependsOn: ""
+      upper:
+        value: 200
+        dependsOn: ""
+    - name: b
+      lower:
+        value: 100
+        dependsOn: "a"
+      upper:
+        value: 200
+        dependsOn: ""
 - filename: ""
   name: nginx-test-cm-2
   tunables:
