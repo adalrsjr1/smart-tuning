@@ -172,7 +172,7 @@ class ConfigMapSearhSpaceModel:
     def search_space(self):
         model = {}
         for key, tunable in self.tunables.items():
-            model.update(tunable.get_hyper_interval(self.tunables))
+            model.update(tunable.get_hyper_interval())
 
         return model
 
@@ -274,6 +274,8 @@ class NumberRangeModel:
         return strtobool(self.real)
 
     def get_hyper_interval(self, ctx={}):
+        print(ctx)
+        """ ctx['name'] = 'NumberRangeModel'"""
         to_int = lambda x: x if self.get_real() else scope.int(x)
 
         upper = self.get_upper()
@@ -282,13 +284,11 @@ class NumberRangeModel:
 
         logger.debug(f'{self}')
 
-        upper_dep:NumberRangeModel = ctx.get(self.get_upper_dep(), None)
-        lower_dep:NumberRangeModel = ctx.get(self.get_lower_dep(), None)
+        upper_dep = ctx.get(self.get_upper_dep(), None)
+        lower_dep = ctx.get(self.get_lower_dep(), None)
 
-
-        upper = list(upper_dep.get_hyper_interval().values())[0] if upper_dep else self.get_upper()
-        lower = list(lower_dep.get_hyper_interval().values())[0] if lower_dep else self.get_lower()
-
+        upper = upper_dep.get_upper() if upper_dep else self.get_upper()
+        lower = lower_dep.get_lower() if lower_dep else self.get_lower()
 
         if self.get_step():
             value = hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step())
@@ -314,10 +314,7 @@ def to_scale(x1, y1, x2, y2, k):
     m = (y2 - y1) / (x2 - x1)
     b = y1 - (m * x1)
     # print(f'{m}*x+{b} --> p=({x1},{y1}) q=({x2},{y2}) ')
-    value = (m * k) + b
-    # if x1 == 100 or x2 == 200:
-    #     print(f'[{x1}]\n[{y1}]\n[{x2}]\n[{y2}]\n[{value}]')
-    return value
+    return (m * k) + b
 
 class OptionRangeModel:
     def __init__(self, r):
@@ -338,6 +335,7 @@ class OptionRangeModel:
         return self.cast(self.values, self.type)
 
     def get_hyper_interval(self, ctx={}):
+        """ ctx['name'] = 'OptionRangeModel'"""
         return {self.name: hyperopt.hp.choice(self.name, self.get_values())}
 
 
