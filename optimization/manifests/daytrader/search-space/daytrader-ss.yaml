@@ -23,16 +23,16 @@ data:
           type: "integer"
           values:
 #            - "2"
-            - "4"
+#            - "4"
 #            - "8"
-#            - "16"
+            - "16"
         - name: "memory"
           type: "integer"
           values:
 #            - "512"
 #            - "1024"
-            - "2048"
-#            - "4096"
+#            - "2048"
+            - "4096"
 #            - "8192"
   - name: daytrader-config-app
     tunables:

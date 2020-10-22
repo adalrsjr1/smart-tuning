@@ -13,7 +13,7 @@ data:
   # default 60
   HTTP_WRITE_TIMEOUT: "60"
   ## Connection Pools
-  CONMGR1_TIMEOUT: "-1"
+  CONMGR1_TIMEOUT: "0"
   CONMGR1_MAX_POOL_SIZE: "100"
   CONMGR1_PURGE_POLICY: "FailingConnectionOnly"
   CONMGR1_CONN_PER_THREAD: "1"
@@ -24,7 +24,7 @@ data:
   CONMGR4_PURGE_POLICY: "FailingConnectionOnly"
   CONMGR4_CONN_PER_THREAD: "1"
   ## Thread Pool
-  CORE_THREADS: "-1"
+  CORE_THREADS: "4"
   MAX_THREADS: "100"
   ## App
   # SYNC:0, ASYNC:1, ASYNC_2P:0
