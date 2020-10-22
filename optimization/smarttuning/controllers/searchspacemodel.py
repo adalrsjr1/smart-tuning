@@ -172,7 +172,7 @@ class ConfigMapSearhSpaceModel:
     def search_space(self):
         model = {}
         for key, tunable in self.tunables.items():
-            model.update(tunable.get_hyper_interval())
+            model.update(tunable.get_hyper_interval(self.tunables))
 
         return model
 
@@ -231,6 +231,8 @@ class NumberRangeModel:
         self.lower, self.lower_dep = self.__unpack_value(r['lower'])
         self.step = r.get('step', 0)
         self.real = r.get('real', False)
+        ## singleton
+        self.__hyper_interval = None
 
     def __unpack_value(self, item):
         if item and isinstance(item, dict):
@@ -273,8 +275,10 @@ class NumberRangeModel:
             return self.real
         return strtobool(self.real)
 
-    def get_hyper_interval(self, ctx={}):
-        print(ctx)
+    def get_hyper_interval(self, ctx={}) -> dict:
+        ## making the interval singleton
+        if self.__hyper_interval is not None:
+            return self.__hyper_interval
         """ ctx['name'] = 'NumberRangeModel'"""
         to_int = lambda x: x if self.get_real() else scope.int(x)
 
@@ -287,9 +291,20 @@ class NumberRangeModel:
         upper_dep = ctx.get(self.get_upper_dep(), None)
         lower_dep = ctx.get(self.get_lower_dep(), None)
 
-        upper = upper_dep.get_upper() if upper_dep else self.get_upper()
-        lower = lower_dep.get_lower() if lower_dep else self.get_lower()
+        upper = list(upper_dep.get_hyper_interval().values())[0] if upper_dep else self.get_upper()
+        lower = list(lower_dep.get_hyper_interval().values())[0] if lower_dep else self.get_lower()
 
+        ## begin -- using normalization and avoid step
+        # if upper_dep or lower_dep:
+        #     value = (upper + lower)/2
+        # else:
+        #     if self.get_step():
+        #         value = hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step())
+        #     else:
+        #         value = hyperopt.hp.uniform(self.name, self.get_lower(), self.get_upper())
+        ## end
+
+        ## begin -- using linear transformation
         if self.get_step():
             value = hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step())
         else:
@@ -300,12 +315,11 @@ class NumberRangeModel:
             lower,
             self.get_upper(),
             upper,
-            # min(lower, self.get_lower()), # x1
-            # max(lower, self.get_lower()), # y1
-            # max(upper, self.get_upper()), # x2
-            # min(upper, self.get_upper()), # y2
-            value)
-        return {self.name: to_int(value)}
+            value
+        )
+        ## end
+        self.__hyper_interval = {self.name: to_int(value)}
+        return self.__hyper_interval
 
 def to_scale(x1, y1, x2, y2, k):
     if x1 == y1 and x2 == y2:
@@ -315,6 +329,9 @@ def to_scale(x1, y1, x2, y2, k):
     b = y1 - (m * x1)
     # print(f'{m}*x+{b} --> p=({x1},{y1}) q=({x2},{y2}) ')
     return (m * k) + b
+
+def normalize(k, mx, mn):
+    return (k - mn) / (mx - mn)
 
 class OptionRangeModel:
     def __init__(self, r):
@@ -334,7 +351,7 @@ class OptionRangeModel:
     def get_values(self):
         return self.cast(self.values, self.type)
 
-    def get_hyper_interval(self, ctx={}):
+    def get_hyper_interval(self, ctx={}) -> dict:
         """ ctx['name'] = 'OptionRangeModel'"""
         return {self.name: hyperopt.hp.choice(self.name, self.get_values())}
 

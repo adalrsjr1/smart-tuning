@@ -3,7 +3,7 @@ import sys
 import yaml
 from pprint import pprint
 from hyperopt import hp, tpe, fmin, pyll, Trials
-from controllers.searchspacemodel import SearchSpaceModel, to_scale
+from controllers.searchspacemodel import SearchSpaceModel, to_scale, normalize
 
 class SearchSpaceDependence(unittest.TestCase):
     @classmethod
@@ -127,18 +127,53 @@ class SearchSpaceDependence(unittest.TestCase):
             a = result['a']
             b = result['b']
             print(result)
-            self.assertTrue( a <= b <= 200, f'[{i}] {a} <= {b} <= 200 == False')
+            self.assertTrue(a <= b <= 200, f'[{i}] {a} <= {b} <= 200 == False')
 
 
-    def test(self):
-        a = hp.uniform('a', 5, 10)
-        b = hp.uniform('b', 11, 20)
-        space = {
-            'a': a,
-            'b': b,
-            'c': hp.uniform('c', a, b)
-        }
-        print(pyll.stochastic.sample(space))
+    def test_lower(self):
+        for i in range(1000):
+            uniform = lambda l, u : hp.uniform('a', l, u)
+            a = uniform(5, 10)
+            b = uniform(10, 20)
+            space = {
+                'a': a,
+                'b': b,
+                'c': (a+20)/2,
+                'c0': normalize(a, 10, 5)
+            }
+            result = pyll.stochastic.sample(space)
+            print(result)
+            self.assertTrue(result['a'] <= result['c'] <= 20, f'[{i}] {result["a"]} <= {result["c"]} <= 20 == False')
+
+    def test_upper(self):
+        for i in range(1000):
+            a = hp.uniform('a', 5, 10)
+            b = hp.uniform('b', 10, 20)
+            space = {
+                'a': a,
+                'b': b,
+                'c': (5 + b)/2,
+                'c0': normalize(b, 20, 10)
+            }
+            result = pyll.stochastic.sample(space)
+            print(result)
+            self.assertTrue(5 <= result['c'] <= result['b'], f'[{i}] 5 <= {result["c"]} <= {result["b"]} == False')
+
+    def test_lower_upper(self):
+        for i in range(1000):
+            a = {'a': hp.uniform('a', 5, 10)}
+            b = {'b': hp.uniform('b', 10, 20)}
+            space = {
+                'a': a['a'],
+                'b': b['b'],
+                'c': (a['a'] + b['b'])/2,
+                'c_a': normalize(a['a'], 20, 5),
+                'c_b': normalize(b['b'], 20, 5),
+            }
+            print(space['a'], space['c'])
+            result = pyll.stochastic.sample(space)
+            print(result)
+            self.assertTrue(result['a'] <= result['c'] <= result['b'], f'[{i}] {result["a"]} <= {result["c"]} <= {result["b"]} == False')
 
 if __name__ == '__main__':
     unittest.main()
