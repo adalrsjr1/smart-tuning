@@ -322,6 +322,28 @@ class NumberRangeModel:
         return self.__hyper_interval
 
 def to_scale(x1, y1, x2, y2, k):
+    """
+    does a linear transformation leading the xs values to ys values
+    xs are the original limits of a parameter
+    ys are the new limits based on their dependencies
+    k is the value sampled from the xs interval that will be scaled to ys interval
+
+    for example:
+        ...
+        - name: "a"
+          lower:
+            value: 100
+          upper:
+            value: 200
+        - name: "b"
+          lower:
+            value: 100
+            dependsOn: "a"
+          upper:
+            value: 200
+        ...
+    the interval b = (100, 200) will be shrink to b = (a, 200), where 'a' is a value sampled from a = (100, 200)
+    """
     if x1 == y1 and x2 == y2:
         return k
 
