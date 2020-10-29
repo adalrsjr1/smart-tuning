@@ -16,9 +16,385 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1602864810883,
+  "iteration": 1603840161423,
   "links": [],
   "panels": [
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "hiddenSeries": false,
+      "id": 14,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(avg_over_time(vendor_threadpool_activeThreads{name!~\".*POD.*\"}[$time_interval_m])) by (pod,pool)",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Thread pool",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "hiddenSeries": false,
+      "id": 18,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(avg_over_time(vendor_connectionpool_managedConnections{name!~\".*POD.*\"}[$time_interval_m])) by (pod, datasource)",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Connection Pool",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "hiddenSeries": false,
+      "id": 20,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(rate(vendor_connectionpool_queuedRequests_total{name!~\".*POD.*\"}[$time_interval_m])) by (datasource, pod)",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Queued Requests Connection Pool",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "reqps",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "hiddenSeries": false,
+      "id": 16,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(avg_over_time(vendor_connectionpool_waitTime_total_seconds{name!~\".*POD.*\"}[$time_interval_m])) by(pod, datasource)",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Connection Pool Waiting Time",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "s",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
     {
       "aliasColors": {
         "TRAIN daytrader-servicesmarttuning": "super-light-yellow"
@@ -36,10 +412,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 12,
+        "h": 6,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 23
       },
       "hiddenSeries": false,
       "id": 6,
@@ -155,10 +531,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 12,
+        "h": 6,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 29
       },
       "hiddenSeries": false,
       "id": 12,
@@ -262,10 +638,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 12,
         "x": 0,
-        "y": 24
+        "y": 35
       },
       "hiddenSeries": false,
       "id": 2,
@@ -295,25 +671,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname.*\",name!~\".*POD.*\",container!=\"\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "prod + train",
           "refId": "C"
         },
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\".*-db-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\".*-db-.*\",name!~\".*POD.*\",container!=\"\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "database",
           "refId": "D"
@@ -339,9 +715,10 @@
       },
       "yaxes": [
         {
+          "decimals": null,
           "format": "short",
           "label": null,
-          "logBase": 1,
+          "logBase": 2,
           "max": "64",
           "min": null,
           "show": true
@@ -375,10 +752,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 12,
         "x": 12,
-        "y": 24
+        "y": 35
       },
       "hiddenSeries": false,
       "id": 4,
@@ -454,7 +831,7 @@
         {
           "format": "bytes",
           "label": "",
-          "logBase": 1,
+          "logBase": 2,
           "max": null,
           "min": null,
           "show": true
@@ -490,10 +867,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 6,
         "w": 12,
         "x": 0,
-        "y": 32
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 8,
@@ -597,10 +974,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 6,
         "w": 12,
         "x": 12,
-        "y": 32
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 10,
@@ -855,9 +1232,10 @@
       {
         "allValue": null,
         "current": {
+          "isNone": true,
           "selected": false,
-          "text": "daytrader-servicesmarttuning",
-          "value": "daytrader-servicesmarttuning"
+          "text": "None",
+          "value": ""
         },
         "datasource": "prometheus",
         "definition": "container_cpu_usage_seconds_total",
@@ -881,7 +1259,7 @@
     ]
   },
   "time": {
-    "from": "2020-10-16T18:33:15.000Z",
+    "from": "2020-10-27T23:24:30.000Z",
     "to": "now"
   },
   "timepicker": {
