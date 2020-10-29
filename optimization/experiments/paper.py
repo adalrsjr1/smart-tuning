@@ -293,10 +293,11 @@ if __name__ == '__main__':
     # df = load_data('./resources/logging-202010061050.csv')
     # df = load_data('./resources/logging-202010071200.csv')
     # df = load_data('./resources/logging-202010081630.csv')
-    df = load_data('./resources/logging-202010171030.csv')
+    # df = load_data('./resources/logging-202010171030.csv')
+    df = load_data('./resources/logging-202010231030.csv')
     title = 'DayTrader'
     mtable, wtable, ctable = split_table(df)
 
-    # plot_metrics(mtable, title)
+    plot_metrics(mtable, title)
     plot_configs(ctable, title)
 
