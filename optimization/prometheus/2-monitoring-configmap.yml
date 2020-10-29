@@ -74,8 +74,11 @@ data:
           action: replace
           target_label: kubernetes_namespace
         - source_labels: [__meta_kubernetes_pod_name]
+          separator: ;
+          regex: (.*)
+          target_label: pod
+          replacement: $1
           action: replace
-          target_label: kubernetes_pod_name
 
       - job_name: 'kubernetes-cadvisor'
         scheme: https
@@ -134,11 +137,11 @@ data:
             #  names:
             #    - default # change this for further applications
         relabel_configs:
-          #- source_labels: [__meta_kubernetes_service_label_app]
-          #  separator: ;
-          #  regex: httpbin
-          #  replacement: $1
-          #  action: keep
+          - source_labels: [__meta_kubernetes_service_label_app]
+            separator: ;
+            regex: (.*)
+            replacement: $1
+            action: keep
           - source_labels: [__meta_kubernetes_endpoint_port_name]
             separator: ;
             regex: smarttuning
@@ -183,5 +186,5 @@ data:
           - separator: ;
             regex: (.*)
             target_label: endpoint
-            replacement: smarttuning
+            replacement: ${1}
             action: replace
