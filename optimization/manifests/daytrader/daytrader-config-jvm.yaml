@@ -4,5 +4,10 @@ metadata:
   name: daytrader-config-jvm
 data:
   jvm.options: |-
-    -XX:+UseContainerSupport
+    #-XX:+UseContainerSupport
+    -xms1024m
+    -xmx1024m
     -Xgcpolicy:gencon
+    -Xtune:virtualized
+    -verbose:gc
+    -Xverbosegclog:/home/daytrader/verbosegc.%Y%m%d.%H%M%S.%pid.txt

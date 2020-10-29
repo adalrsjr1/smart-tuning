@@ -15,14 +15,22 @@ spec:
       labels:
         app: daytrader
         smarttuning: "false"
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9080'
+#        prometheus.io/path: '/metrics'
     spec:
       restartPolicy: Always
       containers:
         - name: daytrader
           image: smarttuning/daytrader8-k8s
+          lifecycle:
+            postStart:
+              exec:
+                command: [ "/bin/bash", "-c", "mkdir -p /home/daytrader && touch /home/daytrader/verbosegc.$(date +'%Y%m%d.%H%M%S').$HOSTNAME"]
           resources:
             limits:
-              cpu: "2"
+              cpu: "8"
               memory: "4096Mi"
           ports:
             - containerPort: 9080
@@ -42,13 +50,6 @@ spec:
               value: "1000"
             - name: MAX_USERS
               value: "500"
-          # avoid to send requests
-#          readinessProbe:
-#            httpGet:
-#              path: /daytrader
-#              port: 9080
-#            initialDelaySeconds: 40
-#            periodSeconds: 5
           # avoid to send requests if it already restarted
           readinessProbe:
             exec:
@@ -85,6 +86,8 @@ spec:
             - mountPath: /config/jvm.options
               subPath: jvm.options
               name: daytrader-config-jvm
+            - mountPath: /home
+              name: openj9-gc-dump
       volumes:
         - name: daytrader-config-app
           configMap:
@@ -92,3 +95,6 @@ spec:
         - name: daytrader-config-jvm
           configMap:
             name: daytrader-config-jvm
+        - name: openj9-gc-dump
+          hostPath:
+            path: /smarttuning/daytrader/

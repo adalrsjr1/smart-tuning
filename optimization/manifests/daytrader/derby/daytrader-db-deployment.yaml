@@ -12,26 +12,11 @@ spec:
       labels:
         app: daytrader-db
     spec:
-#      affinity:
-#        nodeAffinity:
-#          requiredDuringSchedulingIgnoredDuringExecution:
-#            nodeSelectorTerms:
-#              - matchExpressions:
-#                  - key: kubernetes.io/hostname
-#                    operator: In
-#                    values:
-#                      - kind-worker9
-#                      - docker-desktop
       volumes:
         - name: db2-volume
-#          emptyDir: {}
           emptyDir:
             medium: "Memory"
-#          hostPath:
-#            type: DirectoryOrCreate
-#            path: /database
       containers:
-        # use su - db2inst1 when inspecting the container
         - name: daytrader-db
           image: smarttuning/derby
           volumeMounts:
@@ -42,11 +27,6 @@ spec:
           ports:
             - containerPort: 1527
               protocol: TCP
-#          resources:
-#            limits:
-#              cpu: "16"
-#              memory: "8Gi"
-#      restartPolicy: Always
   selector:
     matchLabels:
       app: daytrader-db

@@ -3,10 +3,10 @@ kind: ConfigMap
 metadata:
   name: jmeter-config
 data:
-  JTOPUID: "499"
+  JTOPUID: "199"
   JPORT: "9080"
   JMAXTHINKTIME: "0"
-  JSTOCKS: "999"
-  JTHREADS: "200"
+  JSTOCKS: "399"
+  JTHREADS: "50"
   JRAMP: "10"
-  JDURATION: "60000"
+  JDURATION: "86400"
