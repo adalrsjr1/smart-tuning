@@ -195,11 +195,12 @@ def inject_proxy_to_deployment(event):
 
     containers = deployment.spec.template.spec.containers
     first_container: V1Container = containers[0]
+    res_limits = first_container.resources.limits
     first_port: V1ContainerPort = first_container.ports[0]
     service_port = first_port.container_port
 
     containers.append(
-        proxy_container(proxy_port=config.PROXY_PORT, metrics_port=config.METRICS_PORT, service_port=service_port))
+        proxy_container(proxy_port=config.PROXY_PORT, metrics_port=config.METRICS_PORT, service_port=service_port, cpu=res_limits['cpu'], memory_mb=res_limits['memory']))
     patch_body = {
         "kind": deployment.kind,
         "apiVersion": deployment.api_version,
@@ -278,7 +279,7 @@ def container_dict_to_model(c: dict) -> V1Container:
                        )
 
 
-def proxy_container(proxy_port: int, metrics_port: int, service_port: int):
+def proxy_container(proxy_port: int, metrics_port: int, service_port: int, cpu:int, memory_mb:int):
     env_var = lambda name, path: {
         'name': name,
         'valueFrom': {
@@ -290,9 +291,9 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int):
 
     return {
         'env': [
-            {'name': 'PROXY_PORT', 'value': str(proxy_port)},
-            {'name': 'METRICS_PORT', 'value': str(metrics_port)},
-            {'name': 'SERVICE_PORT', 'value': str(service_port)},
+            {'name': 'PROXY_PORT', 'value': f'{proxy_port}'},
+            {'name': 'METRICS_PORT', 'value': f'{metrics_port}'},
+            {'name': 'SERVICE_PORT', 'value': f'{service_port}'},
             env_var('NODE_NAME', 'spec.nodeName'),
             env_var('POD_NAME', 'metadata.name'),
             env_var('POD_NAMESPACE', 'metadata.namespace'),
@@ -308,6 +309,12 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int):
         'imagePullPolicy': 'Always',
         'name': config.PROXY_NAME,
         'ports': [{'containerPort': proxy_port}, {'containerPort': metrics_port}],
+        'resources': {
+            'limits': {
+                'cpu': f'"{cpu}"',
+                'memory': f'{memory_mb}Mi'
+            }
+        }
     }
 
 
