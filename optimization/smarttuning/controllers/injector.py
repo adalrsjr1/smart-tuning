@@ -311,8 +311,8 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int, cpu:i
         'ports': [{'containerPort': proxy_port}, {'containerPort': metrics_port}],
         'resources': {
             'limits': {
-                'cpu': f'"{cpu}"',
-                'memory': f'{memory_mb}Mi'
+                'cpu': f'{cpu}',
+                'memory': f'{memory_mb}'
             }
         }
     }
