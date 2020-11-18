@@ -16,7 +16,7 @@ spec:
               - "-c"
               - |
                 shutdown.sh
-      imagePullPolicy: Always
+      imagePullPolicy: IfNotPresent
       env:
         - name: JHOST
           value: 'daytrader.default.svc.cluster.local'

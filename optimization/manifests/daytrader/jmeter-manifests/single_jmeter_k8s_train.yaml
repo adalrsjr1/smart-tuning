@@ -1,6 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
+  name: jmeter-train
   labels:
     app: jmeter
 spec:
@@ -15,7 +16,7 @@ spec:
               - "-c"
               - |
                 shutdown.sh
-      imagePullPolicy: Always
+      imagePullPolicy: IfNotPresent
       env:
         - name: JHOST
           value: 'daytrader-smarttuning.default.svc.cluster.local'

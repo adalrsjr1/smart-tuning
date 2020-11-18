@@ -4,10 +4,17 @@ metadata:
   name: daytrader-config-jvm
 data:
   jvm.options: |-
-    #-XX:+UseContainerSupport
-    -xms1024m
-    -xmx1024m
+    -Dcom.sun.management.jmxremote
+    -Dcom.sun.management.jmxremote.authenticate=false
+    -Dcom.sun.management.jmxremote.ssl=false
+    -Dcom.sun.management.jmxremote.local.only=false
+    -Dcom.sun.management.jmxremote.port=1099
+    -Dcom.sun.management.jmxremote.rmi.port=1099
+    -Djava.rmi.server.hostname=127.0.0.1
+    -XX:+UseContainerSupport
+    #-xms512m
+    #-xmx512m
     -Xgcpolicy:gencon
     -Xtune:virtualized
-    -verbose:gc
-    -Xverbosegclog:/home/daytrader/verbosegc.%Y%m%d.%H%M%S.%pid.txt
+    #-verbose:gc
+    #-Xverbosegclog:/home/daytrader/verbosegc.%Y%m%d.%H%M%S.%pid.txt

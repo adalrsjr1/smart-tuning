@@ -24,10 +24,11 @@ spec:
       containers:
         - name: daytrader
           image: smarttuning/daytrader8-k8s
-          lifecycle:
-            postStart:
-              exec:
-                command: [ "/bin/bash", "-c", "mkdir -p /home/daytrader && touch /home/daytrader/verbosegc.$(date +'%Y%m%d.%H%M%S').$HOSTNAME"]
+          imagePullPolicy: IfNotPresent
+#          lifecycle:
+#            postStart:
+#              exec:
+#                command: [ "/bin/bash", "-c", "mkdir -p /home/daytrader && touch /home/daytrader/verbosegc.$(date +'%Y%m%d.%H%M%S').$HOSTNAME"]
           resources:
             limits:
               cpu: "8"
@@ -35,6 +36,22 @@ spec:
           ports:
             - containerPort: 9080
           env:
+            - name: "CONMGR4_TIMEOUT"
+              value: $(CONMGR1_TIMEOUT)
+            - name: "CONMGR4_AGED_TIMEOUT"
+              value: $(CONMGR1_AGED_TIMEOUT)
+            - name: "CONMGR4_MAX_IDLE_TIMEOUT"
+              value: $(CONMGR1_MAX_IDLE_TIMEOUT)
+            - name: "CONMGR4_REAP_TIME"
+              value: $(CONMGR1_REAP_TIME)
+            - name: "CONMGR4_MAX_POOL_SIZE"
+              value: $(CONMGR1_MAX_POOL_SIZE)
+            - name: "CONMGR4_MIN_POOL_SIZE"
+              value: $(CONMGR1_MIN_POOL_SIZE)
+            - name: "CONMGR4_PURGE_POLICY"
+              value: $(CONMGR1_PURGE_POLICY)
+            - name: "CONMGR4_CONN_PER_THREAD"
+              value: $(CONMGR1_CONN_PER_THREAD)
             - name: DB_ADDRESS
               value: daytrader-db.default.svc.cluster.local
             - name: DB_PORT
@@ -50,6 +67,10 @@ spec:
               value: "1000"
             - name: MAX_USERS
               value: "500"
+            - name: TRACE_SLOW_REQUEST_THRESHOLD
+              value: "1s"
+            - name: TRACE_HUNG_REQUEST_THRESHOLD
+              value: "2s"
           # avoid to send requests if it already restarted
           readinessProbe:
             exec:
@@ -86,8 +107,8 @@ spec:
             - mountPath: /config/jvm.options
               subPath: jvm.options
               name: daytrader-config-jvm
-            - mountPath: /home
-              name: openj9-gc-dump
+#            - mountPath: /home
+#              name: openj9-gc-dump
       volumes:
         - name: daytrader-config-app
           configMap:
@@ -95,6 +116,6 @@ spec:
         - name: daytrader-config-jvm
           configMap:
             name: daytrader-config-jvm
-        - name: openj9-gc-dump
-          hostPath:
-            path: /smarttuning/daytrader/
+#        - name: openj9-gc-dump
+#          hostPath:
+#            path: /smarttuning/daytrader/

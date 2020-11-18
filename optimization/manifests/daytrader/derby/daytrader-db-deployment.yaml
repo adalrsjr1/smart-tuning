@@ -12,6 +12,16 @@ spec:
       labels:
         app: daytrader-db
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - kind-worker
+                      - docker-desktop
       volumes:
         - name: db2-volume
           emptyDir:
@@ -27,6 +37,13 @@ spec:
           ports:
             - containerPort: 1527
               protocol: TCP
+          resources:
+            requests:
+              cpu: "4"
+              memory: 4Gi
+            limits:
+              cpu: "4"
+              memory: 4Gi
   selector:
     matchLabels:
       app: daytrader-db

@@ -70,6 +70,7 @@ data:
   POD_PROD_REGEX: 'daytrader-.*service-.+'
   QUANTILE: '1.0'
   NAMESPACE: 'default'
+  PROXY_IMAGE: 'smarttuning/proxy'
 ---
 apiVersion: apps/v1
 kind: Deployment

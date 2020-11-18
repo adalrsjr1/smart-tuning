@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1603840161423,
+  "iteration": 1604627626336,
   "links": [],
   "panels": [
     {
@@ -34,13 +34,13 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 24,
         "x": 0,
         "y": 0
       },
       "hiddenSeries": false,
-      "id": 14,
+      "id": 20,
       "legend": {
         "avg": false,
         "current": false,
@@ -66,9 +66,16 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(avg_over_time(vendor_threadpool_activeThreads{name!~\".*POD.*\"}[$time_interval_m])) by (pod,pool)",
+          "expr": "sum(rate(vendor_connectionpool_queuedRequests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (datasource)",
+          "hide": false,
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "PROD {{datasource}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(vendor_connectionpool_queuedRequests_total{pod=~\"$train_podname-.*\", name!~\".*POD.*\"}[$time_interval_m])) by (datasource)",
+          "interval": "",
+          "legendFormat": "TRAIN {{datasource}}",
           "refId": "B"
         }
       ],
@@ -76,7 +83,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Thread pool",
+      "title": "Queued Requests Connection Pool",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -92,7 +99,7 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "format": "reqps",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -128,10 +135,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
+        "h": 8,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 7
       },
       "hiddenSeries": false,
       "id": 18,
@@ -160,10 +167,16 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(avg_over_time(vendor_connectionpool_managedConnections{name!~\".*POD.*\"}[$time_interval_m])) by (pod, datasource)",
+          "expr": "sum(avg_over_time(vendor_connectionpool_managedConnections{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (datasource)",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "PROD {{datasource}}",
           "refId": "A"
+        },
+        {
+          "expr": "sum(avg_over_time(vendor_connectionpool_managedConnections{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (datasource)",
+          "interval": "",
+          "legendFormat": "TRAIN {{datasource}}",
+          "refId": "B"
         }
       ],
       "thresholds": [],
@@ -222,13 +235,13 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 15
       },
       "hiddenSeries": false,
-      "id": 20,
+      "id": 16,
       "legend": {
         "avg": false,
         "current": false,
@@ -254,9 +267,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(vendor_connectionpool_queuedRequests_total{name!~\".*POD.*\"}[$time_interval_m])) by (datasource, pod)",
+          "expr": "sum(avg_over_time(vendor_connectionpool_waitTime_total_seconds{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by( datasource) / sum(rate(vendor_connectionpool_queuedRequests_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (datasource)",
+          "hide": false,
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "PROD {{datasource}}",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(avg_over_time(vendor_connectionpool_waitTime_total_seconds{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by( datasource) / sum(rate(vendor_connectionpool_queuedRequests_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (datasource)",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "TRAIN {{datasource}}",
           "refId": "A"
         }
       ],
@@ -264,7 +285,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Queued Requests Connection Pool",
+      "title": "Connection Pool Waiting Time",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -280,11 +301,11 @@
       },
       "yaxes": [
         {
-          "format": "reqps",
+          "format": "s",
           "label": null,
-          "logBase": 1,
+          "logBase": 2,
           "max": null,
-          "min": "0",
+          "min": null,
           "show": true
         },
         {
@@ -316,13 +337,13 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 5,
+        "h": 6,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 22
       },
       "hiddenSeries": false,
-      "id": 16,
+      "id": 14,
       "legend": {
         "avg": false,
         "current": false,
@@ -348,9 +369,16 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(avg_over_time(vendor_connectionpool_waitTime_total_seconds{name!~\".*POD.*\"}[$time_interval_m])) by(pod, datasource)",
+          "expr": "sum(avg_over_time(vendor_threadpool_activeThreads{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "PROD thread pool",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(avg_over_time(vendor_threadpool_activeThreads{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "TRAIN thread pool",
           "refId": "A"
         }
       ],
@@ -358,7 +386,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Connection Pool Waiting Time",
+      "title": "Thread pool",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -374,11 +402,11 @@
       },
       "yaxes": [
         {
-          "format": "s",
+          "format": "short",
           "label": null,
           "logBase": 1,
           "max": null,
-          "min": "0",
+          "min": null,
           "show": true
         },
         {
@@ -412,10 +440,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 24,
         "x": 0,
-        "y": 23
+        "y": 28
       },
       "hiddenSeries": false,
       "id": 6,
@@ -531,10 +559,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 24,
         "x": 0,
-        "y": 29
+        "y": 35
       },
       "hiddenSeries": false,
       "id": 12,
@@ -638,10 +666,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
-        "y": 35
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 2,
@@ -671,25 +699,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname.*\",name!~\".*POD.*\",container!=\"\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "prod + train",
           "refId": "C"
         },
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\".*-db-.*\",name!~\".*POD.*\",container!=\"\"}[$time_interval_m]))",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\".*-db-.*\",name!~\".*POD.*\"}[$time_interval_m]))",
           "interval": "",
           "legendFormat": "database",
           "refId": "D"
@@ -719,8 +747,8 @@
           "format": "short",
           "label": null,
           "logBase": 2,
-          "max": "64",
-          "min": null,
+          "max": "25",
+          "min": "0",
           "show": true
         },
         {
@@ -752,10 +780,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 12,
-        "y": 35
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 4,
@@ -785,15 +813,15 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(max_over_time(container_memory_working_set_bytes{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
+          "expr": "sum(max_over_time(container_memory_working_set_bytes{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) ",
           "interval": "",
-          "legendFormat": "PROD $prod_podname",
+          "legendFormat": "PROD",
           "refId": "A"
         },
         {
           "expr": "sum(max_over_time(container_memory_working_set_bytes{id=~\".kubepods.*\",pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m]))",
           "interval": "",
-          "legendFormat": "TRAIN $train_podname",
+          "legendFormat": "TRAIN",
           "refId": "B"
         },
         {
@@ -831,7 +859,7 @@
         {
           "format": "bytes",
           "label": "",
-          "logBase": 2,
+          "logBase": 1,
           "max": null,
           "min": null,
           "show": true
@@ -867,10 +895,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
+        "h": 9,
         "w": 12,
         "x": 0,
-        "y": 42
+        "y": 50
       },
       "hiddenSeries": false,
       "id": 8,
@@ -974,10 +1002,10 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 6,
+        "h": 9,
         "w": 12,
         "x": 12,
-        "y": 42
+        "y": 50
       },
       "hiddenSeries": false,
       "id": 10,
@@ -1039,11 +1067,12 @@
       },
       "yaxes": [
         {
+          "decimals": 2,
           "format": "percentunit",
           "label": null,
           "logBase": 10,
-          "max": null,
-          "min": null,
+          "max": "1",
+          "min": "0",
           "show": true
         },
         {
@@ -1232,10 +1261,9 @@
       {
         "allValue": null,
         "current": {
-          "isNone": true,
           "selected": false,
-          "text": "None",
-          "value": ""
+          "text": "daytrader-servicesmarttuning",
+          "value": "daytrader-servicesmarttuning"
         },
         "datasource": "prometheus",
         "definition": "container_cpu_usage_seconds_total",
@@ -1259,7 +1287,7 @@
     ]
   },
   "time": {
-    "from": "2020-10-27T23:24:30.000Z",
+    "from": "2020-11-06T03:03:15.000Z",
     "to": "now"
   },
   "timepicker": {
@@ -1268,6 +1296,7 @@
       "30s",
       "1m",
       "5m",
+      "400s",
       "15m",
       "20m",
       "30m",
