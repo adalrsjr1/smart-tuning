@@ -5,6 +5,7 @@ import numpy as np
 import numbers
 import config
 import sampler
+import datetime
 import hashlib
 import kubernetes
 from concurrent.futures import Future
@@ -116,14 +117,9 @@ def create_context(production_microservice, training_microservice):
     sampler_production = sampler.PrometheusSampler(production_sanitized, config.WAITING_TIME * config.SAMPLE_SIZE)
     sampler_training = sampler.PrometheusSampler(training_sanitized, config.WAITING_TIME * config.SAMPLE_SIZE)
 
-    overall_metrics_prod = sampler.PrometheusSampler(config.GATEWAY_NAME, config.WAITING_TIME * config.SAMPLE_SIZE)
-    overall_metrics_train = sampler.PrometheusSampler(config.GATEWAY_NAME+config.PROXY_TAG, config.WAITING_TIME * config.SAMPLE_SIZE)
-
     last_config = {}
     last_class = None
 
-    last_metrics_prod = Metric.zero()
-    last_metrics_train = Metric.zero()
     while production_name and training_name:
         try:
             search_space_ctx: SearchSpaceContext = sample_config(production_name)
@@ -134,12 +130,6 @@ def create_context(production_microservice, training_microservice):
 
             config_to_apply = update_training_config(training_microservice, search_space_ctx)
             fail_fast, production_metric, training_metric = wait(True, config.WAITING_TIME, production_sanitized, training_sanitized)
-            fail_fast = not fail_fast
-
-            if fail_fast:
-                logger.info('fail fast')
-                update_loss(None, Metric.zero(), search_space_ctx)
-                continue
 
             if production_metric != Metric.zero() and training_metric != Metric.zero():
                 production_metric = sampler_production.metric()
@@ -148,105 +138,71 @@ def create_context(production_microservice, training_microservice):
             production_workload = sampler_production.workload()
             training_workload = sampler_training.workload()
 
-            # metrics_prod = overall_metrics_prod.metric()
-            # metrics_train = overall_metrics_train.metric()
-
-            # update metrics with gw performance
-            # old_metrics_prod = metrics_prod
-            # old_metrics_train = metrics_train
-            # production_metric = Metric(cpu=production_metric.cpu(), memory=production_metric.memory(), throughput=metrics_prod.throughput(), process_time=production_metric.process_time(), errors=production_metric.errors(), in_out=production_metric.in_out(), to_eval=production_metric.to_eval)
-            # training_metric = Metric(cpu=training_metric.cpu(), memory=training_metric.memory(), throughput=metrics_prod.throughput(), process_time=training_metric.process_time(), errors=training_metric.errors(), in_out=training_metric.in_out(), to_eval=training_metric.to_eval)
-
-            # fix this for production deployment
-            #
-            # Traceback (most recent call last):
-            #   File "./app.py", line 144, in create_context
-            #     last_metrics_prod = metrics_prod
-            # UnboundLocalError: local variable 'metrics_prod' referenced before assignment
-            #
-            last_metrics_prod = production_metric
-            last_metrics_train = training_metric
-
             production_result = production_workload.result(config.SAMPLING_METRICS_TIMEOUT)
             production_class, production_hits = classify_workload(production_metric, production_result)
 
             training_result = training_workload.result(config.SAMPLING_METRICS_TIMEOUT)
             training_class, training_hits = classify_workload(training_metric, training_result)
 
-            loss = update_loss(training_class, training_metric, search_space_ctx)
-            # loss = update_loss(production_class, production_metric, search_space_ctx)
+            if fail_fast:
+                logger.info('fail fast')
+                loss = update_loss(training_class, Metric.zero(), search_space_ctx)
+            else:
+                loss = update_loss(training_class, training_metric, search_space_ctx)
+                # loss = update_loss(production_class, production_metric, search_space_ctx)
 
             time.sleep(2)  # to avoid race condition when iterating over Trials
             best_config, best_loss = best_loss_so_far(search_space_ctx)
 
 
-            evaluation = training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD) #\
+            evaluation = training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD)
             logger.info(f'[t metric] {training_metric}')
             logger.info(f'[p metric] {production_metric}')
             logger.info(f'[objective] training:{training_metric.objective()} production:{production_metric.objective()} best:{best_loss}')
 
-                # and metrics_train.throughput() > last_metrics_prod.throughput()
             logger.info(
-                # f' last gw throughput: {last_metrics_prod.throughput()} <= current gw throughput: {metrics_train.throughput() > last_metrics_prod.throughput()}'
                 f'training:{training_metric.objective()} <= production:{production_metric.objective()} '
                 f'| loss:{loss} <= best_loss:{best_loss}')
             tuned = False
             updated_config = last_config
-            if evaluation:
-                if best_loss < loss:
-                    if last_config != best_config or last_class != production_class:
-                        update_best_loss(search_space_ctx, production_metric.objective())
-                        best_config, best_loss = best_loss_so_far(search_space_ctx)
 
-                        logger.info(
-                            f'[best] training:{training_metric.objective()} <= production:{production_metric.objective()} '
-                            f'| best_loss:{best_loss} --> prod:{production_metric.objective()}'
-                            f'== {evaluation and (best_loss < loss)}')
+            if evaluation and best_loss >= loss:
+                # if last_config != config_to_apply or last_class != production_class:
+                logger.info(
+                    f'[curr] training:{training_metric.objective()} <= production:{production_metric.objective()} '
+                    f'| best_loss:{best_loss} >= loss:{loss}'
+                    f'== {evaluation and (best_loss >= loss)}')
+                last_class = production_class
+                update_production(production_microservice, config_to_apply, search_space_ctx)
+                updated_config = config_to_apply
+                tuned = 'training_config'
+            else:
+                old_best_config, old_best_loss = best_config, best_loss
+                update_best_loss(search_space_ctx, production_metric.objective())
+                best_config, best_loss = best_loss_so_far(search_space_ctx)
 
-                        last_class = production_class
+                if best_loss < production_metric.objective():
+                    logger.info(
+                        f'[best] training:{training_metric.objective()} <= production:{production_metric.objective()} '
+                        f'| best_loss:{best_loss} --> prod:{production_metric.objective()}'
+                        f'== {evaluation and (best_loss < loss)}')
 
-                        update_production(production_microservice, best_config, search_space_ctx)
-                        updated_config = best_config
-                        tuned = 'best'
-                        # update loss
+                    last_class = production_class
 
+                    update_production(production_microservice, best_config, search_space_ctx)
+                    updated_config = best_config
+
+                    tuned = 'previous_config'
                 else:
-                    if last_config != config_to_apply or last_class != production_class:
-                        logger.info(
-                            f'[curr] training:{training_metric.objective()} <= production:{production_metric.objective()} '
-                            f'| best_loss:{best_loss} >= loss:{loss}'
-                            f'== {evaluation and (best_loss >= loss)}')
-                        last_class = production_class
-                        update_production(production_microservice, config_to_apply, search_space_ctx)
-                        updated_config = config_to_apply
-                        tuned = 'curr'
-
-
-            # evaluation = best_loss <= loss * (1 - config.METRIC_THRESHOLD) \
-            #         and training_metric.objective() <= production_metric.objective() * (1 - config.METRIC_THRESHOLD)
-            #         # and overall_metrics_train.metric().objective() <= overall_metrics_prod.metric().objective()
-            # logger.info(f'loss:{loss} <= best_loss:{best_loss} '
-            #             f'and training:{training_metric.objective()} <= production:{production_metric.objective()} '
-            #             # f'and overall_t:{metrics_train.objective()} <= overall_p:{metrics_prod.objective()} '
-            #             f'== {evaluation}')
-            # if evaluation:
-            #     if last_config != best_config or last_class != production_class:
-            #         update_production(production_microservice, best_config, search_space_ctx)
-            #         last_config = best_config
-            #         last_class = production_class
+                    tuned = 'false'
 
             save(
-                timestamp=time.time_ns(),
-
+                timestamp=datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S"),
                 last_config=last_config,
-                # gw_production_metric=old_metrics_prod.serialize(),
                 production_metric=production_metric.serialize(),
-                # gw_train_metric=old_metrics_train.serialize(),
                 config_to_eval=config_to_apply,
                 training_metric=training_metric.serialize(),
                 production_workload=sampler.series_to_dict(production_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
-                # overall_metrics_train=metrics_train.serialize(),
-                # overall_metrics_prod=metrics_prod.serialize(),
                 # extract to dict
                 training_workload=sampler.series_to_dict(training_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
                 # extract to dict
@@ -301,7 +257,7 @@ def update_loss(classification: Cluster, metric_value: Metric, search_space_ctx:
     search_space_ctx.put_into_engine(dto)
     if metric_value:
         return metric_value.objective()
-    return Metric.zero()
+    return Metric.zero().objective()
 
 def best_loss_so_far(search_space_ctx: SearchSpaceContext):
     logger.info(f'getting best loss at BayesianEngine: {search_space_ctx.engine.id()}')
@@ -328,27 +284,28 @@ def wait(failfast=True, sleeptime=config.WAITING_TIME, production_pod_name='', t
     counter = 1
     production_metric, training_metric = None, None
     while (time.time() - now) < sleeptime:
-        logger.info(f'[{counter}] waiting {sleeptime * config.SAMPLE_SIZE}s before sampling metrics -- time:{time.time() - now} < sleeptime:{sleeptime}')
+        logger.info(f'[{counter}] waiting {sleeptime * config.SAMPLE_SIZE}s before sampling metrics -- time:{(time.time() - now):.2f} < sleeptime:{sleeptime:.2f}')
         time.sleep(sleeptime * config.SAMPLE_SIZE)
         production_metric = sampler_production.metric()
         training_metric = sampler_training.metric()
+        logger.info(f'\t\_ prod:{production_metric.objective():.2f}  train:{training_metric.objective():.2f}')
 
         # objective is always negative
         # training < 50% production
         if training_metric.throughput() <= config.THROUGHPUT_THRESHOLD or production_metric.objective()/2 < training_metric.objective():
             # training fail fast
             logger.info(f'[T] fail fast -- prod:{production_metric.objective()} < train:{training_metric.objective()}')
-            return False, production_metric, training_metric
+            return True, production_metric, training_metric
         elif production_metric.throughput() <= config.THROUGHPUT_THRESHOLD:
             # production fail fast
             logger.info(f'[P] fail fast -- prod:{production_metric.objective()} >= train:{training_metric.objective()}')
-            return True, production_metric, training_metric
+            return False, production_metric, training_metric
         else:
             logger.info(f'waiting more {sleeptime * config.SAMPLE_SIZE}s -- prod:{production_metric.objective()} >= train:{training_metric.objective()}')
             counter += 1
     # time.sleep(sleeptime)
 
-    return True, production_metric, training_metric
+    return False, production_metric, training_metric
 
 def save(**kwargs):
     logger.info(f'logging data to mongo')
