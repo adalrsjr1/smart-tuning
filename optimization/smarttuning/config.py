@@ -64,7 +64,7 @@ PROXY_PORT = int(os.environ.get('PROXY_PORT', default=80))
 METRICS_PORT = int(os.environ.get('METRICS_PORT', default=9090))
 PROXY_NAME = os.environ.get('PROXY_NAME', default='proxy')
 PROXY_TAG = os.environ.get('PROXY_TAG', default='smarttuning')  # this should be the same name as in prometheus config
-PROXY_IMAGE = os.environ.get('PROXY_IMAGE', default='smarttuning/proxy:latest')
+PROXY_IMAGE = os.environ.get('PROXY_IMAGE', default='smarttuning/proxy')
 PROXY_CONFIG_MAP = os.environ.get('PROXY_CONFIG_MAP', default='smarttuning-proxy-config')
 
 # mongo config
@@ -100,7 +100,7 @@ WAITING_TIME = int(os.environ.get('WAITING_TIME', default='300'))
 GATEWAY_NAME = os.environ.get('GATEWAY_NAME', default='acmeair-nginxservice')
 
 # failfast threshold
-THROUGHPUT_THRESHOLD = int(os.environ.get('THROUGHPUT_THRESHOLD', default='1'))
+THROUGHPUT_THRESHOLD = float(os.environ.get('THROUGHPUT_THRESHOLD', default='1.0'))
 
 QUANTILE = float(os.environ.get('QUANTILE', default='1.0'))
 

@@ -236,8 +236,8 @@ def inject_proxy_to_deployment(event):
 def init_proxy_container(proxy_port: int, service_port: int):
     return {
         'name': 'init-proxy',
-        'image': 'smarttuning/init-proxy:latest',
-        'imagePullPolicy': 'Always',
+        'image': 'smarttuning/init-proxy',
+        'imagePullPolicy': 'IfNotPresent',
         'env': [
             {
                 'name': 'PROXY_PORT',
@@ -306,7 +306,7 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int, cpu:i
             }
         }],
         'image': config.PROXY_IMAGE,
-        'imagePullPolicy': 'Always',
+        'imagePullPolicy': 'IfNotPresent',
         'name': config.PROXY_NAME,
         'ports': [{'containerPort': proxy_port}, {'containerPort': metrics_port}],
         'resources': {

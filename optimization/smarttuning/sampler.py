@@ -15,9 +15,13 @@ logger.setLevel(logging.DEBUG)
 
 
 def __extract_value_from_future__(future, timeout=config.SAMPLING_METRICS_TIMEOUT):
-    result = future.result(timeout=timeout)
-    metric = result.replace(float('NaN'), 0)
-    return metric[0] if not metric.empty else 0
+    try:
+        result = future.result(timeout=timeout)
+        metric = result.replace(float('NaN'), 0)
+        return metric[0] if not metric.empty else 0
+    except Exception as e:
+        logger.error(e)
+        return float('nan')
 
 def __extract_in_out_balance__(podname, future, timeout=config.SAMPLING_METRICS_TIMEOUT):
     return float('nan')
