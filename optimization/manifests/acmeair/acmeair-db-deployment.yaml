@@ -15,7 +15,7 @@ spec:
       containers:
         - name: acmeair-db
           image: mongo
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 27017
       restartPolicy: Always

@@ -42,6 +42,8 @@ data:
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
   SAMPLING_METRICS_TIMEOUT: '300'
+  WAITING_TIME: '300'
+  SAMPLE_SIZE: '0.3334'
   # classification config
   K: '1'
   DISTANCE_METHOD: "hellinger"
@@ -50,12 +52,12 @@ data:
   #SEARCH_SPACE_NAME: 'acmeair-searchspace'
   BAYESIAN: 'True'
   # n_startup_jobs: # of jobs doing random search at begining of optimization
-  N_STARTUP_JOBS: '10'
+  N_STARTUP_JOBS: '20'
   # n_EI_candidades: number of config samples draw before select the best. lower number encourages exploration
   N_EI_CANDIDATES: '24'
   # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
   GAMMA: '0.25'
-  NUMBER_ITERATIONS: '0'
+  NUMBER_ITERATIONS: '60'
   METRIC_THRESHOLD: '0.0'
   RANDOM_SEED: '31'
   ## the objective is always to minimize
@@ -63,12 +65,10 @@ data:
   ## AWS Cost, CPU: 0.0535/vCore Memory: 0.013375/GB --> (total_cost / CPU  + total_cost / GB) / 2
   ## M5 Instance https://aws.amazon.com/ec2/pricing/on-demand/
   OBJECTIVE: '-(throughput / ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))'
-  SAMPLE_SIZE: '0.3334'
-  WAITING_TIME: '300'
-  POD_REGEX: 'acmeair-.*servicesmarttuning-.+'
-  POD_PROD_REGEX: 'acmeair-.*service-.+'
+  THROUGHPUT_THRESHOLD: '10'
   QUANTILE: '1.0'
   NAMESPACE: 'default'
+  PROXY_IMAGE: 'smarttuning/proxy'
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -97,8 +97,8 @@ spec:
                       - docker-desktop
       containers:
         - name: smarttuning
-          image: smarttuning/smarttuning:latest
-          imagePullPolicy: Always
+          image: smarttuning
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
           envFrom:
