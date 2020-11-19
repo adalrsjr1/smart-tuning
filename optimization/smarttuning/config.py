@@ -121,14 +121,14 @@ _executor = None
 _client = None
 
 __coreV1Api = None
-def coreApi():
+def coreApi() -> kubernetes.client.CoreV1Api:
     global __coreV1Api
     if not __coreV1Api:
         __coreV1Api = kubernetes.client.CoreV1Api()
     return __coreV1Api
 
 __appsApi = None
-def appsApi():
+def appsApi() -> kubernetes.client.AppsV1Api:
     global __appsApi
     if not __appsApi:
         __appsApi = kubernetes.client.AppsV1Api()

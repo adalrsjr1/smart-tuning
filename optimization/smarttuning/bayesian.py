@@ -71,7 +71,7 @@ class BayesianDTO:
 class BayesianEngine:
     ## to make search-space dynamic
     ## https://github.com/hyperopt/hyperopt/blob/2814a9e047904f11d29a8d01e9f620a97c8a4e37/tutorial/Partial-sampling%20in%20hyperopt.ipynb
-    def __init__(self, name: str, space=None, is_bayesian=True, max_evals=int(1e15)):
+    def __init__(self, name: str, space=None, is_bayesian=True, max_evals=config.NUMBER_ITERATIONS):
         self._id = name
         self._running = False
         self._trials = Trials()
@@ -90,12 +90,27 @@ class BayesianEngine:
         # https://github.com/hyperopt/hyperopt/blob/abf6718951eecc1c43d591f59da321f2de5a8cbf/hyperopt/tests/test_fmin.py#L336
         logger.info(f'initializing bayesian engine={name}')
         np.random.seed(config.RANDOM_SEED)
-        self.objective_fn = partial(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate,
-                                    max_evals=max_evals,
-                                    verbose=False, show_progressbar=False,
-                                    rstate=np.random.RandomState(random.randint(0,1000)))
 
-        self.fmin = threading.Thread(name='bayesian-engine-' + name, target=self.objective_fn, daemon=True)
+        def objective_fn():
+            partial_fmin = partial(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate,
+                    max_evals=max_evals,
+                    verbose=False, show_progressbar=False,
+                    rstate=np.random.RandomState(random.randint(0, 1000)))
+
+            best = partial_fmin()
+            best.update({'is_best_config':True})
+
+            logger.info(f'found best config after {max_evals} iterations: {best}')
+            BayesianChannel.put_out(self.id(), best)
+
+
+        # self.objective_fn = partial(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate,
+        #                             max_evals=m
+        #                             ax_evals,
+        #                             verbose=False, show_progressbar=False,
+        #                             rstate=np.random.RandomState(random.randint(0,1000)))
+
+        self.fmin = threading.Thread(name='bayesian-engine-' + name, target=objective_fn, daemon=True)
         self.fmin.start()
         self._running = True
 

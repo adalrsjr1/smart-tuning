@@ -119,8 +119,28 @@ def create_context(production_microservice, training_microservice):
 
     last_config = {}
     last_class = None
-
+    first_iteration = True
     while production_name and training_name:
+        if first_iteration:
+            first_iteration = False
+            production_workload = sampler_production.workload()
+            production_metric = sampler_production.metric()
+            save(
+                timestamp=datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S"),
+                last_config=last_config,
+                production_metric=production_metric.serialize(),
+                config_to_eval={},
+                training_metric={},
+                production_workload=sampler.series_to_dict(production_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
+                # extract to dict
+                training_workload={},
+                # extract to dict
+                best_loss=0,
+                best_config=0,
+                update_production={},
+                tuned=False
+            )
+
         try:
             search_space_ctx: SearchSpaceContext = sample_config(production_name)
             if not search_space_ctx:
@@ -129,6 +149,40 @@ def create_context(production_microservice, training_microservice):
                 continue
 
             config_to_apply = update_training_config(training_microservice, search_space_ctx)
+
+            if ('is_best_config', True) in config_to_apply.items():
+                logger.info('applying best config')
+                best_config, best_loss = best_loss_so_far(search_space_ctx)
+                logger.info('deleting training pod ')
+                delete_deployment(training_microservice)
+                update_production(production_microservice, best_config, search_space_ctx)
+                logger.info('waiting for definitive measurements')
+                time.sleep(config.WAITING_TIME)
+
+                production_workload = sampler_production.workload()
+                production_metric = sampler_production.metric()
+
+                save(
+                    timestamp=datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S"),
+                    last_config=last_config,
+                    production_metric=production_metric.serialize(),
+                    config_to_eval={},
+                    training_metric={},
+                    production_workload=sampler.series_to_dict(
+                        production_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
+                    # extract to dict
+                    training_workload={},
+                    # extract to dict
+                    best_loss=best_loss,
+                    best_config=best_config,
+                    update_production=config_to_apply,
+                    tuned=False
+                )
+                logger.info(f'stoping tuning for microservice:{production_microservice}')
+                search_space_ctx.delete_bayesian_searchspace()
+                return
+
+
             fail_fast, production_metric, training_metric = wait(True, config.WAITING_TIME, production_sanitized, training_sanitized)
 
             if production_metric != Metric.zero() and training_metric != Metric.zero():
@@ -143,6 +197,9 @@ def create_context(production_microservice, training_microservice):
 
             training_result = training_workload.result(config.SAMPLING_METRICS_TIMEOUT)
             training_class, training_hits = classify_workload(training_metric, training_result)
+
+            if last_config != {}:
+                update_best_loss(search_space_ctx, production_metric.objective())
 
             if fail_fast:
                 logger.info('fail fast')
@@ -178,8 +235,8 @@ def create_context(production_microservice, training_microservice):
                 tuned = 'training_config'
             else:
                 old_best_config, old_best_loss = best_config, best_loss
-                update_best_loss(search_space_ctx, production_metric.objective())
-                best_config, best_loss = best_loss_so_far(search_space_ctx)
+                # update_best_loss(search_space_ctx, production_metric.objective())
+                # best_config, best_loss = best_loss_so_far(search_space_ctx)
 
                 if best_loss < production_metric.objective():
                     logger.info(
@@ -216,6 +273,8 @@ def create_context(production_microservice, training_microservice):
             logger.exception(f'error when handling microservice({production_microservice},{training_microservice})')
 
 
+
+
 def sample_config(microservice) -> SearchSpaceContext:
     logger.debug(f'lookup {microservice} in {searchspace.search_spaces.keys()}')
     return searchspace.search_spaces.get(f'{microservice}', None)
@@ -239,6 +298,9 @@ def do_patch(manifests, configuration, production=False):
             if key == manifest.name:
                 logger.info(f'patching new config={value} at {manifest.name}')
                 manifest.patch(value, production=production)
+
+def delete_deployment(name:str):
+    config.appsApi().delete_namespaced_deployment(name, config.NAMESPACE)
 
 
 classificationCtx = KmeansContext(config.K)
