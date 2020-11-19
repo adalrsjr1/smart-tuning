@@ -199,8 +199,21 @@ def inject_proxy_to_deployment(event):
     first_port: V1ContainerPort = first_container.ports[0]
     service_port = first_port.container_port
 
-    containers.append(
-        proxy_container(proxy_port=config.PROXY_PORT, metrics_port=config.METRICS_PORT, service_port=service_port, cpu=res_limits['cpu'], memory_mb=res_limits['memory']))
+    if res_limits:
+        containers.append(proxy_container(
+            proxy_port=config.PROXY_PORT,
+            metrics_port=config.METRICS_PORT,
+            service_port=service_port,
+            cpu=res_limits.get('cpu'),
+            memory_mb=res_limits.get('memory')
+        ))
+    else:
+        containers.append(proxy_container(
+            proxy_port=config.PROXY_PORT,
+            metrics_port=config.METRICS_PORT,
+            service_port=service_port,
+        ))
+
     patch_body = {
         "kind": deployment.kind,
         "apiVersion": deployment.api_version,
@@ -279,7 +292,7 @@ def container_dict_to_model(c: dict) -> V1Container:
                        )
 
 
-def proxy_container(proxy_port: int, metrics_port: int, service_port: int, cpu:int, memory_mb:int):
+def proxy_container(proxy_port: int, metrics_port: int, service_port: int, cpu:int=None, memory_mb:int=None):
     env_var = lambda name, path: {
         'name': name,
         'valueFrom': {
@@ -289,7 +302,19 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int, cpu:i
         }
     }
 
-    return {
+    resources = {}
+    if cpu or memory_mb:
+        resources = {
+            'resources': {
+                'limits': {}
+            }
+        }
+        if cpu:
+            resources['resources']['limits'].update({'cpu': cpu})
+        if memory_mb:
+            resources['resources']['limits'].update({'memory': memory_mb})
+
+    proxy = {
         'env': [
             {'name': 'PROXY_PORT', 'value': f'{proxy_port}'},
             {'name': 'METRICS_PORT', 'value': f'{metrics_port}'},
@@ -309,13 +334,12 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int, cpu:i
         'imagePullPolicy': 'IfNotPresent',
         'name': config.PROXY_NAME,
         'ports': [{'containerPort': proxy_port}, {'containerPort': metrics_port}],
-        'resources': {
-            'limits': {
-                'cpu': f'{cpu}',
-                'memory': f'{memory_mb}'
-            }
-        }
-    }
+
+    }.update(resources)
+    # if resources:
+    #     proxy.update(resources)
+
+    return proxy
 
 
 def duplicate_deployment_for_training(deployment: V1Deployment):
