@@ -335,9 +335,9 @@ def proxy_container(proxy_port: int, metrics_port: int, service_port: int, cpu:i
         'name': config.PROXY_NAME,
         'ports': [{'containerPort': proxy_port}, {'containerPort': metrics_port}],
 
-    }.update(resources)
-    # if resources:
-    #     proxy.update(resources)
+    }
+    if resources:
+        proxy.update(resources)
 
     return proxy
 
