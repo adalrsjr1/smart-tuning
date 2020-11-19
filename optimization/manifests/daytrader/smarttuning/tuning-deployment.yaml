@@ -57,7 +57,7 @@ data:
   N_EI_CANDIDATES: '24'
   # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
   GAMMA: '0.25'
-  NUMBER_ITERATIONS: '0'
+  NUMBER_ITERATIONS: '60'
   METRIC_THRESHOLD: '0.0'
   RANDOM_SEED: '31'
   ## the objective is always to minimize
@@ -99,8 +99,8 @@ spec:
                       - docker-desktop
       containers:
         - name: smarttuning
-          image: smarttuning/smarttuning:latest
-          imagePullPolicy: Always
+          image: smarttuning/smarttuning
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
           envFrom:
