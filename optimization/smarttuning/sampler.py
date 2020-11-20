@@ -315,7 +315,8 @@ class PrometheusSampler:
         """ return a concurrent.futures.Future<pandas.Series> with the CPU (milicores) rate over time of an specific pod
         """
         logger.debug(f'sampling cpu at {self.podname}-.* in {self.namespace}')
-        query = f'sum(rate(container_cpu_usage_seconds_total{{id=~".kubepods.*",namespace="{self.namespace}", container!="",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+        query = f'sum(rate(container_cpu_usage_seconds_total{{id=~".kubepods.*",namespace="{self.namespace}, pod=~"{self.podname}",name!~".*POD.*"}}[{self.interval}s]))'
+
         return self.__do_sample__(query)
 
     def workload(self) -> Future:
