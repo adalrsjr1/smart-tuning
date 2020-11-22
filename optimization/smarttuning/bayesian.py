@@ -98,6 +98,8 @@ class BayesianEngine:
                     rstate=np.random.RandomState(random.randint(0, 1000)))
 
             best = partial_fmin()
+            best = space_eval(space, best)
+            logger.print(f'final best config: {best}')
             best.update({'is_best_config':True})
 
             logger.info(f'found best config after {max_evals} iterations: {best}')
