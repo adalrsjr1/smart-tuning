@@ -118,6 +118,7 @@ def create_context(production_microservice, training_microservice):
     sampler_training = sampler.PrometheusSampler(training_sanitized, config.WAITING_TIME * config.SAMPLE_SIZE)
 
     last_config = {}
+    config_to_apply = {}
     last_class = None
     first_iteration = True
     while production_name and training_name:
@@ -135,10 +136,10 @@ def create_context(production_microservice, training_microservice):
                 # extract to dict
                 training_workload={},
                 # extract to dict
-                best_loss=0,
-                best_config=0,
-                update_production={},
-                tuned=False
+                best_loss=production_metric.objective(),
+                best_config=config_to_apply,
+                update_production=config_to_apply,
+                tuned=True
             )
 
         try:
@@ -151,7 +152,7 @@ def create_context(production_microservice, training_microservice):
             config_to_apply = update_training_config(training_microservice, search_space_ctx)
 
             if ('is_best_config', True) in config_to_apply.items():
-                logger.info('applying best config')
+                logger.info(f'applying best config {config_to_apply}')
                 best_config, best_loss = best_loss_so_far(search_space_ctx)
                 logger.info('deleting training pod ')
                 delete_deployment(training_microservice)
@@ -173,10 +174,10 @@ def create_context(production_microservice, training_microservice):
                     # extract to dict
                     training_workload={},
                     # extract to dict
-                    best_loss=best_loss,
-                    best_config=best_config,
+                    best_loss=production_metric.objective(),
+                    best_config=config_to_apply,
                     update_production=config_to_apply,
-                    tuned=False
+                    tuned=True
                 )
                 logger.info(f'stoping tuning for microservice:{production_microservice}')
                 search_space_ctx.delete_bayesian_searchspace()
@@ -298,6 +299,7 @@ def do_patch(manifests, configuration, production=False):
             if key == manifest.name:
                 logger.info(f'patching new config={value} at {manifest.name}')
                 manifest.patch(value, production=production)
+                time.sleep(1)
 
 def delete_deployment(name:str):
     config.appsApi().delete_namespaced_deployment(name, config.NAMESPACE)
@@ -354,17 +356,18 @@ def wait(failfast=True, sleeptime=config.WAITING_TIME, production_pod_name='', t
 
         # objective is always negative
         # training < 50% production
-        if training_metric.throughput() <= config.THROUGHPUT_THRESHOLD or production_metric.objective()/2 < training_metric.objective():
-            # training fail fast
-            logger.info(f'[T] fail fast -- prod:{production_metric.objective()} < train:{training_metric.objective()}')
-            return True, production_metric, training_metric
-        elif production_metric.throughput() <= config.THROUGHPUT_THRESHOLD:
-            # production fail fast
-            logger.info(f'[P] fail fast -- prod:{production_metric.objective()} >= train:{training_metric.objective()}')
-            return False, production_metric, training_metric
-        else:
-            logger.info(f'waiting more {sleeptime * config.SAMPLE_SIZE}s -- prod:{production_metric.objective()} >= train:{training_metric.objective()}')
-            counter += 1
+        if counter > 1:
+            if training_metric.throughput() <= config.THROUGHPUT_THRESHOLD or production_metric.objective()/2 < training_metric.objective():
+                # training fail fast
+                logger.info(f'[T] fail fast -- prod:{production_metric.objective()} < train:{training_metric.objective()}')
+                return True, production_metric, training_metric
+            elif production_metric.throughput() <= config.THROUGHPUT_THRESHOLD or training_metric.objective()/2 < production_metric.objective():
+                # production fail fast
+                logger.info(f'[P] fail fast -- prod:{production_metric.objective()} >= train:{training_metric.objective()}')
+                return False, production_metric, training_metric
+            else:
+                logger.info(f'waiting more {sleeptime * config.SAMPLE_SIZE}s -- prod:{production_metric.objective()} >= train:{training_metric.objective()}')
+        counter += 1
     # time.sleep(sleeptime)
 
     return False, production_metric, training_metric
