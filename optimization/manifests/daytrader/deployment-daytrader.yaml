@@ -31,8 +31,8 @@ spec:
 #                command: [ "/bin/bash", "-c", "mkdir -p /home/daytrader && touch /home/daytrader/verbosegc.$(date +'%Y%m%d.%H%M%S').$HOSTNAME"]
           resources:
             limits:
-              cpu: "4"
-              memory: "4096Mi"
+              cpu: "8"
+              memory: "512Mi"
           ports:
             - containerPort: 9080
           env:
@@ -72,32 +72,32 @@ spec:
             - name: TRACE_HUNG_REQUEST_THRESHOLD
               value: "2s"
           # avoid to send requests if it already restarted
-#          readinessProbe:
-#            exec:
-#              command:
-#                - bash
-#                - -c
-#                - /opt/readness_probe.sh
-#            initialDelaySeconds: 30
-#            failureThreshold: 1
-#            periodSeconds: 5
-#          startupProbe:
-#            httpGet:
-#              port: 9080
-#              path: /daytrader
-#            initialDelaySeconds: 30
-#            periodSeconds: 5
-#            # force restart
-#          livenessProbe:
-#            exec:
-#              # /opt/liveness_probe.sh <interval> <rqps threshold>
-#              command:
-#                - bash
-#                - -c
-#                - /opt/liveness_probe.sh 100 10
-#            initialDelaySeconds: 100
-#            failureThreshold: 1
-#            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - /opt/readness_probe.sh
+            initialDelaySeconds: 30
+            failureThreshold: 1
+            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              port: 9080
+              path: /daytrader
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            # force restart
+          livenessProbe:
+            exec:
+              # /opt/liveness_probe.sh <interval> <rqps threshold>
+              command:
+                - bash
+                - -c
+                - /opt/liveness_probe.sh 100 10
+            initialDelaySeconds: 100
+            failureThreshold: 1
+            periodSeconds: 10
           envFrom:
             - configMapRef:
                 name: daytrader-config-app
