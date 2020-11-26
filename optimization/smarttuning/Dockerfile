@@ -9,6 +9,7 @@ RUN pip wheel --no-cache-dir --wheel-dir=/root/wheels -r requirements.txt
 FROM python:3.8-alpine
 ENV PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING=UTF-8 \
+    PYTHONHASHSEED=31 \
     PATH=$PATH:/root/.local/bin
 
 RUN apk --no-cache --update-cache add openblas libstdc++
@@ -31,10 +32,11 @@ ENTRYPOINT ["python", "./app.py"]
 #
 #
 #
-## image-name smarttuning
+# image-name smarttuning
 #FROM python:3.8-slim-buster
 #ENV PYTHONUNBUFFERED=1 \
-#    PYTHONIOENCODING=UTF-8
+#    PYTHONIOENCODING=UTF-8 \
+#    PYTHONHASHSEED=31
 #RUN apt-get update && apt-get install -y --no-install-recommends curl build-essential && rm -rf /var/lib/apt/lists/*
 #
 #WORKDIR /usr/src/app

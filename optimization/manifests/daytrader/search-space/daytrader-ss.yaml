@@ -21,17 +21,17 @@ data:
           type: "integer"
           values:
 #            - "2"
-#            - "4"
-#            - "8"
+            - "4"
+            - "8"
             - "16"
         - name: "memory"
           type: "integer"
           values:
 #            - "512"
             - "1024"
-#            - "2048"
-#            - "4096"
-#            - "8192"
+            - "2048"
+            - "4096"
+            - "8192"
   - name: daytrader-config-app
       # https://www.ibm.com/support/pages/tuning-connection-pool-properties-websphere-application-server
     # https://openliberty.io/docs/20.0.0.9/reference/config/connectionManager.html

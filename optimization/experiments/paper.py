@@ -561,7 +561,7 @@ def plot_box(table:pd.DataFrame, title:str):
     # transform errors to %
     table['production_metric.errors'] *= 100
     table['training_metric.errors'] *= 100
-    table['tuned'] = table['tuned'].apply(lambda row: 0 if row == 'false' or row == False else 1)
+    # table['tuned'] = table['tuned'].apply(lambda row: 0 if row == 'false' or row == False else 1)
 
     # daytrader parameters
     columns = [
@@ -608,8 +608,45 @@ def plot_box(table:pd.DataFrame, title:str):
     table['config'] = hashes
     table['configs'] = new_colors
 
+    columns = [
+        'config_to_eval.daytrader-config-app.CONMGR1_AGED_TIMEOUT',
+        'config_to_eval.daytrader-config-app.CONMGR1_MAX_IDLE_TIMEOUT',
+        'config_to_eval.daytrader-config-app.CONMGR1_MAX_POOL_SIZE',
+        'config_to_eval.daytrader-config-app.CONMGR1_MIN_POOL_SIZE',
+        'config_to_eval.daytrader-config-app.CONMGR1_REAP_TIME',
+        'config_to_eval.daytrader-config-app.CONMGR1_TIMEOUT',
+        'config_to_eval.daytrader-config-app.HTTP_MAX_KEEP_ALIVE_REQUESTS',
+        'config_to_eval.daytrader-config-app.HTTP_PERSIST_TIMEOUT',
+        'config_to_eval.daytrader-config-app.MAX_THREADS',
+        'config_to_eval.daytrader-service.cpu',
+        'config_to_eval.daytrader-service.memory',
+    ]
+    nrows = len(table.index)
+    new_colors = []
+    hashes = []
+    memoization = {}
+
+    # maps each list of parameters tuned to a hash associate to each hash a unique color
+    for index, row in table.iterrows():
+        unique = hashlib.md5(bytes(str(tuple(row[columns].values)), 'ascii')).hexdigest()
+
+        if not unique in memoization:
+            memoization[unique] = index / nrows
+            memoization[unique] = abs(hash(unique)) / sys.maxsize
+
+        if unique in memoization:
+            new_colors.append(memoization[unique])
+
+        # unique = hash(tuple(row[columns].values))
+        # print(unique)
+        hashes.append(unique)
+
+    # add hashes and colors to table
+    table['tconfig'] = hashes
+    table['tconfigs'] = new_colors
+
     # expands short table with NaN values
-    reduced_table = table[['training_metric.objective','production_metric.objective', 'config', 'configs']].reset_index()
+    reduced_table = table[['training_metric.objective','production_metric.objective', 'config', 'configs', 'tconfig', 'tconfigs']].reset_index()
     reduced_table['max'] = [float('nan') for _  in table.index]
     reduced_table['min'] = [float('nan') for _ in table.index]
     reduced_table['mean'] = [float('nan') for _ in table.index]
@@ -655,17 +692,20 @@ def plot_box(table:pd.DataFrame, title:str):
     cmap = matplotlib.cm.get_cmap(colormap)
     k = 3
     count =1
-    for x, yp, yt, c, _min, _max, mean in zip(
+    top = max(reduced_table['max']) + 18
+    for x, yp, yt, c, tc, _min, _max, mean in zip(
             reduced_table['iterations'],
             reduced_table['production_metric.objective'],
             reduced_table['training_metric.objective'],
             reduced_table['config'],
+            reduced_table['tconfig'],
             reduced_table['min'],
             reduced_table['max'],
             reduced_table['mean']):
-        ax.text(x, 0+2.5*((-1)**count), c[:3], {'ha': 'center', 'va': 'bottom'}, rotation=0, fontsize='smaller')
+        ax.text(x, -20+2.5*((-1)**count), c[:3], {'ha': 'center', 'va': 'bottom'}, rotation=0, fontsize='smaller', color='red')
+        ax.text(x, top-2.5*((-1)**count), tc[:3], {'ha': 'center', 'va': 'top'}, rotation=0, fontsize='smaller', color='blue')
         ax.axvspan(x-0.5, x+0.5, facecolor=cmap(memoization[c]), alpha=0.5)
-        # plot_training([x, _min], [x, _max], [x, yt], ax, color='blue', linestyle='--', linewidth=0.7)
+        plot_training([x, _min], [x, _max], [x, yt], ax, color='blue', linestyle='--', linewidth=0.7)
         newline([x, _min], [x, _max], ax, color='black', linestyle='-', linewidth=0.7)
 
         count += 1
@@ -673,8 +713,10 @@ def plot_box(table:pd.DataFrame, title:str):
 
     # add divisions at every tuning applied
     for it, istuned in enumerate(table['tuned']):
-        if istuned:
-            newline_yspan([it + 1, 0], [it + 1, 10], ax)
+        print(it, table.iloc[it]['config'])
+        if istuned != 'false':
+            if it+1 < len(table) and table.iloc[it]['config'] != table.iloc[it+1]['config']:
+                newline_yspan([it + 1, 0], [it + 1, 10], ax)
             
     # customize x-ticks
     ax.xaxis.set_ticks([])
@@ -696,22 +738,30 @@ def plot_box(table:pd.DataFrame, title:str):
         mlines.Line2D([], [], color='black', marker='o', linestyle='-'))
     handles.append(
         mlines.Line2D([], [], color='red', marker='*', linestyle='None'))
-    # handles.append(
-    #     mlines.Line2D([], [], color='blue', marker='x', linestyle='None'))
+    handles.append(
+        mlines.Line2D([], [], color='blue', marker='x', linestyle='None'))
     handles.append(
         mlines.Line2D([], [], color='black', marker='_', linestyle='None'))
+
     handles.append(matplotlib.patches.Patch(facecolor=cmap(memoization[c]), edgecolor='k', alpha=0.7,
                                                                  label='config. color'))
+
+    # handles.append(
+    #     mlines.Line2D([], [], color='black', marker='|', linestyle='None'))
 
     ax.legend(handles, [
         'prod. avg. at config. \'abc\'',
         'prod. value at n-th iteration',
-        # 'train. value at n-th iteration',
+        'train. value at n-th iteration',
         'max-min',
-        'config. \'abc\' color'
-    ], loc='upper right')
+        'config. \'abc\' color',
+        # 'train. > prod.'
+    ],frameon=True, bbox_to_anchor=(1, 1.08), loc='center',fontsize='small')
     ax.set_title(title, loc='left')
     ax.set_ylabel('requests/$')
+
+    plt.text(0.1, 0.86, 'train.\nconfig.', fontsize='smaller', transform=plt.gcf().transFigure)
+    plt.text(0.1, 0.11, 'prod.\nconfig.', fontsize='smaller', transform=plt.gcf().transFigure)
     plt.show()
 
 if __name__ == '__main__':
@@ -731,8 +781,9 @@ if __name__ == '__main__':
     # df = load_data('./resources/logging-trxrhel-202011201540.csv')
     # df = load_data('./resources/logging-trxrhel-202011210032.csv')
 
-    df = load_data('./resources/logging-trxrhel-202011221630.csv')
+    # df = load_data('./resources/logging-trxrhel-202011221630.csv')
     # df = load_data('./resources/logging-trxrhel-202011241500.csv')
+    df = load_data('./resources/logging-trxrhel-202011261015.csv')
 
     # df = load_data('./resources/logging-trinity-202011191237.csv')
     title = 'DayTrader'

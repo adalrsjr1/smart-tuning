@@ -1,29 +1,28 @@
 from __future__ import annotations
 from concurrent.futures import Future
-import config
 import logging
 import pandas as pd
 import re
-import networkx as nx
 from numbers import Number
 from collections import defaultdict
 import math
+import time
+import traceback
 from prometheus_pandas import query as handler
 
-logger = logging.getLogger(config.SAMPLER_LOGGER)
-logger.setLevel(logging.DEBUG)
 
-
-def __extract_value_from_future__(future, timeout=config.SAMPLING_METRICS_TIMEOUT):
+def __extract_value_from_future__(future, timeout):
     try:
         result = future.result(timeout=timeout)
+        if isinstance(result, pd.DataFrame):
+            return result.fillna(0)
         metric = result.replace(float('NaN'), 0)
         return metric[0] if not metric.empty else 0
     except Exception as e:
-        logger.error(e)
+        traceback.print_exc()
         return float('nan')
 
-def __extract_in_out_balance__(podname, future, timeout=config.SAMPLING_METRICS_TIMEOUT):
+def __extract_in_out_balance__(podname, future, timeout):
     return float('nan')
     try:
         df = series_to_dataframe(future.result(timeout=timeout))
@@ -113,7 +112,7 @@ class Metric:
     def __init__(self, name='', f_cpu: Future = None, cpu: Number = None, f_memory: Future = None,
                  memory: Number = None, f_throughput: Future = None, throughput: Number = None,
                  f_process_time: Future = None, process_time: Number = None, f_errors: Future = None,
-                 errors: Number = None, f_in_out=None, to_eval=config.OBJECTIVE, in_out=None):
+                 errors: Number = None, f_in_out=None, to_eval=None, in_out=None, timeout=10):
         self.name = name
         self._f_cpu = f_cpu
         self._cpu = cpu
@@ -128,6 +127,7 @@ class Metric:
         self._f_in_out = f_in_out
         self._in_out = in_out
         self.to_eval = to_eval
+        self.timeout = timeout
 
     _instance = None
 
@@ -137,46 +137,44 @@ class Metric:
             Metric._instance = Metric(name='', cpu=0, memory=0, throughput=0, process_time=0, errors=0, to_eval='0')
         return Metric._instance
 
-    def cpu(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+    def cpu(self):
         if self._cpu is None:
-            self._cpu = __extract_value_from_future__(self._f_cpu, timeout)
+            self._cpu = __extract_value_from_future__(self._f_cpu, self.timeout)
         return self._cpu
 
-    def memory(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+    def memory(self):
         if self._memory is None:
-            self._memory = __extract_value_from_future__(self._f_memory, timeout)
+            self._memory = __extract_value_from_future__(self._f_memory, self.timeout)
         return self._memory
 
-    def throughput(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+    def throughput(self):
         if self._throughput is None:
-            self._throughput = __extract_value_from_future__(self._f_throughput, timeout)
+            self._throughput = __extract_value_from_future__(self._f_throughput, self.timeout)
         return self._throughput
 
-    def process_time(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+    def process_time(self):
         if self._process_time is None:
-            self._process_time = __extract_value_from_future__(self._f_process_time, timeout)
+            self._process_time = __extract_value_from_future__(self._f_process_time, self.timeout)
         return self._process_time
 
-    def errors(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+    def errors(self):
         if self._errors is None:
-            self._errors = __extract_value_from_future__(self._f_errors, timeout)
+            self._errors = __extract_value_from_future__(self._f_errors, self.timeout)
         return self._errors
 
-    def in_out(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+    def in_out(self):
         if self._in_out is None:
-            self._in_out = __extract_in_out_balance__(self.name, self._f_in_out, timeout)
+            self._in_out = __extract_in_out_balance__(self.name, self._f_in_out, self.timeout)
         return self._in_out
 
     def __operation__(self, other, op):
         if isinstance(other, Metric):
-            logger.debug("op(Metric, Metric)")
             return Metric(name=f'{self.name}_{other.name}', cpu=op(self.cpu(), other.cpu()), memory=op(self.memory(), other.memory()),
                           throughput=op(self.throughput(), other.throughput()),
                           process_time=op(self.process_time(), other.process_time()),
                           errors=op(self.errors(), other.errors()), in_out=op(self.in_out(), other.in_out()))
 
         if isinstance(other, Number):
-            logger.debug("op(Metric, Scalar)")
             return Metric(name=f'{self.name}_{other}', cpu=op(self.cpu(), other), memory=op(self.memory(), other),
                           throughput=op(self.throughput(), other), process_time=op(self.process_time(), other),
                           errors=op(self.errors(), other), in_out=op(self.in_out(), other))
@@ -252,18 +250,18 @@ class Metric:
     def objective(self) -> float:
         try:
             result = eval(self.to_eval, globals(), self.to_dict()) if self.to_eval else float('inf')
+            if isinstance(result, pd.DataFrame):
+                return result.fillna(float('inf'))
             if math.isnan(result):
-                logger.warning(f'objective at {self.name} is NaN -> INF')
                 return float('inf')
             return result
         except ZeroDivisionError:
-            logger.exception('error metric.objective division by 0')
             return float('inf')
 
 
 class PrometheusSampler:
-    def __init__(self, podname: str, interval: int, namespace:str = config.NAMESPACE, executor=config.executor(), addr=config.PROMETHEUS_ADDR,
-                 port=config.PROMETHEUS_PORT, api_url=''):
+    def __init__(self, podname: str, interval: int, objective:str, timeout:int, namespace:str, executor, addr,
+                 port, api_url='', query_range:bool=False, start:int=0, end:int=0,):
         if not api_url:
             api_url = f'http://{addr}:{port}'
 
@@ -272,30 +270,34 @@ class PrometheusSampler:
         self.podname = podname
         self.interval = int(interval)
         self.namespace = namespace
+        self.objective = objective
+        self.timeout = timeout
+
+        self.query_range = query_range
+        self.start = start
+        self.end = end,
 
     def __do_sample__(self, query: str) -> Future:
-        logger.debug(f'sampling:{query}')
+        if self.query_range:
+            return self.executor.submit(self.client.query_range, query, self.start, self.end, str(self.interval)+'s')
         return self.executor.submit(self.client.query, query)
 
-    def metric(self, quantile=1.0) -> Metric:
-        return Metric(name=self.podname, f_cpu=self.cpu(quantile), f_memory=self.memory(quantile), f_throughput=self.throughput(quantile),
-                      f_process_time=self.process_time(quantile), f_in_out=self.in_out(quantile), f_errors=self.error(quantile))
+    def metric(self, to_eval='', quantile=1.0) -> Metric:
+        return Metric(name=self.podname, timeout=self.timeout, f_cpu=self.cpu(quantile), f_memory=self.memory(quantile), f_throughput=self.throughput(quantile),
+                      f_process_time=self.process_time(quantile), f_in_out=self.in_out(quantile), f_errors=self.error(quantile), to_eval=self.objective)
 
     def throughput(self, quantile=1.0) -> Future:
         """ return future<pd.Series>"""
-        logger.debug(f'sampling throughput at {self.podname}-.* in namespace {self.namespace}')
         query = f'sum(rate(smarttuning_http_requests_total{{code=~"[2|3]..",namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def error(self, quantile=1.0) -> Future:
-        logger.debug(f'sampling errors rate at {self.podname}-.* in {self.namespace}')
         query = f'sum(rate(smarttuning_http_requests_total{{code=~"[4|5]..",namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s])) /' \
                 f'sum(rate(smarttuning_http_requests_total{{namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
         return self.__do_sample__(query)
 
     def process_time(self, quantile=1.0) -> Future:
         """ return a concurrent.futures.Future<pandas.Series> with the processtime_sum/processtime_count rate of an specific pod"""
-        logger.debug(f'sampling process time at {self.podname}.* in {self.namespace}')
         query = f'sum(rate(smarttuning_http_processtime_seconds_sum{{namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s])) / ' \
                 f'sum(rate(smarttuning_http_processtime_seconds_count{{namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
@@ -306,7 +308,6 @@ class PrometheusSampler:
             :param quantile a value 0.0 - 1.0
         """
         # The better metric is container_memory_working_set_bytes as this is what the OOM killer is watching for.
-        logger.debug(f'sampling memory at {self.podname}.* in {self.namespace}')
         query = f'sum(max_over_time(container_memory_working_set_bytes{{id=~".kubepods.*",namespace="{self.namespace}", container!="",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
@@ -314,7 +315,6 @@ class PrometheusSampler:
     def cpu(self, quantile=1.0) -> Future:
         """ return a concurrent.futures.Future<pandas.Series> with the CPU (milicores) rate over time of an specific pod
         """
-        logger.debug(f'sampling cpu at {self.podname}-.* in {self.namespace}')
         query = f'sum(rate(container_cpu_usage_seconds_total{{id=~".kubepods.*",namespace="{self.namespace}", pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
@@ -332,7 +332,6 @@ class PrometheusSampler:
         are grouped into /my/url/using/path-parameter/uid153@email.com
 
         """
-        logger.debug(f'sampling urls at {self.podname}-.* in {self.namespace}')
 
         query = f'sum by (path)(rate(smarttuning_http_requests_total{{namespace="{self.namespace}", pod=~"{self.podname}-.*"}}[{self.interval}s]))' \
                 f' / ignoring ' \
@@ -341,28 +340,43 @@ class PrometheusSampler:
         return self.__do_sample__(query)
 
     def in_out(self, quantile=1.0) -> Future:
-        logger.debug(f'sampling in_out R at {self.podname}-.* in {self.namespace}')
-        is_training = config.PROXY_TAG in self.podname
-        if is_training:
+        # is_training = config.PROXY_TAG in self.podname
+        # if is_training:
+        if False:
             query = f'sum(rate(in_http_requests_total{{namespace="{self.namespace}", pod=~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
                     f'sum(rate(out_http_requests_total{{namespace="{self.namespace}", pod=~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
         else:
-            query = f'sum(rate(in_http_requests_total{{namespace="{self.namespace}", pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
-                    f'sum(rate(out_http_requests_total{{namespace="{self.namespace}", pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
+            query = f'sum(rate(in_http_requests_total{{namespace="{self.namespace}", pod!~".*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
+                    f'sum(rate(out_http_requests_total{{namespace="{self.namespace}", pod!~".*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
 
         return self.__do_sample__(query)
 
 
 
 if __name__ == '__main__':
-    s = PrometheusSampler('acmeair-nginxservicesmarttuning', config.WAITING_TIME * config.SAMPLE_SIZE)
-    # s = PrometheusSampler("acmeair-flightservicesmarttuning.*", config.WAITING_TIME * config.SAMPLE_SIZE)
+
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import datetime
+    s = PrometheusSampler(
+        podname='daytrader-service',
+        interval=1200*0.3334,
+        objective='-(throughput / ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))',
+        namespace='default',
+        executor=ThreadPoolExecutor(),
+        addr='trxrhel7perf-1.canlab.ibm.com',
+        port='30099',
+        timeout=3600,
+        query_range=True,
+        start=datetime.fromisoformat('2020-11-26 16:08:00').timestamp(),
+        end=datetime.now().timestamp()
+    )
+    1606401100000
     timeout = 10
-    # print(s.cpu().result(timeout=timeout))
-    # print(s.memory().result(timeout=timeout))
-    # print(s.throughput().result(timeout=timeout))
-    # print(s.process_time().result(timeout=timeout))
-    # print(s.error().result(timeout=timeout))
+    # print(s.cpu().result())
+    # print(s.memory().result())
+    # print(s.throughput().result())
+    # print(s.process_time().result())
+    # print(s.error().result())
     # print(s.workload().result(timeout=timeout))
     # print(s.in_out().result(timeout=timeout))
     print(s.metric().objective())
