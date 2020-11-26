@@ -139,7 +139,7 @@ def create_context(production_microservice, training_microservice):
                 best_loss=production_metric.objective(),
                 best_config=config_to_apply,
                 update_production=config_to_apply,
-                tuned=True
+                tuned=False
             )
 
         try:
@@ -250,9 +250,12 @@ def create_context(production_microservice, training_microservice):
                     update_production(production_microservice, best_config, search_space_ctx)
                     updated_config = best_config
 
-                    tuned = 'previous_config'
+                    if updated_config != last_config:
+                        tuned = 'previous_config'
+                    else:
+                        tuned = False
                 else:
-                    tuned = 'false'
+                    tuned = False
 
             save(
                 timestamp=datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S"),
