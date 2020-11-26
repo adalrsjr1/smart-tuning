@@ -2,6 +2,7 @@ import logging
 import threading
 import time
 from functools import partial
+from collections import Counter
 from queue import Queue
 
 import numpy as np
@@ -77,6 +78,7 @@ class BayesianEngine:
         self._trials = Trials()
         self._space = space
         self.stoped = False
+        self.counter = Counter()
 
         surrogate = rand.suggest
         if is_bayesian:
@@ -187,14 +189,36 @@ class BayesianEngine:
         best = self.trials().argmin
         return space_eval(self._space, best), loss
 
-    def update_best_trial(self, value:float):
-        best_idx = list(self.trials().best_trial['misc']['idxs'].values())[0][0]
-        for i, trial in enumerate(self.trials()):
-            if i == best_idx:
-                trial['result']['loss'] = value
-                logger.info(f'updating best config loss to {value}')
-                break
-        self.trials().refresh()
+    def update_best_trial(self, value:float) -> float:
+        try:
+            # best_idx = list(self.trials().best_trial['misc']['idxs'].values())[0][0]
+            # get best trial id
+            best_idx = self.trials().best_trial['tid']
+
+            # update the current config with the average of the all values
+            self.counter[best_idx] += 1
+            curr_trial = self.trials().trials[best_idx]
+            curr = curr_trial['result']['loss']
+            curr = curr + (value - curr) / self.counter[best_idx]
+            curr_trial['result']['loss'] = curr
+            #
+            # for i, trial in enumerate(self.trials()):
+            #     if i == best_idx:
+            #         curr = trial['result']['loss']
+            #
+            #         curr = curr + (value - curr)/self.counter['tid']
+            #
+            #         trial['result']['loss'] = curr
+            #
+            #         logger.info(f'updating best config loss to {value}')
+            #         break
+
+            # udpates database
+            self.trials().refresh()
+            return curr
+        except:
+            logger.exception('cannot update trials value')
+            exit(1)
 
     def sample(self, metric):
         parameters = BayesianChannel.get_out(self.id())
