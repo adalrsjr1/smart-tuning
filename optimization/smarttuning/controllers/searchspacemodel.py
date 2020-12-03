@@ -6,6 +6,7 @@ import hyperopt.hp
 import hyperopt.pyll.stochastic
 import kubernetes as k8s
 from kubernetes.client.models import *
+from kubernetes.utils import quantity
 from hyperopt.pyll.base import scope
 from distutils.util import strtobool
 import config
@@ -86,6 +87,30 @@ class DeploymentSearchSpaceModel:
         logger.info(f'search space: {model}')
         return model
 
+    def get_current_config(self):
+        api_instance = config.appsApi()
+        deployment: V1Deployment = api_instance.read_namespaced_deployment(name=self.name, namespace=self.namespace)
+
+        containers = deployment.spec.template.spec.containers
+        config_limits = {'cpu': 0, 'memory': 0}
+        container: V1Container
+        for container in containers:
+            resources: V1ResourceRequirements = container.resources
+
+            if not resources:
+                resources = V1ResourceRequirements(limits={}, requests={})
+
+            limits = resources.limits
+            if not limits:
+                limits = {}
+
+            config_limits['cpu'] += float(quantity.parse_quantity(limits.get('cpu',0)))
+            config_limits['memory'] += float(quantity.parse_quantity(limits.get('memory', 0))) / (2**20)
+
+        return config_limits
+
+
+
     def patch(self, new_config: dict, production=False):
         api_instance = config.appsApi()
         name = self.name if production else self.name + config.PROXY_TAG
@@ -131,7 +156,7 @@ class DeploymentSearchSpaceModel:
             body['spec'].update({'replicas': new_config['replicas']})
 
 
-        return api_instance.patch_namespaced_deployment(name, namespace, body, pretty='true')
+        return api_instance.patch_namespaced_deployment(name, namespace, body, pretty='false')
 
 def update_n_replicas(deployment_name, namespace, curr_n_replicas):
     if curr_n_replicas > 1:
@@ -176,6 +201,11 @@ class ConfigMapSearhSpaceModel:
 
         return model
 
+    def get_current_config(self):
+        coreApi = config.coreApi()
+        configMap: V1ConfigMap = coreApi.read_namespaced_config_map(name=self.name, namespace=self.namespace)
+        return configMap.data
+
     def patch(self, new_config: dict, production=False):
         if self.filename == 'jvm.options':
             return self.patch_jvm(new_config, production)
@@ -205,7 +235,7 @@ class ConfigMapSearhSpaceModel:
             "data": data
         }
 
-        return config.coreApi().patch_namespaced_config_map(name, namespace, body, pretty='true')
+        return config.coreApi().patch_namespaced_config_map(name, namespace, body, pretty='false')
 
     def patch_jvm(self, new_config, production=False):
         name = self.name if production else self.name + config.PROXY_TAG
@@ -221,7 +251,7 @@ class ConfigMapSearhSpaceModel:
             "data": {filename: '\n'.join(params)}
         }
 
-        return config.coreApi().patch_namespaced_config_map(name, namespace, body, pretty='true')
+        return config.coreApi().patch_namespaced_config_map(name, namespace, body, pretty='false')
 
 
 class NumberRangeModel:

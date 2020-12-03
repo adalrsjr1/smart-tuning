@@ -70,6 +70,16 @@ class SearchSpaceContext:
         elif 'DELETED' == t:
             self.delete_bayesian_searchspace(is_bayesian=config.BAYESIAN)
 
+    def get_current_config(self):
+        logger.info('getting current config')
+        current_config = {}
+        for manifest in self.model.manifests:
+            name = manifest.name
+            current_manifest_config = manifest.get_current_config()
+            logger.debug(f'getting manifest {name}:{current_manifest_config}')
+            current_config[name] = current_manifest_config
+        return current_config
+
     def create_bayesian_searchspace(self, is_bayesian):
         search_space = self.model.search_space()
         self.engine = BayesianEngine(name=self.name, space=search_space, is_bayesian=is_bayesian)
@@ -97,3 +107,11 @@ class SearchSpaceContext:
     def update_best_loss(self, new_loss:float):
         if self.engine:
             self.engine.update_best_trial(new_loss)
+
+    def get_trials(self):
+        if self.engine:
+            return self.engine.trials()
+        return []
+
+    def get_trials_as_documents(self):
+        return self.engine.trials_as_documents()

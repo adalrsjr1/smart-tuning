@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1604627626336,
+  "iteration": 1606835588361,
   "links": [],
   "panels": [
     {
@@ -497,7 +497,7 @@
           "refId": "D"
         },
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod)",
+          "expr": "sum(rate(smarttuning_http_requests_total{id=~\".kubepods.*\",code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod)",
           "interval": "",
           "legendFormat": "",
           "refId": "E"
@@ -592,19 +592,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / ((0.0535*sum(rate(container_cpu_usage_seconds_total{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2)",
           "interval": "",
           "legendFormat": "PROD $prod_podname",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) / ((0.0535*sum(rate(container_cpu_usage_seconds_total{container!=\"\",id=~\".kubepods.*\",pod=~\"$train_podname-.*\",name!~\".*POD.*\"}[$time_interval_m]))+0.013375*sum( max_over_time(container_memory_working_set_bytes{id=~\".kubepods.*\",pod=~\"$train_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) / 2^20)/2)",
           "interval": "",
           "legendFormat": "TRAIN $train_podname",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod) / (0.0535*sum(rate(container_cpu_usage_seconds_total{pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod)+0.013375*sum( max_over_time(container_memory_working_set_bytes{pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) by (pod) / 2^20)/2",
+          "expr": "sum(rate(smarttuning_http_requests_total{code=~\"[2|3]..\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod) / ((0.0535*sum(rate(container_cpu_usage_seconds_total{container!=\"\",id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\"}[$time_interval_m])) by (pod)+0.013375*sum( max_over_time(container_memory_working_set_bytes{id=~\".kubepods.*\",pod=~\"$prod_podname-.*\",name!~\".*POD.*\", container!=\"\"}[$time_interval_m])) by (pod) / 2^20)/2)",
           "interval": "",
           "legendFormat": "",
           "refId": "C"
@@ -1261,9 +1261,10 @@
       {
         "allValue": null,
         "current": {
+          "isNone": true,
           "selected": false,
-          "text": "daytrader-servicesmarttuning",
-          "value": "daytrader-servicesmarttuning"
+          "text": "None",
+          "value": ""
         },
         "datasource": "prometheus",
         "definition": "container_cpu_usage_seconds_total",
@@ -1287,7 +1288,7 @@
     ]
   },
   "time": {
-    "from": "2020-11-06T03:03:15.000Z",
+    "from": "2020-12-01T15:17:59.000Z",
     "to": "now"
   },
   "timepicker": {
@@ -1308,5 +1309,5 @@
   "timezone": "",
   "title": "smarttuning",
   "uid": "8RkJTIzGz",
-  "version": 1
+  "version": 2
 }

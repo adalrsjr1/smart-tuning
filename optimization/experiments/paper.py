@@ -591,8 +591,8 @@ def plot_box(table:pd.DataFrame, title:str):
 
     # maps each list of parameters tuned to a hash associate to each hash a unique color
     for index, row in table.iterrows():
-        unique = hashlib.md5(bytes(str(tuple(row[columns].values)), 'ascii')).hexdigest()
-
+        unique = hashlib.md5(bytes(str(tuple([float(item) for item in row[columns].values])), 'ascii')).hexdigest()
+        print(unique, row[columns].values)
         if not unique in memoization:
             memoization[unique] = index / nrows
             memoization[unique] = abs(hash(unique)) / sys.maxsize
@@ -607,7 +607,6 @@ def plot_box(table:pd.DataFrame, title:str):
     # add hashes and colors to table
     table['config'] = hashes
     table['configs'] = new_colors
-
     columns = [
         'config_to_eval.daytrader-config-app.CONMGR1_AGED_TIMEOUT',
         'config_to_eval.daytrader-config-app.CONMGR1_MAX_IDLE_TIMEOUT',
@@ -624,11 +623,12 @@ def plot_box(table:pd.DataFrame, title:str):
     nrows = len(table.index)
     new_colors = []
     hashes = []
-    memoization = {}
-
+    # memoization = {}
+    print()
     # maps each list of parameters tuned to a hash associate to each hash a unique color
     for index, row in table.iterrows():
-        unique = hashlib.md5(bytes(str(tuple(row[columns].values)), 'ascii')).hexdigest()
+        unique = hashlib.md5(bytes(str(tuple([float(item) for item in row[columns].values])), 'ascii')).hexdigest()
+        print(unique, row[columns].values)
 
         if not unique in memoization:
             memoization[unique] = index / nrows
@@ -640,11 +640,9 @@ def plot_box(table:pd.DataFrame, title:str):
         # unique = hash(tuple(row[columns].values))
         # print(unique)
         hashes.append(unique)
-
     # add hashes and colors to table
     table['tconfig'] = hashes
     table['tconfigs'] = new_colors
-
     # expands short table with NaN values
     reduced_table = table[['training_metric.objective','production_metric.objective', 'config', 'configs', 'tconfig', 'tconfigs']].reset_index()
     reduced_table['max'] = [float('nan') for _  in table.index]
@@ -693,6 +691,7 @@ def plot_box(table:pd.DataFrame, title:str):
     k = 3
     count =1
     top = max(reduced_table['max']) + 18
+
     for x, yp, yt, c, tc, _min, _max, mean in zip(
             reduced_table['iterations'],
             reduced_table['production_metric.objective'],
@@ -713,7 +712,7 @@ def plot_box(table:pd.DataFrame, title:str):
 
     # add divisions at every tuning applied
     for it, istuned in enumerate(table['tuned']):
-        print(it, table.iloc[it]['config'])
+        # print(it, table.iloc[it]['config'])
         if istuned != 'false':
             if it+1 < len(table) and table.iloc[it]['config'] != table.iloc[it+1]['config']:
                 newline_yspan([it + 1, 0], [it + 1, 10], ax)
@@ -783,11 +782,13 @@ if __name__ == '__main__':
 
     # df = load_data('./resources/logging-trxrhel-202011221630.csv')
     # df = load_data('./resources/logging-trxrhel-202011241500.csv')
-    df = load_data('./resources/logging-trxrhel-202011261015.csv')
+
+    # df = load_data('./resources/logging-trxrhel-202011261015.csv')
+    df = load_data('./resources/logging-trxrhel-202012021945.csv')
 
     # df = load_data('./resources/logging-trinity-202011191237.csv')
     title = 'DayTrader'
-    mtable, wtable, ctable = split_table(df)
+    # mtable, wtable, ctable = split_table(df)
 
     # plot_metrics(mtable, title)
     # plot_metrics_summarized(df, title)

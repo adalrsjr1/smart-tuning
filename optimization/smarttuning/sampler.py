@@ -256,8 +256,8 @@ class Metric:
                 logger.warning(f'objective at {self.name} is NaN -> INF')
                 return float('inf')
             return result
-        except ZeroDivisionError:
-            logger.exception('error metric.objective division by 0')
+        except:
+            logger.exception('cannot correctly evaluate the objective expression')
             return float('inf')
 
 

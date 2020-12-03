@@ -8,6 +8,7 @@ from queue import Queue
 import numpy as np
 import random
 from hyperopt import fmin, tpe, rand, Trials, STATUS_OK, STATUS_FAIL, space_eval
+from hyperopt.exceptions import AllTrialsFailed
 
 import config
 from sampler import Metric
@@ -100,7 +101,7 @@ class BayesianEngine:
                     rstate=np.random.RandomState(random.randint(0, 1000)))
 
             best = partial_fmin()
-            best = space_eval(space, best)
+            best = space_eval(self._space, best)
             logger.info(f'final best config: {best}')
             best.update({'is_best_config':True})
 
@@ -124,6 +125,30 @@ class BayesianEngine:
     def trials(self):
         return self._trials
 
+    def trials_as_documents(self):
+        documents = []
+        try:
+            for trial in self.trials().trials:
+                params = space_eval(self._space, {k: v[0] for k, v in trial['misc'].get('vals', {}).items()})
+                tid = trial['misc'].get('tid', -1)
+                loss = trial['result'].get('loss', float('inf'))
+                status = trial['result'].get('status', None)
+                iteration = trial['result'].get('iteration', -1)
+
+                documents.append({
+                    'uid': time.time_ns(),
+                    'tid': tid,
+                    'params': params,
+                    'loss': loss,
+                    'iteration':iteration,
+                    'status': status
+                })
+        except:
+            logger.exception('error when retrieving trials')
+
+        return documents
+
+
     def is_running(self):
         return self._running
 
@@ -131,6 +156,7 @@ class BayesianEngine:
         logger.debug(f'params at bayesian obj: {params}')
         if self.stoped:
             return {
+                'iteration': 1,
                 'loss': float('inf'),
                 'status': STATUS_FAIL,
                 # -- store other results like this
@@ -158,6 +184,7 @@ class BayesianEngine:
             logger.exception('evalution failed at bayesian core')
         finally:
             return {
+                'iteration': 1,
                 'loss': loss,
                 'status': status,
                 # -- store other results like this
@@ -193,14 +220,24 @@ class BayesianEngine:
         try:
             # best_idx = list(self.trials().best_trial['misc']['idxs'].values())[0][0]
             # get best trial id
-            best_idx = self.trials().best_trial['tid']
+            try:
+                best_idx = self.trials().best_trial['tid']
+            except AllTrialsFailed:
+                logger.debug('empty trials')
+                return float('nan')
 
             # update the current config with the average of the all values
-            self.counter[best_idx] += 1
             curr_trial = self.trials().trials[best_idx]
+            # TODO: remove all entries related to self.counter
+            # self.counter[best_idx] += 1
+
+            curr_trial['result']['iteration'] += 1
             curr = curr_trial['result']['loss']
-            curr = curr + (value - curr) / self.counter[best_idx]
+            # curr = curr + (value - curr) / self.counter[best_idx]
+            curr = curr + (value - curr) / curr_trial['result']['iteration']
             curr_trial['result']['loss'] = curr
+
+
             #
             # for i, trial in enumerate(self.trials()):
             #     if i == best_idx:
@@ -217,7 +254,7 @@ class BayesianEngine:
             self.trials().refresh()
             return curr
         except:
-            logger.exception('cannot update trials value')
+            logger.exception('erros to access the best trial')
             exit(1)
 
     def sample(self, metric):

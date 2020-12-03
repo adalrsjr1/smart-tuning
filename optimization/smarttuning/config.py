@@ -15,7 +15,12 @@ def print_config(toPrint=False):
                 print('\t', item)
         print('\n *** config loaded *** \n')
 
-def init_k8s(hostname='localhost'):
+K8S_HOST = 'trxrhel7perf-1'
+# K8S_HOST = 'localhost'
+K8S_CONF = '/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config'
+LOCALHOST = '9.26.100.254'
+# LOCALHOST = 'localhost'
+def init_k8s(hostname=K8S_HOST):
     if 'KUBERNETES_SERVICE_HOST' in os.environ:
         logging.info('loading K8S configuration')
         kubernetes.config.load_incluster_config()
@@ -28,11 +33,7 @@ def init_k8s(hostname='localhost'):
             kubernetes.config.load_kube_config()
 
 
-# K8S_HOST = 'trxrhel7perf-1'
-K8S_HOST = 'localhost'
-K8S_CONF = '/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config'
-# LOCALHOST = '9.26.100.254'
-LOCALHOST = 'localhost'
+
 ## to disable loggers
 FORMAT = '%(asctime)-15s - %(name)-30s %(levelname)-7s - %(threadName)-30s: %(message)s'
 INJECTOR_LOGGER = 'injector.smarttuning.ibm'
@@ -188,5 +189,9 @@ def shutdown():
         except SystemError:
             logging.exception('error while shutdown thread pool')
 
-if __name__ == '__main__':
-    print(ping(PROMETHEUS_ADDR, int(PROMETHEUS_PORT)))
+# if __name__ == '__main__':
+    # init_k8s(K8S_HOST)
+    # podList = coreApi().list_pod_for_all_namespaces()
+    # for pod in podList.items:
+    #     print(pod.metadata.name)
+    # print(ping(PROMETHEUS_ADDR, int(PROMETHEUS_PORT)))

@@ -538,7 +538,7 @@ def init(loop):
 
     loop.register('deployments-gc', ListToWatch(func=client.AppsV1Api().list_namespaced_deployment, namespace=config.NAMESPACE), delete_deployments)
 
-    logger.debug('wait 1s as safeguard to enusre all loops are going to be registered properly')
+    logger.debug('waiting 10s as safeguard to enusre all loops are going to be registered properly')
     time.sleep(10)
 
 #
