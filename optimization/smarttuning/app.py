@@ -6,6 +6,7 @@ import numbers
 import config
 import sampler
 import datetime
+from decimal import Decimal
 import hashlib
 import kubernetes
 from concurrent.futures import Future
@@ -16,7 +17,7 @@ from controllers.searchspace import SearchSpaceContext
 from seqkmeans import Container, KmeansContext, Metric, Cluster
 
 logger = logging.getLogger(config.APP_LOGGER)
-logger.setLevel('INFO')
+logger.setLevel('DEBUG')
 
 
 def warmup():
@@ -119,35 +120,47 @@ def create_context(production_microservice, training_microservice):
 
     last_config = {}
     config_to_apply = {}
+    first_config = {}
     last_class = None
     first_iteration = True
     while production_name and training_name:
-        if first_iteration:
-            first_iteration = False
-            production_workload = sampler_production.workload()
-            production_metric = sampler_production.metric()
-            save(
-                timestamp=datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S"),
-                last_config=last_config,
-                production_metric=production_metric.serialize(),
-                config_to_eval={},
-                training_metric={},
-                production_workload=sampler.series_to_dict(production_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
-                # extract to dict
-                training_workload={},
-                # extract to dict
-                best_loss=production_metric.objective(),
-                best_config=config_to_apply,
-                update_production=config_to_apply,
-                tuned=False
-            )
+
 
         try:
             search_space_ctx: SearchSpaceContext = sample_config(production_name)
+
+
+
             if not search_space_ctx:
                 logger.debug(f'no searchspace configuration available for microservice {production_name}')
                 time.sleep(1)
                 continue
+
+            if len(last_config) == 0:
+                last_config = search_space_ctx.get_current_config()
+
+            if first_iteration:
+                first_iteration = False
+                first_config = last_config
+                production_workload = sampler_production.workload()
+                production_metric = sampler_production.metric()
+                save(
+                    timestamp=datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S"),
+                    last_config=last_config,
+                    trials=get_trials(search_space_ctx),
+                    production_metric=production_metric.serialize(),
+                    config_to_eval={},
+                    training_metric={},
+                    production_workload=sampler.series_to_dict(
+                        production_workload.result(config.SAMPLING_METRICS_TIMEOUT)),
+                    # extract to dict
+                    training_workload={},
+                    # extract to dict
+                    best_loss=production_metric.objective(),
+                    best_config=config_to_apply,
+                    update_production=config_to_apply,
+                    tuned=False
+                )
 
             config_to_apply = update_training_config(training_microservice, search_space_ctx)
 
@@ -166,6 +179,7 @@ def create_context(production_microservice, training_microservice):
                 save(
                     timestamp=datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S"),
                     last_config=last_config,
+                    trials=get_trials(search_space_ctx),
                     production_metric=production_metric.serialize(),
                     config_to_eval={},
                     training_metric={},
@@ -177,7 +191,7 @@ def create_context(production_microservice, training_microservice):
                     best_loss=production_metric.objective(),
                     best_config=config_to_apply,
                     update_production=config_to_apply,
-                    tuned=True
+                    tuned=config_to_apply!=last_config
                 )
                 logger.info(f'stoping tuning for microservice:{production_microservice}')
                 search_space_ctx.delete_bayesian_searchspace()
@@ -199,14 +213,14 @@ def create_context(production_microservice, training_microservice):
             training_result = training_workload.result(config.SAMPLING_METRICS_TIMEOUT)
             training_class, training_hits = classify_workload(training_metric, training_result)
 
-            if last_config != {}:
+            if last_config != first_config:
                 update_best_loss(search_space_ctx, production_metric.objective())
 
-            if fail_fast:
-                logger.info('fail fast')
-                loss = update_loss(training_class, Metric.zero(), search_space_ctx)
-            else:
-                loss = update_loss(training_class, training_metric, search_space_ctx)
+            # if fail_fast:
+            #     logger.info('fail fast')
+            #     loss = update_loss(training_class, Metric.zero(), search_space_ctx)
+            # else:
+            loss = update_loss(training_class, training_metric, search_space_ctx)
                 # loss = update_loss(production_class, production_metric, search_space_ctx)
 
             time.sleep(2)  # to avoid race condition when iterating over Trials
@@ -224,42 +238,60 @@ def create_context(production_microservice, training_microservice):
             tuned = False
             updated_config = last_config
 
-            if evaluation and best_loss >= loss:
-                # if last_config != config_to_apply or last_class != production_class:
-                logger.info(
-                    f'[curr] training:{training_metric.objective()} <= production:{production_metric.objective()} '
-                    f'| best_loss:{best_loss} >= loss:{loss}'
-                    f'== {evaluation and (best_loss >= loss)}')
-                last_class = production_class
-                update_production(production_microservice, config_to_apply, search_space_ctx)
-                updated_config = config_to_apply
-                tuned = 'training_config'
-            else:
-                old_best_config, old_best_loss = best_config, best_loss
-                # update_best_loss(search_space_ctx, production_metric.objective())
-                # best_config, best_loss = best_loss_so_far(search_space_ctx)
-
-                if best_loss < production_metric.objective():
-                    logger.info(
-                        f'[best] training:{training_metric.objective()} <= production:{production_metric.objective()} '
-                        f'| best_loss:{best_loss} --> prod:{production_metric.objective()}'
-                        f'== {evaluation and (best_loss < loss)}')
-
-                    last_class = production_class
-
-                    update_production(production_microservice, best_config, search_space_ctx)
+            last_class = production_class
+            if best_loss <= production_metric.objective() * (1 - config.METRIC_THRESHOLD):
+                logger.info(f'[curr] best:{best_loss} <= production:{production_metric.objective()}')
+                logger.info(f'[last] {last_config}')
+                logger.info(f'[best] {best_config}')
+                if last_config != best_config:
                     updated_config = best_config
-
-                    if updated_config != last_config:
-                        tuned = 'previous_config'
-                    else:
-                        tuned = False
+                    update_production(production_microservice, updated_config, search_space_ctx)
+                    tuned = 'best_config'
                 else:
-                    tuned = False
+                    tuned = 'last_config'
+            else:
+                logger.info(f'[curr] best:{best_loss} > production:{production_metric.objective()}')
+                tuned = 'false'
+
+
+
+            # if evaluation and best_loss >= loss:
+            #     # if last_config != config_to_apply or last_class != production_class:
+            #     logger.info(
+            #         f'[curr] training:{training_metric.objective()} <= production:{production_metric.objective()} '
+            #         f'| best_loss:{best_loss} >= loss:{loss}'
+            #         f'== {evaluation and (best_loss >= loss)}')
+            #     last_class = production_class
+            #     update_production(production_microservice, config_to_apply, search_space_ctx)
+            #     updated_config = config_to_apply
+            #     tuned = 'training_config'
+            # else:
+            #     old_best_config, old_best_loss = best_config, best_loss
+            #     # update_best_loss(search_space_ctx, production_metric.objective())
+            #     # best_config, best_loss = best_loss_so_far(search_space_ctx)
+            #
+            #     if best_loss < production_metric.objective():
+            #         logger.info(
+            #             f'[best] training:{training_metric.objective()} <= production:{production_metric.objective()} '
+            #             f'| best_loss:{best_loss} --> prod:{production_metric.objective()}'
+            #             f'== {evaluation and (best_loss < loss)}')
+            #
+            #         last_class = production_class
+            #
+            #         update_production(production_microservice, best_config, search_space_ctx)
+            #         updated_config = best_config
+            #
+            #         if updated_config != last_config:
+            #             tuned = 'previous_config'
+            #         else:
+            #             tuned = False
+            #     else:
+            #         tuned = False
 
             save(
                 timestamp=datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S"),
                 last_config=last_config,
+                trials=get_trials(search_space_ctx),
                 production_metric=production_metric.serialize(),
                 config_to_eval=config_to_apply,
                 training_metric=training_metric.serialize(),
@@ -339,6 +371,11 @@ def update_production(name, config, search_space_ctx: SearchSpaceContext):
     manifests = search_space_ctx.model.manifests
     do_patch(manifests, config, production=True)
 
+def get_trials(search_space_ctx: SearchSpaceContext):
+    if search_space_ctx:
+        return search_space_ctx.get_trials_as_documents()
+    return {}
+
 
 def wait(failfast=True, sleeptime=config.WAITING_TIME, production_pod_name='', training_pod_name=''):
     if not failfast:
@@ -387,7 +424,7 @@ def save(**kwargs):
     try:
         collection.insert_one(sanitize_dict_to_save(kwargs))
     except:
-        logger.error('error when saving data')
+        logger.exception('error when saving data')
 
 def sanitize_dict_to_save(data) -> dict:
     result = {}
@@ -431,6 +468,7 @@ def sanitize_token(token) -> str:
 def main():
     init()
     while True:
+        logger.info('into main loop')
         try:
             # duplicate microservices
 
