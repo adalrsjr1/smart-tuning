@@ -783,8 +783,8 @@ if __name__ == '__main__':
     # df = load_data('./resources/logging-trxrhel-202011221630.csv')
     # df = load_data('./resources/logging-trxrhel-202011241500.csv')
 
-    # df = load_data('./resources/logging-trxrhel-202011261015.csv')
-    df = load_data('./resources/logging-trxrhel-202012021945.csv')
+    df = load_data('./resources/logging-trxrhel-202011261015.csv')
+    # df = load_data('./resources/logging-trxrhel-202012021945.csv')
 
     # df = load_data('./resources/logging-trinity-202011191237.csv')
     title = 'DayTrader'
