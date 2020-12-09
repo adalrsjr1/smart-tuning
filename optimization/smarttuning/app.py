@@ -1,15 +1,13 @@
+import datetime
 import logging
+import numbers
 import time
+from concurrent.futures import Future
 
 import numpy as np
-import numbers
+
 import config
 import sampler
-import datetime
-from decimal import Decimal
-import hashlib
-import kubernetes
-from concurrent.futures import Future
 from bayesian import BayesianDTO
 from controllers import injector, searchspace
 from controllers.k8seventloop import EventLoop
@@ -83,7 +81,6 @@ contexts = {}
 
 
 def create_contexts(microservices):
-
     production:str
     for production, training in microservices.items():
         if not production in contexts:
@@ -106,8 +103,50 @@ def create_contexts(microservices):
         for future in contexts.values():
             future.cancel()
 
+from controllers.planner import Planner
+from models.instance import Instance
+from models.configuration import Configuration, EmptyConfiguration
+
 
 def create_context(production_microservice, training_microservice):
+    logger.info(f'creating context for ({production_microservice},{training_microservice})')
+    production_name = production_microservice
+    training_name = training_microservice
+
+    production_sanitized = production_microservice.replace('.', '\\.')
+    training_sanitized = training_microservice.replace('.', '\\.')
+    logger.info(f'pod_names --  prod:{production_sanitized} train:{training_sanitized}')
+
+
+    while production_name and training_name:
+        try:
+            search_space_ctx: SearchSpaceContext = sample_config(production_name)
+            if not search_space_ctx:
+                return
+
+            if search_space_ctx:
+                production = Instance(name=production_sanitized, namespace=config.NAMESPACE, is_production=True,sample_interval_in_secs=config.WAITING_TIME * config.SAMPLE_SIZE, ctx=search_space_ctx)
+                training = Instance(name=training_sanitized, namespace=config.NAMESPACE, is_production=False,sample_interval_in_secs=config.WAITING_TIME * config.SAMPLE_SIZE, ctx=search_space_ctx)
+                p = Planner(production=production, training=training, ctx=search_space_ctx, k=config.ITERATIONS_BEFORE_REINFORCE, ratio=config.REINFORCEMENT_RATIO)
+
+                configuration: Configuration
+                for i in range(config.NUMBER_ITERATIONS):
+                    configuration, last_iteration = next(p)
+                    logger.info(f'[{i}, last:{last_iteration}] {configuration}')
+
+                # if last_iteration or isinstance(configuration, EmptyConfiguration):
+                logger.warning(f'stoping bayesian core for {production.name}')
+
+                searchspace.stop_tuning(search_space_ctx)
+                del training
+
+        except:
+            logger.exception('error during tuning iteration')
+        finally:
+            exit(0)
+
+## depecrated
+def create_context2(production_microservice, training_microservice):
     logger.info(f'creating context for ({production_microservice},{training_microservice})')
     production_name = production_microservice
     training_name = training_microservice
@@ -330,9 +369,9 @@ def update_training_config(name, new_config_ctx: SearchSpaceContext):
 def do_patch(manifests, configuration, production=False):
     for key, value in configuration.items():
         for manifest in manifests:
-            logger.info(f'checking to patch {key} into {manifest.name}')
-            if key == manifest.name:
-                logger.info(f'patching new config={value} at {manifest.name}')
+            logger.info(f'checking to patch {key} into {manifest._name}')
+            if key == manifest._name:
+                logger.info(f'patching new config={value} at {manifest._name}')
                 manifest.patch(value, production=production)
                 time.sleep(1)
 
@@ -352,7 +391,7 @@ def classify_workload(metric, workload) -> (Cluster, int):
 
 def update_loss(classification: Cluster, metric_value: Metric, search_space_ctx: SearchSpaceContext):
     logger.info(f'updating loss at BayesianEngine: {search_space_ctx.engine.id()}')
-    dto = BayesianDTO(metric=metric_value, classification= classification.id if classification else None)
+    dto = BayesianDTO(metric=metric_value, workload_classification= classification.id if classification else None)
     search_space_ctx.put_into_engine(dto)
     if metric_value:
         return metric_value.objective()
@@ -468,7 +507,7 @@ def sanitize_token(token) -> str:
 def main():
     init()
     while True:
-        logger.info('into main loop')
+        # logger.info('into main loop')
         try:
             # duplicate microservices
 
@@ -482,7 +521,6 @@ def main():
 # https://github.com/kubernetes-client/python/blob/cef5e9bd10a6d5ca4d9c83da46ccfe2114cdaaf8/examples/notebooks/intro_notebook.ipynb
 # repactor injector using this approach
 
-# TODO: Stop iteration after k iterations
 # TODO: Change training and production pod without restart them
 # TODO: Stop iteration when throughput goes to 0 or below a given threshold
 if __name__ == '__main__':

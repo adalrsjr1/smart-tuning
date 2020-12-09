@@ -1,20 +1,24 @@
 #!/bin/bash
+if [[ "$#" -ne 1 ]]; then
+  echo "args: missing path for --kubeconfig, using default at ~/.kube/config"
+  $1="$HOME/.kube/config"
+fi
 
 echo -e "deploying reloader\n"
-kubectl apply --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
+kubectl apply --kubeconfig=$1 -f  https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
 sleep 1
 echo -e "\ndeploying prometheus\n"
-kubectl apply --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  ../prometheus
+kubectl apply --kubeconfig=$1 -f  ../prometheus
 sleep 1
 echo -e "\ndeploying grafana\n"
-kubectl apply --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  ../grafana
+kubectl apply --kubeconfig=$1 -f  ../grafana
 sleep 1
 echo -e "\ndeploying searchspace\n"
-kubectl apply --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  search-space/search-space-crd-2.yaml
+kubectl apply --kubeconfig=$1 -f  search-space/search-space-crd-2.yaml
 sleep 1
 echo -e "\ndeploying proxy config\n"
-kubectl apply --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  proxy-config.yaml
+kubectl apply --kubeconfig=$1 -f proxy-config.yaml
 sleep 1
 echo -e "\ndeploying mongo\n"
-kubectl apply --kubeconfig=/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config -f  mongo-deployment.yaml
+kubectl apply --kubeconfig=$1 -f  mongo-deployment.yaml
 sleep 1

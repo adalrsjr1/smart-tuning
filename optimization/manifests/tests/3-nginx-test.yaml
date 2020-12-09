@@ -34,7 +34,7 @@ kind: ConfigMap
 metadata:
   name: nginx-test-cm-2
 data:
-  key: "value"
+  key: "-1"
   foo: "bar"
 ---
 apiVersion: v1

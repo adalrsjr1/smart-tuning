@@ -1,0 +1,303 @@
+import json
+import re
+import os
+import sys
+from pprint import pprint
+
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
+
+import pandas as pd
+import numpy as np
+import random
+import math
+
+def reset_seeds():
+   np.random.seed(123)
+   random.seed(123)
+
+reset_seeds()
+
+SEED=0
+hashseed = os.getenv('PYTHONHASHSEED')
+if not hashseed:
+    os.environ['PYTHONHASHSEED'] = str(SEED)
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
+def load_raw_data(filename:str) -> pd.DataFrame:
+    raw_data = []
+    with open(filename) as jsonfile:
+        for row in jsonfile:
+            row = re.sub(r'\{"_id":\{"\$oid":"[a-z0-9]+"\},', '{', row)
+            record = json.loads(row)
+            raw_data.append(Iteration(
+                record['iteration'],
+                record['production']['curr_config']['name'],
+                math.fabs(record['production']['curr_config']['score']),
+                math.fabs(record['production']['curr_config']['stats']['mean']),
+                math.fabs(record['production']['curr_config']['stats']['median']),
+                math.fabs(record['production']['curr_config']['stats']['min']),
+                math.fabs(record['production']['curr_config']['stats']['max']),
+                record['production']['curr_config']['stats']['stddev'],
+                record['training']['curr_config']['name'],
+                math.fabs(record['training']['curr_config']['score']),
+                math.fabs(record['training']['curr_config']['stats']['mean']),
+                math.fabs(record['training']['curr_config']['stats']['median']),
+                math.fabs(record['training']['curr_config']['stats']['min']),
+                math.fabs(record['training']['curr_config']['stats']['max']),
+                record['training']['curr_config']['stats']['stddev']
+            ).__dict__)
+    return pd.DataFrame(raw_data).reset_index()
+
+class Iteration:
+    def __init__(self, iteration,
+                 pname, pscore, pmean, pmedian, pmin, pmax, pstddev,
+                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev):
+        self.pname = pname
+        self.pscore = pscore
+        self.pmean = pmean
+        self.pmedian = pmedian
+        self.pmin = pmax
+        self.pmax = pmin
+        self.pstddev = pstddev
+        self.tname = tname
+        self.tscore = tscore
+        self.tmean = tmean
+        self.tmedian = tmedian
+        self.tmin = tmax
+        self.tmax = tmin
+        self.tstddev = tstddev
+        self.iteration = iteration
+
+def plot(df: pd.DataFrame, title:str,save:bool=False):
+    # use generate a color pallete
+    from SecretColors.cmaps import ColorMap, TableauMap
+    from SecretColors import Palette
+    # cm = ColorMap(matplotlib)
+    cm = TableauMap(matplotlib)
+    # p = Palette('ibm', seed=SEED)
+    # my_colors = [p.red(shade=30), p.white(), p.blue(shade=60)]
+    # my_colors = p.random_gradient(no_of_colors=10)
+    colormap = cm.colorblind()  # cm.from_list(p.random(nrows, seed=SEED))
+    # colormap = cm.blue_red()
+
+    reduced_table = df
+
+    memoization = {}
+    nrows = len(reduced_table)
+    new_colors = []
+    for index, row in reduced_table.iterrows():
+        punique = row['pname']
+        tunique = row['tname']
+        p = index
+
+        if not punique in memoization:
+
+            memoization[punique] = abs(hash(punique)) / sys.maxsize
+
+        if punique in memoization:
+            new_colors.append(memoization[punique])
+
+        if not tunique in memoization:
+            memoization[tunique] = abs(hash(tunique)) / sys.maxsize
+
+        if tunique in memoization:
+            new_colors.append(memoization[tunique])
+
+    # reduced_table['index'] = [i + 0.5 for i in range(len(reduced_table))]
+    # plotting
+    fig, ax = plt.subplots(figsize=(18, 8))
+
+    # split chart by configs and paint each region with a unique color
+    cmap = matplotlib.cm.get_cmap(colormap)
+    k = 3
+    count = 1
+    top_p = max(reduced_table['pmean']+reduced_table['pstddev'])
+    top_t = max(reduced_table['tmean']+reduced_table['tstddev'])
+    top = max(max(reduced_table['pmax']), max(reduced_table['tmax']))
+    ax.set_ylim(ymax=top+40)
+
+    for index, row in reduced_table.iterrows():
+        _tmax = max(row['pmean'], row['tscore'])
+        _tmin = min(row['pmean'], row['tscore'])
+
+        _pmax = max(row['pmean'], row['pscore'])
+        _pmin = min(row['pmean'], row['pscore'])
+
+        ax.text(index, 0, row['pname'][:3], {'ha': 'center', 'va': 'bottom'}, rotation=45, fontsize='x-small',
+                color='red')
+        ax.text(index, top+40, row['tname'][:3], {'ha': 'center', 'va': 'top'}, rotation=45, fontsize='x-small',
+                color='blue')
+        ax.axvspan(index - 0.5, index + 0.5, facecolor=cmap(memoization[row['pname']]), alpha=0.5)
+        plot_training([index, _tmin], [index, _tmax], [index, row['tscore']], ax, color='blue', marker='x', linestyle='--', linewidth=0.4)
+        plot_training([index, _pmin], [index, _pmax], [index, row['pscore']], ax, color='red', marker='None', linestyle='--', linewidth=0.4)
+        # add divisions between iterations
+        newline_yspan([index+0.5, 0], [index+0.5, top+10], ax)
+    newline_yspan([-0.5, 0], [-0.5, top+10], ax)
+
+
+    ax = reduced_table.plot(ax=ax, x='index', y='pmean', color='black', marker='o', markersize=3, yerr='pstddev', linewidth=0, elinewidth=0.7, capsize=3)
+    ax = reduced_table.plot(ax=ax, x='index', y='pmedian', color='yellow', marker='^', markersize=3, linewidth=0)
+    ax = reduced_table.plot(ax=ax, x='index', y='pscore', marker='*', markersize=4, color='red', linewidth=0)
+    ax.set_ylim(ymin=0)# customize x-ticks
+    ax.xaxis.set_ticks(reduced_table['index'])
+
+    # customize legend
+    handles, labels = ax.get_legend_handles_labels()
+    handles.pop()
+    handles.pop()
+    handles.pop()
+    handles.append(
+        mlines.Line2D([], [], color='black', marker='o', markersize=4, linestyle='-', linewidth=0.7))
+    handles.append(
+        mlines.Line2D([], [], color='yellow', marker='^', linestyle='None'))
+    handles.append(
+        mlines.Line2D([], [], color='red', marker='*', linestyle='None'))
+    handles.append(
+        mlines.Line2D([], [], color='blue', marker='x', linestyle='None'))
+    handles.append(
+        mlines.Line2D([], [], color='black', marker='', linestyle='--', linewidth=0.7))
+    handles.append(matplotlib.patches.Patch(facecolor=cmap(list(memoization.values())[0]), edgecolor='k', alpha=0.7,
+                                            label='config. color'))
+
+    ax.legend(handles, [
+        'avg. of config. \'abc\' in prod',
+        'median of config \'abc\' in prod',
+        'prod. value at n-th iteration',
+        'train. value at n-th iteration',
+        'residual (*:prod, X:train), $y_i - \overline{Y_i}$',
+        'config. \'abc\' color',
+    ], frameon=False, ncol=len(handles)//2, bbox_to_anchor=(0.5, 1.10), loc='upper center', fontsize='small')
+    ax.set_title(title, loc='left')
+    ax.set_ylabel('requests/$')
+
+    plt.text(0.13, 0.85, 'train.\nconfig.', fontsize='smaller', transform=plt.gcf().transFigure)
+    plt.text(0.13, 0.12, 'prod.\nconfig.', fontsize='smaller', transform=plt.gcf().transFigure)
+
+    if save:
+        fig = plt.gcf()
+        fig.set_size_inches((18, 8), forward=False)
+        fig.savefig(save, dpi=150)  # Change is over here
+    else:
+        plt.show()
+    plt.show()
+
+
+def newline(p1, p2, ax, arrow=False, **kwargs):
+    xmin, xmax = ax.get_xbound()
+
+    if arrow:
+        if p1[1] > p2[1]:
+            ax.scatter(p2[0], p2[1], marker='^', color=kwargs['color'])
+        elif p2[1] > p1[1]:
+            ax.scatter(p1[0], p1[1], marker='v', color=kwargs['color'])
+
+    l = mlines.Line2D([p1[0], p2[0]], [p1[1], p2[1]], **kwargs)
+    ax.add_line(l)
+    return l
+
+
+def newline_yspan(p1, p2, ax):
+    xmin, xmax = ax.get_xbound()
+
+    if (p2[0] == p1[0]):
+        xmin = xmax = p1[0]
+        ymin, ymax = ax.get_ybound()
+    else:
+        ymax = p1[1] + (p2[1] - p1[1]) / (p2[0] - p1[0]) * (xmax - p1[0])
+        ymin = p1[1] + (p2[1] - p1[1]) / (p2[0] - p1[0]) * (xmin - p1[0])
+
+    l = mlines.Line2D([xmin, xmax], [ymin, ymax], color='black', linestyle='-', linewidth=0.3)
+    ax.add_line(l)
+    return l
+
+
+def plot_training(p1, p2, train, ax, marker=None, **kwargs):
+    ax.scatter(train[0], train[1], marker=marker, color=kwargs['color'])
+
+    top_y = max([train[1], p1[1], p2[1]])
+    bot_y = min([train[1], p1[1], p2[1]])
+
+    ax.scatter(train[0], train[1], marker=marker, color=kwargs['color'])
+
+
+    l = mlines.Line2D([p1[0], p2[0]], [bot_y, top_y], **kwargs)
+    ax.add_line(l)
+    return l
+
+    #
+    # if p1[1] < train[1] < p2[1]:
+    #     ax.scatter(train[0], train[1], marker='x', color=kwargs['color'])
+    # else:
+    #     if max(p1[1], p2[1]) > train[1]:
+    #         ax.scatter(train[0], train[1], marker='x', color=kwargs['color'])
+    #     else:
+    #         ax.scatter(train[0], train[1], marker='x', color=kwargs['color'])
+    #
+    #     l = mlines.Line2D([p1[0], p2[0]], [train[1], max(p1[1], p2[1])], **kwargs)
+    #     ax.add_line(l)
+    #     return l
+
+def test():
+
+    arr1 = [{"name":"3628671b941d84573fbf976ec3df444e", "uid":37, "score":-313.05764272920436, "mean":-313.05764272920436, "std":0.0, "median":-313.05764272920436 }, {"name":"d40fcbcf18c040e215c2e581aca5d0e7", "uid":45, "score":-309.1118529457984, "mean":-309.1118529457984, "std":0.0, "median":-309.1118529457984}, {"name":"915f3984fe38cfd2426117867985af04", "uid":23, "score":-288.923972539127, "mean":-288.923972539127, "std":0.0, "median":-288.923972539127}, {"name":"52f951fd9fffd5083688305ff1954c1b", "uid":46, "score":-267.5291577148189, "mean":-267.5291577148189, "std":0.0, "median":-267.5291577148189}, {"name":"a4f40b9c5a8b8180d3270c6c3bdb9e13", "uid":52, "score":-271.797606047275, "mean":-271.797606047275, "std":0.0, "median":-271.797606047275}, {"name":"08865885d8ec21b0b524f68a75ee2371", "uid":21, "score":-273.0127790605311, "mean":-273.0127790605311, "std":0.0, "median":-273.0127790605311}, {"name":"08ee16e81439b290caabfbc434e20760", "uid":24, "score":-249.98036842618419, "mean":-249.98036842618419, "std":0.0, "median":-249.98036842618419}, {"name":"f7de4a87cfc6954d98f76e9e6b34ae9d", "uid":28, "score":-174.8862204359479, "mean":-174.8862204359479, "std":0.0, "median":-174.8862204359479}, {"name":"f2da066bf5376bfcf328c21019a99abd", "uid":6, "score":-284.4293414046439, "mean":-237.35385225537826, "std":122.99436511836835, "median":-260.73477268750173}, {"name":"33b791f490e0d245ed60d77ace4470e5", "uid":32, "score":-237.04651835141965, "mean":-237.04651835141965, "std":0.0, "median":-237.04651835141965}, {"name":"7199c0884bd7039cb97bff4e1c4bbcdf", "uid":55, "score":-222.6024977585152, "mean":-222.6024977585152, "std":0.0, "median":-222.6024977585152}, {"name":"6b913d38b02972980f3964abab05ec77", "uid":35, "score":-136.69385665168468, "mean":-136.69385665168468, "std":0.0, "median":-136.69385665168468}, {"name":"704c8ca96b94a184a3daf09c61b7a35b", "uid":17, "score":-215.28841624547283, "mean":-215.28841624547283, "std":0.0, "median":-215.28841624547283}, {"name":"7a12f74b8d16e7023bde3926fe8f89d3", "uid":16, "score":-115.42601531294116, "mean":-115.42601531294116, "std":0.0, "median":-115.42601531294116}, {"name":"2d02f48746ef64c8389aa4766b3c3f49", "uid":40, "score":-223.65509321647264, "mean":-223.65509321647264, "std":0.0, "median":-223.65509321647264}, {"name":"e59b658ddd6fc4ba6b7298270b4c3876", "uid":43, "score":-98.04738752712257, "mean":-98.04738752712257, "std":0.0, "median":-98.04738752712257}, {"name":"dc3e2b808f3c2a9f12f55f7d56a21fd1", "uid":14, "score":-145.47334208168073, "mean":-145.47334208168073, "std":0.0, "median":-145.47334208168073}, {"name":"b08cea7eb02739564bea343394943ebd", "uid":29, "score":-159.3881544555052, "mean":-159.3881544555052, "std":0.0, "median":-159.3881544555052}, {"name":"8005911ab246a8182432179d5d874919", "uid":27, "score":-152.30010109901625, "mean":-152.30010109901625, "std":0.0, "median":-152.30010109901625}, {"name":"5a49c2ed3864189d014521c142994aa1", "uid":31, "score":-151.2656921766894, "mean":-151.2656921766894, "std":0.0, "median":-151.2656921766894}, {"name":"eca878ad4ea2bf5853b5cab0b3e7673e", "uid":53, "score":-192.62740158780284, "mean":-192.62740158780284, "std":0.0, "median":-192.62740158780284}, {"name":"623e8776e850308015b9560f24ca55e0", "uid":18, "score":-210.50146666254957, "mean":-210.50146666254957, "std":0.0, "median":-210.50146666254957}, {"name":"4579fd533562b3e33a99948f7b9264e6", "uid":57, "score":-81.6937609897022, "mean":-81.6937609897022, "std":0.0, "median":-81.6937609897022}, {"name":"b29bc5f6d5ef1dd06bf02c5164d064ce", "uid":13, "score":-96.43715604835184, "mean":-96.43715604835184, "std":0.0, "median":-96.43715604835184}, {"name":"82cf786b2aa58475485ab59b18aee54d", "uid":34, "score":-115.75547280262052, "mean":-115.75547280262052, "std":0.0, "median":-115.75547280262052}, {"name":"17cdac4f2d13a4e47cf7123efe2a5eef", "uid":36, "score":-74.11731606648115, "mean":-74.11731606648115, "std":0.0, "median":-74.11731606648115}, {"name":"b5dbcdcfb2e962c4bdaa719ca433ca88", "uid":22, "score":-170.3304211834203, "mean":-170.3304211834203, "std":0.0, "median":-170.3304211834203}, {"name":"c9673bbee05491d38e9ed5d99ae859e2", "uid":38, "score":-97.29968703102645, "mean":-97.29968703102645, "std":0.0, "median":-97.29968703102645}, {"name":"c03561371a094732884a5bf9c3538a0c", "uid":39, "score":-99.24349059288835, "mean":-99.24349059288835, "std":0.0, "median":-99.24349059288835}, {"name":"13a7d0828a693e8317f10e269d3d2003", "uid":25, "score":-193.4998255989836, "mean":-193.4998255989836, "std":0.0, "median":-193.4998255989836}, {"name":"f4f88e10eed680e3c43435a1ccbc0cbb", "uid":41, "score":-216.63701827686623, "mean":-216.63701827686623, "std":0.0, "median":-216.63701827686623}, {"name":"6870d90ce01505679580c0c3ad7a9692", "uid":42, "score":-66.12850458080112, "mean":-66.12850458080112, "std":0.0, "median":-66.12850458080112}, {"name":"de734db7e4547fed8bf3a07e1e127c7f", "uid":26, "score":-80.66745396094277, "mean":-80.66745396094277, "std":0.0, "median":-80.66745396094277}, {"name":"976adf780042c641ea23700ebdf68cc6", "uid":12, "score":-83.21484083798681, "mean":-83.21484083798681, "std":0.0, "median":-83.21484083798681}, {"name":"b79c3bced654a14eab87b745cba70810", "uid":44, "score":-85.93120395815805, "mean":-85.93120395815805, "std":0.0, "median":-85.93120395815805}, {"name":"25b204a186e65103748463cc0aaba22c", "uid":19, "score":-134.8803959597834, "mean":-134.8803959597834, "std":0.0, "median":-134.8803959597834}, {"name":"9ad5b300946d035827fa1972e5d36a06", "uid":47, "score":-46.671455534684206, "mean":-46.671455534684206, "std":0.0, "median":-46.671455534684206}, {"name":"bc85cab39eb3eeae2564dc1daf727118", "uid":48, "score":-113.11557898203915, "mean":-113.11557898203915, "std":0.0, "median":-113.11557898203915}, {"name":"8fb6ba10b86be1b4fc39dbb9acb4f5d1", "uid":49, "score":-149.43940605594705, "mean":-149.43940605594705, "std":0.0, "median":-149.43940605594705}, {"name":"846742b5ed17cee88d072eff00954d25", "uid":15, "score":-71.20451414368458, "mean":-71.20451414368458, "std":0.0, "median":-71.20451414368458}, {"name":"185759a8bb5bf46ce5b97468a1fa7005", "uid":51, "score":-62.877347484021826, "mean":-62.877347484021826, "std":0.0, "median":-62.877347484021826}, {"name":"5597b3c76c4984afabdcde1d1e3c8c48", "uid":30, "score":-79.32574315409067, "mean":-79.32574315409067, "std":0.0, "median":-79.32574315409067}, {"name":"f2f8f3f582c8c7938458aed3b1b46bdd", "uid":50, "score":-176.34605446866505, "mean":-176.34605446866505, "std":0.0, "median":-176.34605446866505}, {"name":"ef1ccf0f12c2b6f6921fa89385bcf07e", "uid":20, "score":-140.65691231872026, "mean":-140.65691231872026, "std":0.0, "median":-140.65691231872026}, {"name":"306901bc9efa4cc5a70d51cd4ed067ac", "uid":54, "score":-152.77659020760973, "mean":-152.77659020760973, "std":0.0, "median":-152.77659020760973}, {"name":"06de3441a431f77742d04dc56a531fa0", "uid":33, "score":-58.92511048341837, "mean":-58.92511048341837, "std":0.0, "median":-58.92511048341837}, {"name":"0fb77fc423ef6e02f6c6d495e9cb3175", "uid":56, "score":-72.76731669417943, "mean":-72.76731669417943, "std":0.0, "median":-72.76731669417943}, {"name":"ee019ce98b9ff37a89883a31bef68b16", "uid":58, "score":-61.91288704161767, "mean":-61.91288704161767, "std":0.0, "median":-61.91288704161767}, {"name":"74e18b89c1272b37f031d88e47f7fb72", "uid":59, "score":-76.85348124668894, "mean":-76.85348124668894, "std":0.0, "median":-76.85348124668894}]
+    arr2 = [{"name":"f2da066bf5376bfcf328c21019a99abd", "uid":6, "score":-284.4293414046439, "mean":-237.35385225537826, "std":122.99436511836835, "median":-260.73477268750173}]
+
+    import heapq
+
+    heap1 = []
+    heap2 = []
+
+    class Config:
+        def __init__(self, name, value):
+            self.name = name
+            self.value = value
+
+        def __lt__(self, other):
+            return self.value < other.value
+
+        def __str__(self):
+            return f'{{"name":{self.name}, "value":{self.value}}}'
+
+        def __repr__(self):
+            return self.__str__()
+
+    for item in arr1:
+        heapq.heappush(heap1, Config(item['name'], item['median']))
+
+    for item in arr2:
+        heapq.heappush(heap2, Config(item['name'], item['median']))
+
+    best1 = heapq.nsmallest(1, heap1)
+    best2 = heapq.nsmallest(1, heap2)
+    best_concat = best1 + best2
+    heapq.heapify(best_concat)
+    print(best_concat)
+
+    best = heapq.nsmallest(1, best_concat)
+
+    print(best)
+
+
+
+if __name__ == '__main__':
+    # test()
+    # exit(0)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_rows', None)
+
+    # df = load_raw_data('./resources/trace-2020-12-18T20 07 09.720531+00 00.json')
+    # df = load_raw_data('./resources/trace-2020-12-20T03 05 43.851173+00 00.json')
+
+    # df = load_raw_data('./resources/trace-2020-12-22T18 18 26.696657+00 00.json')
+
+    # df = load_raw_data('./resources/trace-2020-12-23T05 29 37.213918+00 00.json')
+    # df = load_raw_data('./resources/trace-2020-12-24T04 36 49.716721+00 00.json')
+    # df = load_raw_data('./resources/trace-2020-12-25T00 03 02.json') # why not t-test
+    # df = load_raw_data('./resources/trace-2020-12-26T00 40 35.json')
+    # df = load_raw_data('./resources/trace-2020-12-28T00 27 18.json')
+    df = load_raw_data('./resources/trace-2020-12-28T20 30 56.json')
+    # df = load_raw_data('./resources/trace-2021-01-02T23 47 40.json')
+
+    plot(df, title='Daytrader',save=False)

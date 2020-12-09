@@ -178,7 +178,7 @@ class TestSearchSpace(unittest.TestCase):
 
             for key, value in result.items():
                 for manifest in ctx.model.manifests:
-                    if key == manifest.name:
+                    if key == manifest._name:
                         self.assertTrue(
                             re.fullmatch(
                                 "-Dhttp\.keepalive=(false|true)\s*-Dhttp\.maxConnectionse=[0-9]+\s*-XX:-UseContainerSupport\s*-Xgcpolicy:[a-z]+\s+-Xtune:virtualized",

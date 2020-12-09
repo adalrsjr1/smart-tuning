@@ -28,9 +28,9 @@ data:
           type: "integer"
           values:
 #            - "512"
-            - "1024"
-            - "2048"
-            - "4096"
+#            - "1024"
+#            - "2048"
+#            - "4096"
             - "8192"
   - name: daytrader-config-app
       # https://www.ibm.com/support/pages/tuning-connection-pool-properties-websphere-application-server
@@ -157,19 +157,19 @@ data:
 #          values:
 #            - "0"
 #            - "1"
-#  - name: daytrader-config-jvm
-#    filename: "jvm.options"
-#    tunables:
-#      boolean:
-#        - name: "-Xtune:virtualized"
-#      option:
-#        - name: "gc"
-#          values:
-#            - "-Xgcpolicy:gencon"
-#            - "-Xgc:concurrentScavenge"
-#            - "-Xgcpolicy:metronome"
-#            - "-Xgcpolicy:optavgpause"
-#            - "-Xgcpolicy:optthruput"
+  - name: daytrader-config-jvm
+    filename: "jvm.options"
+    tunables:
+      boolean:
+        - name: "-Xtune:virtualized"
+      option:
+        - name: "gc"
+          values:
+            - "-Xgcpolicy:gencon"
+            - "-Xgc:concurrentScavenge"
+            - "-Xgcpolicy:metronome"
+            - "-Xgcpolicy:optavgpause"
+            - "-Xgcpolicy:optthruput"
 #        - name: "container_support"
 #          values:
 #            - "-XX:+UseContainerSupport"

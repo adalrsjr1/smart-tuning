@@ -1,11 +1,12 @@
 from __future__ import annotations
-from bayesian import BayesianEngine, BayesianDTO, BayesianChannel
-from controllers import k8seventloop
-from kubernetes.client.models import *
-from controllers.searchspacemodel import *
-from controllers.k8seventloop import ListToWatch
-from controllers.injector import duplicate_deployment_for_training
+
 from kubernetes.client.rest import ApiException
+
+from bayesian import BayesianEngine, BayesianDTO, BayesianChannel
+from controllers.injector import duplicate_deployment_for_training
+from controllers.k8seventloop import ListToWatch
+from controllers.searchspacemodel import *
+from models.configuration import EmptyConfiguration, Configuration
 
 logger = logging.getLogger(config.SEARCH_SPACE_LOGGER)
 logger.setLevel(config.LOGGING_LEVEL)
@@ -37,13 +38,22 @@ def searchspace_controller(event):
 
     elif 'DELETED' == t:
         name = event['object']['spec']['deployment']
-        ctx = search_spaces[name]
-        ctx.delete_bayesian_searchspace(event)
-        deployment = get_deployment(ctx.model.deployment, ctx.model.namespace)
-        if deployment.spec.replicas > 1:
-            update_n_replicas(ctx.model.deployment, ctx.model.namespace, deployment.spec.replicas + 1)
+        if name in search_spaces:
+            ctx = search_spaces[name]
+            stop_tuning(ctx)
 
-        del search_spaces[name]
+def stop_tuning(ctx):
+    ctx.delete_bayesian_searchspace()
+    deployment = get_deployment(ctx.model.deployment, ctx.model.namespace)
+    train_deployment = ctx.model.deployment + config.PROXY_TAG
+    if deployment.spec.replicas > 1:
+        update_n_replicas(ctx.model.deployment, ctx.model.namespace, deployment.spec.replicas + 1)
+
+    logger.debug(f'search spaces names: {search_spaces.keys()}')
+    logger.debug(f'search space to delete: {ctx.model.deployment}')
+    del search_spaces[ctx.model.deployment]
+    config.appsApi().delete_namespaced_deployment(name=train_deployment, namespace=ctx.model.namespace)
+
 
 def context(deployment_name) -> SearchSpaceContext:
     return search_spaces.get(deployment_name, None)
@@ -72,32 +82,33 @@ class SearchSpaceContext:
 
     def get_current_config(self):
         logger.info('getting current config')
-        current_config = {}
+        indexed_current_config = {}
+        valued_current_config = {}
         for manifest in self.model.manifests:
             name = manifest.name
-            current_manifest_config = manifest.get_current_config()
-            logger.debug(f'getting manifest {name}:{current_manifest_config}')
-            current_config[name] = current_manifest_config
-        return current_config
+            indexed_current_manifest_config, valued_current_manifest_config = manifest.get_current_config()
+            logger.debug(f'getting manifest {name}:{valued_current_manifest_config}')
+            valued_current_config[name] = valued_current_manifest_config
+            indexed_current_config[name] = indexed_current_manifest_config
+
+        return indexed_current_config, valued_current_config
 
     def create_bayesian_searchspace(self, is_bayesian):
         search_space = self.model.search_space()
         self.engine = BayesianEngine(name=self.name, space=search_space, is_bayesian=is_bayesian)
 
     def delete_bayesian_searchspace(self):
-        BayesianChannel.unregister(self.name)
         self.engine.stop()
-        logger.warning(f'cannot stop engine "{self.name}" -- method not implemented yet')
-        return
+        BayesianChannel.unregister(self.name)
 
     def put_into_engine(self, value: BayesianDTO):
-        if self.engine:
+        if self.engine and self.engine.is_running():
             self.engine.put(value)
 
-    def get_from_engine(self):
-        if self.engine:
+    def get_from_engine(self) -> Configuration:
+        if self.engine and self.engine.is_running():
             return self.engine.get()
-        return {}
+        return EmptyConfiguration()
 
     def get_best_so_far(self, ):
         if self.engine:
@@ -112,6 +123,11 @@ class SearchSpaceContext:
         if self.engine:
             return self.engine.trials()
         return []
+
+    def get_smarttuning_trials(self):
+        if self.engine:
+            return self.engine.smarttuning_trials
+        return None
 
     def get_trials_as_documents(self):
         return self.engine.trials_as_documents()

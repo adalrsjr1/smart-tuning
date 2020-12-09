@@ -25,10 +25,6 @@ class ListToWatch:
 
     def fn(self):
         return self.func, self.kwargs
-        # if self.kwargs:
-        #     return self.func, self.kwargs
-        # else:
-        #     return self.func
 
 
 def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=None):
@@ -40,7 +36,7 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
     def name(event):
         if isinstance(event['object'], dict):
             return event['object']['metadata']['name']
-        return event['object'].metadata.name
+        return event['object'].metadata._name
 
     loop_name = context[1] if context else ''
     logger.info(f'initializing new watcher loop {loop_name}')
@@ -58,6 +54,7 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
                     manager.unregister(name)
                 else:
                     w.stop()
+        logger.debug(f'stopping watcher loop {loop_name}')
     except:
         logger.exception('error outside loop ', name(event))
 
@@ -65,7 +62,7 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
 class EventLoop:
     def __init__(self, executor):
         # initializing kubernetes client
-        config.init_k8s(hostname=config.K8S_HOST)
+        config.init_k8s()
         self.executor = executor
         self.loops = {}
 
@@ -81,8 +78,9 @@ class EventLoop:
             logger.info(f'loop {name} not registered')
             return False
         logger.info(f'unregistering loop {name}')
-        w, _ = self.loops[name]
+        w, f = self.loops[name]
         w.stop()
+        f.cancel()
         del self.loops[name]
         return True
 

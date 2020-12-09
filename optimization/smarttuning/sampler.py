@@ -1,14 +1,17 @@
 from __future__ import annotations
-from concurrent.futures import Future
-import config
+
 import logging
-import pandas as pd
-import re
-import networkx as nx
-from numbers import Number
-from collections import defaultdict
 import math
+import re
+from collections import defaultdict
+from concurrent.futures import Future
+from numbers import Number
+
+import networkx as nx
+import pandas as pd
 from prometheus_pandas import query as handler
+
+import config
 
 logger = logging.getLogger(config.SAMPLER_LOGGER)
 logger.setLevel(logging.DEBUG)
@@ -272,6 +275,14 @@ class PrometheusSampler:
         self.podname = podname
         self.interval = int(interval)
         self.namespace = namespace
+
+    @property
+    def interval(self) -> int:
+        return self._interval
+
+    @interval.setter
+    def interval(self, value:int):
+        self._interval = int(value)
 
     def __do_sample__(self, query: str) -> Future:
         logger.debug(f'sampling:{query}')

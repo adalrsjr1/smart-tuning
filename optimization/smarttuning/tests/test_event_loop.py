@@ -1,6 +1,7 @@
 import unittest
 import os
 import time
+
 from kubernetes import watch, client, config
 from kubernetes.client.models import *
 from concurrent.futures import ThreadPoolExecutor
@@ -47,11 +48,11 @@ class TestEventLoop(unittest.TestCase):
 
         names1 = []
         for item in r1.items:
-            names1.append(item.metadata.name)
+            names1.append(item.metadata._name)
 
         names2 = []
         for item in r2.items:
-            names2.append(item.metadata.name)
+            names2.append(item.metadata._name)
 
         self.assertListEqual(names1, names2)
 
@@ -65,11 +66,11 @@ class TestEventLoop(unittest.TestCase):
 
         names1 = []
         for item in r1.items:
-            names1.append(item.metadata.name)
+            names1.append(item.metadata._name)
 
         names2 = []
         for item in r2.items:
-            names2.append(item.metadata.name)
+            names2.append(item.metadata._name)
 
         self.assertListEqual(names1, names2)
 
@@ -127,9 +128,24 @@ class TestEventLoop(unittest.TestCase):
         time.sleep(1)
         loop.shutdown()
 
+    def test_turn_on_off_eventloop(self):
+        self.init()
+        loop = EventLoop(self.executor)
+        v1 = client.CoreV1Api()
+        list_to_watch = ListToWatch(v1.list_namespaced_pod, namespace='default')
+        loop.register('test', list_to_watch, lambda x: self.assertEqual(x['object'].kind, 'Pod'))
+        time.sleep(2)
+        loop.unregister('test')
+        loop.shutdown()
+
     @classmethod
     def tearDownClass(self):
+        import concurrent
         self.executor.shutdown(wait=False)
+        self.executor._threads.clear()
+        concurrent.futures.thread._threads_queues.clear()
+
+
 
 if __name__ == '__main__':
     unittest.main()

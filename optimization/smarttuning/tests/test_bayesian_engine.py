@@ -13,7 +13,7 @@ class TestBayesianEngine(unittest.TestCase):
 
     def test_in_out_objective(self):
         b = BayesianEngine(name='test')
-        dto = BayesianDTO(classification='test')
+        dto = BayesianDTO(workload_classification='test')
         future = TestBayesianEngine.executor.submit(b.objective, {'a':1, 'b':2})
         b.put(dto)
         self.assertTrue(set({'loss':0, 'status':STATUS_OK, 'classification':'test'}.items()) <= set(future.result().items()))
@@ -22,7 +22,7 @@ class TestBayesianEngine(unittest.TestCase):
     def test_loop(self):
         space = {'x':hp.uniform('x', -10, 10), 'o':hp.choice('o', ['x','y','z'])}
         b = BayesianEngine(name='test', space=space, max_evals=100)
-        dto = BayesianDTO(classification='test')
+        dto = BayesianDTO(workload_classification='test')
         l = []
         for _ in range(100):
             l.append(b.get())

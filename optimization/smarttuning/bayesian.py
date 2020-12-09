@@ -1,36 +1,62 @@
+from __future__ import annotations
+
 import logging
+import random
 import threading
 import time
-from functools import partial
 from collections import Counter
-from queue import Queue
+from functools import partial
+from queue import Queue, Empty
 
 import numpy as np
-import random
 from hyperopt import fmin, tpe, rand, Trials, STATUS_OK, STATUS_FAIL, space_eval
+from hyperopt.early_stop import no_progress_loss
 from hyperopt.exceptions import AllTrialsFailed
 
 import config
+from models.configuration import Configuration
 from sampler import Metric
+
 random.seed(config.RANDOM_SEED)
 logger = logging.getLogger(config.BAYESIAN_LOGGER)
 logger.setLevel(logging.DEBUG)
 
 
 class BayesianChannel:
-    channels = {}
+    channels:dict[str,dict[str, Queue]] = {}
+    lock = threading.RLock()
+
+    @staticmethod
+    def _erase_queues(channel_name:str, channel:dict[str, Queue]):
+        gate: Queue
+        for name, gate in channel.items():
+            # with gate.mutex:
+            if not gate.empty():
+                try:
+                    gate.get_nowait()
+                except Empty:
+                    logger.warning(f'trying to erase the empty queue {channel_name}:{name}')
 
     @staticmethod
     def register(bayesian_id):
+        BayesianChannel.lock.acquire()
         BayesianChannel.channels[bayesian_id] = {
             'in': Queue(maxsize=1),
             'out': Queue(maxsize=1)
         }
+        BayesianChannel.lock.release()
 
     @staticmethod
     def unregister(bayesian_id):
+        BayesianChannel.lock.acquire()
         if bayesian_id in BayesianChannel.channels:
+            channel = BayesianChannel.channels[bayesian_id]
+
+            BayesianChannel._erase_queues(bayesian_id, channel)
+
+            BayesianChannel._erase_queues(bayesian_id, channel)
             del (BayesianChannel.channels[bayesian_id])
+        BayesianChannel.lock.release()
 
     @staticmethod
     def put_in(bayesian_id, value):
@@ -38,6 +64,8 @@ class BayesianChannel:
             BayesianChannel.register(bayesian_id)
         logger.debug(f'putting {value} channel.{bayesian_id}.in')
         BayesianChannel.channels[bayesian_id]['in'].put(value)
+        logger.debug(f'put {value} channel.{bayesian_id}.in')
+
 
     @staticmethod
     def put_out(bayesian_id, value):
@@ -45,29 +73,42 @@ class BayesianChannel:
             BayesianChannel.register(bayesian_id)
         logger.debug(f'putting {value} into channel.{bayesian_id}.out')
         BayesianChannel.channels[bayesian_id]['out'].put(value)
+        logger.debug(f'put {value} into channel.{bayesian_id}.out')
+
 
     @staticmethod
     def get_in(bayesian_id):
         if not bayesian_id in BayesianChannel.channels:
             BayesianChannel.register(bayesian_id)
         logger.debug(f'getting value from channel.{bayesian_id}.in')
-        return BayesianChannel.channels[bayesian_id]['in'].get(True)
+        value = BayesianChannel.channels[bayesian_id]['in'].get(True)
+        logger.debug(f'got value:{value} from channel.{bayesian_id}.in')
+        return  value
 
     @staticmethod
     def get_out(bayesian_id):
         if not bayesian_id in BayesianChannel.channels:
             BayesianChannel.register(bayesian_id)
         logger.debug(f'getting value channel.{bayesian_id}.out')
-        return BayesianChannel.channels[bayesian_id]['out'].get(True)
+        value = BayesianChannel.channels[bayesian_id]['out'].get(True)
+        logger.debug(f'got value:{value} channel.{bayesian_id}.out')
+        return value
 
 
 class BayesianDTO:
-    def __init__(self, metric=Metric.zero(), classification=''):
+    def __init__(self, metric:Metric=Metric.zero(), workload_classification:str= ''):
         self.metric = metric
-        self.classification = classification
+        self.classification = workload_classification
 
     def __repr__(self):
         return f'{{"metric": {self.metric}, "classification": "{self.classification}"}}'
+
+class EmptyBayesianDTO(BayesianDTO):
+    def __init__(self):
+        super().__init__()
+
+
+from models.smartttuningtrials import SmartTuningTrials
 
 
 class BayesianEngine:
@@ -76,9 +117,9 @@ class BayesianEngine:
     def __init__(self, name: str, space=None, is_bayesian=True, max_evals=config.NUMBER_ITERATIONS):
         self._id = name
         self._running = False
-        self._trials = Trials()
         self._space = space
-        self.stoped = False
+        self._trials = SmartTuningTrials(space=self._space, trials=Trials())
+        self._stoped = False
         self.counter = Counter()
 
         surrogate = rand.suggest
@@ -94,26 +135,25 @@ class BayesianEngine:
         logger.info(f'initializing bayesian engine={name}')
         np.random.seed(config.RANDOM_SEED)
 
+        def stop_iterations(trial, count=0):
+            return self._stoped, [count + 1]
+
         def objective_fn():
-            partial_fmin = partial(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate,
+            partial_fmin = partial(fmin, fn=self.objective, trials=self.trials, space=self._space, algo=surrogate,
                     max_evals=max_evals,
                     verbose=False, show_progressbar=False,
-                    rstate=np.random.RandomState(random.randint(0, 1000)))
+                    rstate=np.random.RandomState(random.randint(0, 1000)),
+                    early_stop_fn=stop_iterations)
 
             best = partial_fmin()
-            best = space_eval(self._space, best)
+            best = self.eval_data(best)
             logger.info(f'final best config: {best}')
             best.update({'is_best_config':True})
 
-            logger.info(f'found best config after {max_evals} iterations: {best}')
-            BayesianChannel.put_out(self.id(), best)
-
-
-        # self.objective_fn = partial(fmin, fn=self.objective, trials=self.trials(), space=self._space, algo=surrogate,
-        #                             max_evals=m
-        #                             ax_evals,
-        #                             verbose=False, show_progressbar=False,
-        #                             rstate=np.random.RandomState(random.randint(0,1000)))
+            best_config = Configuration(data=best, trials=self.smarttuning_trials)
+            logger.info(f'found best config after {max_evals} iterations: {best_config}')
+            BayesianChannel.put_out(self.id(), best_config)
+            # BayesianChannel.put_out(self.id(), best)
 
         self.fmin = threading.Thread(name='bayesian-engine-' + name, target=objective_fn, daemon=True)
         self.fmin.start()
@@ -122,14 +162,23 @@ class BayesianEngine:
     def id(self) -> str:
         return self._id
 
-    def trials(self):
+    def eval_data(self, data:dict):
+        logger.info(f'data:{data} -- space:{self._space}')
+        return space_eval(self._space, data)
+
+    @property
+    def trials(self) -> Trials:
+        return self._trials.wrapped_trials
+
+    @property
+    def smarttuning_trials(self) -> SmartTuningTrials:
         return self._trials
 
     def trials_as_documents(self):
         documents = []
         try:
             for trial in self.trials().trials:
-                params = space_eval(self._space, {k: v[0] for k, v in trial['misc'].get('vals', {}).items()})
+                params = self.eval_data({k: v[0] for k, v in trial['misc'].get('vals', {}).items()})
                 tid = trial['misc'].get('tid', -1)
                 loss = trial['result'].get('loss', float('inf'))
                 status = trial['result'].get('status', None)
@@ -154,7 +203,7 @@ class BayesianEngine:
 
     def objective(self, params):
         logger.debug(f'params at bayesian obj: {params}')
-        if self.stoped:
+        if self._stoped:
             return {
                 'iteration': 1,
                 'loss': float('inf'),
@@ -174,10 +223,11 @@ class BayesianEngine:
         loss = float('inf')
         classification = ''
         try:
-            BayesianChannel.put_out(self.id(), params)
+            configuration = Configuration(data=params, trials=self.smarttuning_trials)
+            BayesianChannel.put_out(self.id(), configuration)
             dto: BayesianDTO = BayesianChannel.get_in(self.id())
             loss = dto.metric.objective()
-            if dto.classification:
+            if not isinstance(dto, EmptyBayesianDTO):
                 classification = dto.classification
                 status = STATUS_OK
         except Exception:
@@ -197,7 +247,9 @@ class BayesianEngine:
             }
 
     def stop(self):
-        self.stoped = True
+        logger.warning('stopping bayesian engine')
+        self._stoped = True
+        self._running = False
 
     def get(self):
         parameters = BayesianChannel.get_out(self.id())
@@ -214,7 +266,7 @@ class BayesianEngine:
         """
         loss = self.trials().best_trial['result']['loss']
         best = self.trials().argmin
-        return space_eval(self._space, best), loss
+        return self.eval_data(best), loss
 
     def update_best_trial(self, value:float) -> float:
         try:

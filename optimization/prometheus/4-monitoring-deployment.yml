@@ -36,9 +36,9 @@ spec:
             - name: prometheus-storage-volume
               mountPath: /prometheus/
           resources:
-              limits:
-                memory: "8Gi"
-                cpu: "4"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
       volumes:
         - name: prometheus-config-volume
           configMap:

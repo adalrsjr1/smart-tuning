@@ -57,7 +57,9 @@ data:
   N_EI_CANDIDATES: '24'
   # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
   GAMMA: '0.25'
-  NUMBER_ITERATIONS: '60'
+  NUMBER_ITERATIONS: '55'
+  ITERATIONS_BEFORE_REINFORCE: '10'
+  REINFORCEMENT_RATIO: '0.3334'
   METRIC_THRESHOLD: '0.0'
   RANDOM_SEED: '31'
   ## the objective is always to minimize
@@ -99,7 +101,7 @@ spec:
                       - docker-desktop
       containers:
         - name: smarttuning
-          image: smarttuning/smarttuning
+          image: quay.io/smarttuning/smarttuning:dev
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
@@ -109,6 +111,8 @@ spec:
           volumeMounts:
             - mountPath: /etc/smart-tuning
               name: smarttuning-config
+          securityContext:
+            privileged: true
       volumes:
         - name: smarttuning-config
           configMap:

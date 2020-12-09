@@ -23,7 +23,9 @@ spec:
       restartPolicy: Always
       containers:
         - name: daytrader
-          image: smarttuning/daytrader8-k8s
+          image: smarttuning/daytrader8-db2   # update port to 50000
+#          image: smarttuning/daytrader8-derby # update port to 1527
+#          image: smarttuning/daytrader8-embd
           imagePullPolicy: IfNotPresent
 #          lifecycle:
 #            postStart:

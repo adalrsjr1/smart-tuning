@@ -87,7 +87,7 @@ class DeploymentSearchSpaceModel:
         logger.info(f'search space: {model}')
         return model
 
-    def get_current_config(self):
+    def get_current_config(self) -> (dict, dict):
         api_instance = config.appsApi()
         deployment: V1Deployment = api_instance.read_namespaced_deployment(name=self.name, namespace=self.namespace)
 
@@ -107,9 +107,26 @@ class DeploymentSearchSpaceModel:
             config_limits['cpu'] += float(quantity.parse_quantity(limits.get('cpu',0)))
             config_limits['memory'] += float(quantity.parse_quantity(limits.get('memory', 0))) / (2**20)
 
-        return config_limits
+        keys = set(config_limits.keys()).intersection(set(self.tunables.keys()))
 
+        valued_default_config = {}
+        indexed_default_config = {}
+        # if Option set index to default config
+        # otherwise set values
+        for k,v in config_limits.items():
+            if k in keys and k in self.tunables:
+                valued_default_config[k] = v
+                if isinstance(self.tunables[k], OptionRangeModel):
+                    index_of_value = self.tunables[k].index_of_value(v)
+                    if index_of_value < 0:
+                        # in not exists set first option
+                        indexed_default_config[k] = 0
+                    else:
+                        indexed_default_config[k] = index_of_value
+                else:
+                    indexed_default_config[k] = v
 
+        return indexed_default_config, valued_default_config
 
     def patch(self, new_config: dict, production=False):
         api_instance = config.appsApi()
@@ -120,7 +137,11 @@ class DeploymentSearchSpaceModel:
         containers = deployment.spec.template.spec.containers
 
         total_cpu = new_config.get('cpu', None)
+        if total_cpu == 0:
+            total_cpu = None
         total_memory = new_config.get('memory', None)
+        if total_memory == 0:
+            total_memory = None
 
         container: V1Container
         for container in containers:
@@ -201,10 +222,29 @@ class ConfigMapSearhSpaceModel:
 
         return model
 
-    def get_current_config(self):
+    def get_current_config(self) -> (dict, dict):
         coreApi = config.coreApi()
         configMap: V1ConfigMap = coreApi.read_namespaced_config_map(name=self.name, namespace=self.namespace)
-        return configMap.data
+        keys = set(configMap.data.keys()).intersection(set(self.tunables.keys()))
+
+        valued_default_config = {}
+        indexed_default_config = {}
+        # if Option set index to default config
+        # otherwise set values
+        for k, v in configMap.data.items():
+            if k in keys and k in self.tunables:
+                valued_default_config[k] = v
+                if isinstance(self.tunables[k], OptionRangeModel):
+                    index_of_value = self.tunables[k].index_of_value(v)
+                    if index_of_value < 0:
+                        # in not exists set first option
+                        indexed_default_config[k] = 0
+                    else:
+                        indexed_default_config[k] = index_of_value
+                else:
+                    indexed_default_config[k] = v
+
+        return indexed_default_config, valued_default_config
 
     def patch(self, new_config: dict, production=False):
         if self.filename == 'jvm.options':
@@ -394,10 +434,22 @@ class OptionRangeModel:
     def __repr__(self):
         return f'{{"name": "{self.name}, "type":{self.type}, "values": {json.dumps(self.values)} }}'
 
+    def index_of_value(self, value):
+        if self.type == 'integer':
+            value = str(int(value))
+        elif self.type == 'real':
+            value = str(float(value))
+        else:
+            value = str(value)
+
+        if value in self.values:
+            return self.values.index(value)
+
+        return -1
+
     def cast(self, values, new_type):
         to_bool = lambda x : bool(strtobool(x))
         types = {'integer': int, 'real': float, 'string': str, 'bool': to_bool}
-        print(f'>>> {new_type}: {values}')
         return [types[new_type](value) for value in values]
 
     def get_values(self):

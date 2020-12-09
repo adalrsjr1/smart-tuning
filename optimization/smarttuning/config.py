@@ -16,10 +16,13 @@ def print_config(toPrint=False):
         print('\n *** config loaded *** \n')
 
 K8S_HOST = 'trxrhel7perf-1'
-# K8S_HOST = 'localhost'
-K8S_CONF = '/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config'
 LOCALHOST = '9.26.100.254'
+
+# K8S_HOST = 'localhost'
 # LOCALHOST = 'localhost'
+
+K8S_CONF = '/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config'
+
 def init_k8s(hostname=K8S_HOST):
     if 'KUBERNETES_SERVICE_HOST' in os.environ:
         logging.info('loading K8S configuration')
@@ -37,6 +40,9 @@ def init_k8s(hostname=K8S_HOST):
 ## to disable loggers
 FORMAT = '%(asctime)-15s - %(name)-30s %(levelname)-7s - %(threadName)-30s: %(message)s'
 INJECTOR_LOGGER = 'injector.smarttuning.ibm'
+PLANNER_LOGGER = 'planner.smarttuning.ibm'
+CONFIGURATION_MODEL_LOGGER = 'configuration.smarttuning.ibm'
+SMARTTUNING_TRIALS_LOGGER = 'sttrials.smarttuning.ibm'
 # logging.getLogger('INJECTOR_LOGGER').addHandler(logging.NullHandler())
 # logging.getLogger('INJECTOR_LOGGER').propagate = False
 #
@@ -92,12 +98,15 @@ N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
 # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
 GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(float(os.environ.get('NUMBER_ITERATIONS', default='1e15'))) # check if hyperopt version is updated to use stop iterations
+ITERATIONS_BEFORE_REINFORCE = int(os.environ.get('ITERATIONS_BEFORE_REINFORCE', default='3'))
+REINFORCEMENT_RATIO = float(os.environ.get('REINFORCEMENT_RATIO', default='1.0'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
-OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='-throughput/(memory / 2 ** 20)'), '<string>', 'eval')
+# OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='-throughput/(memory / 2 ** 20)'), '<string>', 'eval')
+OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='memory'), '<string>', 'eval')
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
-WAITING_TIME = int(os.environ.get('WAITING_TIME', default='300'))
+WAITING_TIME = int(os.environ.get('WAITING_TIME', default='60'))
 GATEWAY_NAME = os.environ.get('GATEWAY_NAME', default='acmeair-nginxservice')
 
 # failfast threshold
@@ -106,17 +115,19 @@ THROUGHPUT_THRESHOLD = float(os.environ.get('THROUGHPUT_THRESHOLD', default='1.0
 QUANTILE = float(os.environ.get('QUANTILE', default='1.0'))
 
 # actuator config
-NAMESPACE = os.environ.get('NAMESPACE', 'uapp')
+NAMESPACE = os.environ.get('NAMESPACE', 'default')
 
-# deprecated -- to remove
-SEARCH_SPACE_NAME = os.environ.get('SEARCH_SPACE_NAME', default='default')
-NAMESPACE_PROD = os.environ.get('NAMESPACE_PROD', 'default')
-SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH', default='')
-CONFIGMAP_NAME = os.environ.get('CONFIGMAP_NAME', default='tuning-config')
-CONFIGMAP_PROD_NAME = os.environ.get('CONFIGMAP_PROD_NAME', default='tuning-config')
-POD_REGEX = os.environ.get(''
-                           'POD_REGEX', default='acmeair-.+servicessmarttuning-.+')
-POD_PROD_REGEX = os.environ.get('POD_PROD_REGEX', default='acmeair-.+services-.+')
+# # deprecated -- to remove
+# SEARCH_SPACE_NAME = os.environ.get('SEARCH_SPACE_NAME', default='default')
+# NAMESPACE_PROD = os.environ.get('NAMESPACE_PROD', 'default')
+# SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH', default='')
+# CONFIGMAP_NAME = os.environ.get('CONFIGMAP_NAME', default='tuning-config')
+# CONFIGMAP_PROD_NAME = os.environ.get('CONFIGMAP_PROD_NAME', default='tuning-config')
+# POD_REGEX = os.environ.get(''
+#                            'POD_REGEX', default='acmeair-.+servicessmarttuning-.+')
+# POD_PROD_REGEX = os.environ.get('POD_PROD_REGEX', default='acmeair-.+services-.+')
+
+
 print_config(PRINT_CONFIG)
 _executor = None
 _client = None
