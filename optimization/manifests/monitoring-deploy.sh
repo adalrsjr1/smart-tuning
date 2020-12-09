@@ -1,7 +1,7 @@
 #!/bin/bash
 if [[ "$#" -ne 1 ]]; then
-  echo "args: missing path for --kubeconfig, using default at ~/.kube/config"
-  $1="$HOME/.kube/config"
+  echo "args: missing path for --kubeconfig"
+  exit 1
 fi
 
 echo -e "deploying reloader\n"
@@ -17,7 +17,7 @@ echo -e "\ndeploying searchspace\n"
 kubectl apply --kubeconfig=$1 -f  search-space/search-space-crd-2.yaml
 sleep 1
 echo -e "\ndeploying proxy config\n"
-kubectl apply --kubeconfig=$1 -f proxy-config.yaml
+kubectl apply --kubeconfig=$1.yaml
 sleep 1
 echo -e "\ndeploying mongo\n"
 kubectl apply --kubeconfig=$1 -f  mongo-deployment.yaml
