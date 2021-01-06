@@ -139,7 +139,6 @@ class Planner:
 
                 self.save_trace(reinforcement=True)
 
-                best = self.best_configuration()
                 logger.debug(f'best: {best}')
                 logger.debug(f'old_best: {old_best}')
                 restart_if_poor_perf(self.production)
@@ -147,20 +146,29 @@ class Planner:
 
                 if self.training.configuration.median() >= self.production.configuration.median():
                 # if best is not old_best or self.training.config_counter >= self.reinforcement_iterations():
-                    # iterate with the same config at training replica no more than # of reinforcement iterations
-                    # neiter if the best config has changed
-                    break
+                    logger.info(f'best config candidate is not the best anymore')
+                    logger.info(f'old_best: {old_best}')
+                    logger.info(f'new_best: {best}')
+                    best = self.best_configuration()
 
             # restart_if_poor_perf(self.production)
 
-            logger.info(f'reinforcing training best.name:{best.name} prod.name:{self.production.configuration.name}')
-            if best is old_best and best is not self.production.configuration:
+            logger.info(f'prod.name:{self.production.configuration.name}')
+            logger.info(f'train.name:{self.training.configuration.name}')
+
+            logger.debug(f'is the best config != old config? {best is not old_best}')
+            logger.debug(f'is the best config != prod config? {best is not self.production.configuration}')
+            if best is not old_best and best is not self.production.configuration:
+            # if best is old_best and best is not self.production.configuration:
                 # makes prod.config == train.config iff teh best config previous selectec remains the best
+                logger.info(f'making prod.config == train.config')
                 logger.debug(f'new config to reinforce: {best.name}:{best.data}')
 
                 old_config = self.production.configuration
                 self.production.configuration = best
                 self.training.configuration = best
+                logger.info(f'[p]: {self.production.configuration.name}')
+                logger.info(f'[t]: {self.production.configuration.name}')
 
                 for i in range(self.reinforcement_iterations()):
                     logger.info(f' *** {i}th reinforcing iteration ***')
