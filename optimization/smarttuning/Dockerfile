@@ -1,4 +1,4 @@
-FROM python:3.8-alpine AS builder
+FROM python:3.9-alpine AS builder
 ENV PATH=$PATH:/root/.local/bin
 COPY requirements.txt .
 RUN /usr/local/bin/python -m pip install --upgrade pip
@@ -6,7 +6,7 @@ RUN apk --no-cache --update-cache add gcc gfortran build-base wget freetype-dev 
 RUN ln -s /usr/include/locale.h /usr/include/xlocale.h
 RUN pip wheel --no-cache-dir --wheel-dir=/root/wheels -r requirements.txt
 
-FROM python:3.8-alpine
+FROM python:3.9-alpine
 ENV PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING=UTF-8 \
     PYTHONHASHSEED=31 \

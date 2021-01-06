@@ -12,6 +12,9 @@ from bayesian import BayesianDTO
 from controllers import injector, searchspace
 from controllers.k8seventloop import EventLoop
 from controllers.searchspace import SearchSpaceContext
+from controllers.planner import Planner
+from models.instance import Instance
+from models.configuration import Configuration, EmptyConfiguration
 from seqkmeans import Container, KmeansContext, Metric, Cluster
 
 logger = logging.getLogger(config.APP_LOGGER)
@@ -103,9 +106,6 @@ def create_contexts(microservices):
         for future in contexts.values():
             future.cancel()
 
-from controllers.planner import Planner
-from models.instance import Instance
-from models.configuration import Configuration, EmptyConfiguration
 
 
 def create_context(production_microservice, training_microservice):

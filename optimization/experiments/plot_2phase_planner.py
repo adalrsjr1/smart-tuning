@@ -297,7 +297,10 @@ if __name__ == '__main__':
     # df = load_raw_data('./resources/trace-2020-12-25T00 03 02.json') # why not t-test
     # df = load_raw_data('./resources/trace-2020-12-26T00 40 35.json')
     # df = load_raw_data('./resources/trace-2020-12-28T00 27 18.json')
-    df = load_raw_data('./resources/trace-2020-12-28T20 30 56.json')
+    # df = load_raw_data('./resources/trace-2020-12-28T20 30 56.json')
     # df = load_raw_data('./resources/trace-2021-01-02T23 47 40.json')
+    # df = load_raw_data('./resources/trace-2021-01-05T19 06 26.json')
+    df = load_raw_data('./resources/trace-2021-01-06T00 41 25.json')
+
 
     plot(df, title='Daytrader',save=False)

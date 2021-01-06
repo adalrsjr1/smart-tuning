@@ -32,6 +32,7 @@ class Instance:
         self._active = True
         self._curr_config = None
         self._last_config = None
+        self._config_counter = 0
 
         self._cache = {}
 
@@ -73,8 +74,15 @@ class Instance:
     def configuration(self) -> Configuration:
         return self._curr_config
 
+    @property
+    def config_counter(self):
+        return self._config_counter
+
     @configuration.setter
     def configuration(self, new_config: Configuration):
+        self._config_counter += 1
+        if self._curr_config is not new_config:
+            self._config_counter = 0
         self._cache = {}
         self._last_config = self._curr_config
         self._curr_config = new_config

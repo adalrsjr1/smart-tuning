@@ -69,6 +69,7 @@ def __compare__(histograms:pd.Series, threshold:int):
             self.value += value
 
     if len(histograms) > 0:
+        # groups similar urls
         for hist1, i in histograms.items():
             for hist2, j in histograms.items():
                 if __fuzzy_string_comparation__(hist1, hist2, threshold):

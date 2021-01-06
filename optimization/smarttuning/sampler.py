@@ -345,6 +345,7 @@ class PrometheusSampler:
         """
         logger.debug(f'sampling urls at {self.podname}-.* in {self.namespace}')
 
+        # values between 0.0 and 1.0
         query = f'sum by (path)(rate(smarttuning_http_requests_total{{namespace="{self.namespace}", pod=~"{self.podname}-.*"}}[{self.interval}s]))' \
                 f' / ignoring ' \
                 f'(path) group_left sum(rate(smarttuning_http_requests_total{{namespace="{self.namespace}", pod=~"{self.podname}-.*"}}[{self.interval}s]))'

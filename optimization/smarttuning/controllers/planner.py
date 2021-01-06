@@ -16,8 +16,10 @@ from util.stats import RunningStats
 
 logger = logging.getLogger(config.PLANNER_LOGGER)
 logger.setLevel(config.LOGGING_LEVEL)
+
+
 class Planner:
-    def __init__(self, production: Instance, training: Instance, ctx:SearchSpaceContext, k:int, ratio:float=1):
+    def __init__(self, production: Instance, training: Instance, ctx: SearchSpaceContext, k: int, ratio: float = 1):
         self._date = datetime.datetime.now(datetime.timezone.utc).isoformat()
         self.training = training
         self.production = production
@@ -25,8 +27,8 @@ class Planner:
         self.k = k
         self.ratio = ratio
 
-        self.heap1:list[Configuration] = []
-        self.heap2:list[Configuration] = []
+        self.heap1: list[Configuration] = []
+        self.heap2: list[Configuration] = []
 
         self._iteration = 0
 
@@ -47,10 +49,10 @@ class Planner:
 
         try:
             collection.insert_one({
-                'iteration':self.iteration,
+                'iteration': self.iteration,
                 'reinforcement': reinforcement,
-                'production':self.production.serialize(),
-                'training':self.training.serialize(),
+                'production': self.production.serialize(),
+                'training': self.training.serialize(),
             })
         except:
             logger.exception('error when saving data')
@@ -61,16 +63,15 @@ class Planner:
 
     def iterate(self) -> (Configuration, bool):
         def restart_if_poor_perf(instance: Instance):
-            # logger.info(f'checking if {instance.name} need restart -- score:{instance.configuration.score} in mean:{instance.configuration.mean():.2f} ± {instance.configuration.stddev():.2f}')
-            logger.info(f'checking if {instance.name} need restart -- score:{instance.configuration.score} in median:{instance.configuration.median():.2f}')
+            logger.info(
+                f'checking if {instance.name} need restart -- score:{instance.configuration.score} in median:{instance.configuration.median():.2f}')
             # !!!! always minimization -- so if objective is too large (if negative close to 0) so restart !!!!
             if instance.configuration.score == 0 or instance.configuration.score > instance.configuration.median():
-            # if instance.metrics(cached=True).objective() > instance.configuration.mean() + instance.configuration.stddev():
-            #     logger.warning(f'[{self.iteration}] poor perf [perf:{instance.metrics(cached=True).objective()} > mean{instance.configuration.mean()}:std:{instance.configuration.stddev()}] at {instance.name} -- restarting')
-                logger.warning(f'[{self.iteration}] poor perf [perf:{instance.configuration.score} > median{instance.configuration.median()}] at {instance.name} -- restarting')
+                logger.warning(
+                    f'[{self.iteration}] poor perf [perf:{instance.configuration.score} > median{instance.configuration.median()}] at {instance.name} -- restarting')
                 instance.restart()
 
-        end_of_tuning:bool = False
+        end_of_tuning: bool = False
         logger.info(f'[{self.iteration}] iteration')
         config_to_apply = self.ctx.get_from_engine()
 
@@ -84,7 +85,8 @@ class Planner:
             end_of_tuning = True
 
         self.training.configuration = config_to_apply
-        logger.debug(f'setting new config into training "{self.training.configuration.name}":{self.training.configuration.data}')
+        logger.debug(
+            f'setting new config into training "{self.training.configuration.name}":{self.training.configuration.data}')
 
         t_metric, p_metric = self.wait_for_metrics(self.training.default_sample_interval)
         logger.debug(f'sampling metrics')
@@ -93,7 +95,7 @@ class Planner:
 
         if self.iteration == 0:
             # initialize trials with the default configuration set to production replica
-            # not metrics into this config
+            # no metrics into this config
             self.production.set_default_config(p_metric)
 
         self.production.update_configuration_score(p_metric)
@@ -116,28 +118,44 @@ class Planner:
 
         best: Configuration = self.best_configuration()
         logger.debug(f'best: {best}')
+
         self.save_trace()
         if end_of_tuning or (self.iteration >= self.k and self.iteration % self.k == 0):
-            # ensure if the selected config is realy the best
+            # ensure if the selected config is realy the best running it n times at training replica
 
             self.training.configuration = best
-            t_metric, p_metric = self.wait_for_metrics(self.training.default_sample_interval)
-            logger.debug(f'sampling metrics dry run')
-            logger.debug(f'[t] {t_metric.serialize()}')
-            logger.debug(f'[p] {p_metric.serialize()}')
-
-            self.update_heap(self.heap1, self.production.configuration)
-            self.update_heap(self.heap1, self.training.configuration)
-
-            self.save_trace(reinforcement=True)
-
             old_best: Configuration = best
-            best = self.best_configuration()
+            for i in range(self.reinforcement_iterations()):
+                t_metric, p_metric = self.wait_for_metrics(self.training.default_sample_interval)
+                logger.debug(f'[{i}] sampling metrics dry run')
+                logger.debug(f'[t] {t_metric.serialize()}')
+                logger.debug(f'[p] {p_metric.serialize()}')
 
-            restart_if_poor_perf(self.production)
+                self.production.update_configuration_score(p_metric)
+                self.training.update_configuration_score(t_metric)
+
+                self.update_heap(self.heap1, self.production.configuration)
+                self.update_heap(self.heap1, self.training.configuration)
+
+                self.save_trace(reinforcement=True)
+
+                best = self.best_configuration()
+                logger.debug(f'best: {best}')
+                logger.debug(f'old_best: {old_best}')
+                restart_if_poor_perf(self.production)
+                restart_if_poor_perf(self.training)
+
+                if self.training.configuration.median() >= self.production.configuration.median():
+                # if best is not old_best or self.training.config_counter >= self.reinforcement_iterations():
+                    # iterate with the same config at training replica no more than # of reinforcement iterations
+                    # neiter if the best config has changed
+                    break
+
+            # restart_if_poor_perf(self.production)
 
             logger.info(f'reinforcing training best.name:{best.name} prod.name:{self.production.configuration.name}')
-            if best is old_best and not best is self.production.configuration:
+            if best is old_best and best is not self.production.configuration:
+                # makes prod.config == train.config iff teh best config previous selectec remains the best
                 logger.debug(f'new config to reinforce: {best.name}:{best.data}')
 
                 old_config = self.production.configuration
@@ -219,7 +237,7 @@ class Planner:
         # nsmallest returns a list, so returns its head
         return heapq.nsmallest(1, best_concat)[0]
 
-    def update_heap(self, heap:list, configuration: Configuration):
+    def update_heap(self, heap: list, configuration: Configuration):
         c: Configuration
         logger.debug('loopping through heap1')
         add_to_heap1 = True
@@ -254,7 +272,7 @@ class Planner:
         elif add_to_heap2 and heap is self.heap2:
             heapq.heappush(heap, configuration)
 
-    def wait_for_metrics(self, interval:int, n_sampling_subintervals:int=3, logging_subinterval:float=0.2):
+    def wait_for_metrics(self, interval: int, n_sampling_subintervals: int = 3, logging_subinterval: float = 0.2):
         """
         wait for metrics in a given interval (s) logging at every interval * subinterval (s)
 
@@ -276,7 +294,7 @@ class Planner:
 
         t_metric = Metric.zero()
         p_metric = Metric.zero()
-        logger.debug(f' *** waiting {(interval*n_sampling_subintervals):.2f}s *** ')
+        logger.debug(f' *** waiting {(interval * n_sampling_subintervals):.2f}s *** ')
         t_running_stats = RunningStats()
         p_running_stats = RunningStats()
         for i in range(3):
@@ -294,19 +312,25 @@ class Planner:
             p_metric = self.production.metrics()
             t_running_stats.push(t_metric.objective())
             p_running_stats.push(p_metric.objective())
-            logger.info(f'\t \- prod_mean:{p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} prod_median:{p_running_stats.median()}')
-            logger.info(f'\t \- train_mean:{t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f} train_median: {t_running_stats.median()}')
+            logger.info(
+                f'\t \- prod_mean:{p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} prod_median:{p_running_stats.median()}')
+            logger.info(
+                f'\t \- train_mean:{t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f} train_median: {t_running_stats.median()}')
 
             if i == 0:
                 continue
 
             # TODO: Is this fail fast working as expected?
-            if (t_running_stats.mean() + t_running_stats.standard_deviation()) > (p_running_stats.mean() + p_running_stats.standard_deviation()):
-                logger.warning(f'\t |- [T] fail fast -- prod: {p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} train: {t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f}')
+            if (t_running_stats.mean() + t_running_stats.standard_deviation()) > (
+                    p_running_stats.mean() + p_running_stats.standard_deviation()):
+                logger.warning(
+                    f'\t |- [T] fail fast -- prod: {p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} train: {t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f}')
                 break
 
-            if (p_running_stats.mean() + p_running_stats.standard_deviation()) > (t_running_stats.mean() - t_running_stats.standard_deviation()):
-                logger.warning(f'\t |- [P] fail fast -- prod: {p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} train: {t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f}')
+            if (p_running_stats.mean() + p_running_stats.standard_deviation()) > (
+                    t_running_stats.mean() - t_running_stats.standard_deviation()):
+                logger.warning(
+                    f'\t |- [P] fail fast -- prod: {p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} train: {t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f}')
                 break
 
             # if p_metric.objective()/2 < t_metric.objective():
