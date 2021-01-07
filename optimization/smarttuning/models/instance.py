@@ -21,14 +21,15 @@ class Instance:
                  namespace:str,
                  is_production:bool,
                  sample_interval_in_secs:int,
-                 ctx: SearchSpaceContext):
+                 ctx: SearchSpaceContext,
+                 sampler:PrometheusSampler=None):
 
         self._name = name
         self._namespace = namespace
         self._is_production = is_production
         self._ctx:SearchSpaceContext = ctx
         self._default_sample_interval = sample_interval_in_secs
-        self._sampler:PrometheusSampler = PrometheusSampler(self.name, self._default_sample_interval)
+        self._sampler:PrometheusSampler = PrometheusSampler(self.name, self._default_sample_interval) if sampler is None else sampler
         self._active = True
         self._curr_config = None
         self._last_config = None
