@@ -26,6 +26,9 @@ class Configuration:
         self._trials = trials
         self._uid = self._trials.last_uid()
 
+    def __hash__(self):
+        return hash(self.name)
+
     def __lt__(self, other:Configuration):
         return self.stats.median() < other.stats.median()
 
