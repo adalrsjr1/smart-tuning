@@ -5,6 +5,7 @@ import heapq
 import logging
 import math
 import time
+import typing
 
 import config
 from bayesian import BayesianDTO, EmptyBayesianDTO
@@ -39,7 +40,7 @@ class Planner:
     def reinforcement_iterations(self):
         return int(round(self.k * self.ratio))
 
-    def save_trace(self, reinforcement=False):
+    def save_trace(self, reinforcement=False, best:list[dict]=[{}]):
         logger.info(f'saving tuning trace')
         if not config.ping(config.MONGO_ADDR, config.MONGO_PORT):
             logger.warning(f'cannot save logging -- mongo unable at {config.MONGO_ADDR}:{config.MONGO_PORT}')
@@ -50,6 +51,7 @@ class Planner:
         try:
             collection.insert_one({
                 'iteration': self.iteration,
+                'best': best,
                 'reinforcement': reinforcement,
                 'production': self.production.serialize(),
                 'training': self.training.serialize(),
@@ -119,7 +121,7 @@ class Planner:
         best: Configuration = self.best_configuration()
         logger.debug(f'best: {best}')
 
-        self.save_trace()
+        self.save_trace(best=[_best_.serialize() for _best_ in self.best_configuration(n=3)])
         if end_of_tuning or (self.iteration >= self.k and self.iteration % self.k == 0):
             # ensure if the selected config is realy the best running it n times at training replica
 
@@ -137,36 +139,41 @@ class Planner:
                 self.update_heap(self.heap1, self.production.configuration)
                 self.update_heap(self.heap1, self.training.configuration)
 
-                self.save_trace(reinforcement=True)
+                self.save_trace(reinforcement='prod!=train', best=[_best_.serialize() for _best_ in self.best_configuration(n=3)])
 
-                logger.debug(f'best: {best}')
-                logger.debug(f'old_best: {old_best}')
+                # logger.debug(f'best: {best}')
+                # logger.debug(f'old_best: {old_best}')
+
+                # if self.training.configuration.median() >= self.production.configuration.median():
+                # # if best is not old_best or self.training.config_counter >= self.reinforcement_iterations():
+                #     logger.info(f'best config candidate is not the best anymore t:{self.training.configuration.median()} >= p:{self.production.configuration.median()}')
+                curr_best = self.best_configuration()
+                logger.info(f'[dry run] old_best: {old_best}')
+                logger.info(f'[dry run] new_best: {curr_best}')
+
                 restart_if_poor_perf(self.production)
                 restart_if_poor_perf(self.training)
 
-                if self.training.configuration.median() >= self.production.configuration.median():
-                # if best is not old_best or self.training.config_counter >= self.reinforcement_iterations():
-                    logger.info(f'best config candidate is not the best anymore')
-                    logger.info(f'old_best: {old_best}')
-                    logger.info(f'new_best: {best}')
-                    best = self.best_configuration()
 
             # restart_if_poor_perf(self.production)
 
             logger.info(f'prod.name:{self.production.configuration.name}')
             logger.info(f'train.name:{self.training.configuration.name}')
 
-            logger.debug(f'is the best config != old config? {best is not old_best}')
-            logger.debug(f'is the best config != prod config? {best is not self.production.configuration}')
-            if best is not old_best and best is not self.production.configuration:
+            # logger.debug(f'is the best config == old config? {best is old_best}')
+            # logger.debug(f'is the best config != prod config? {best is not self.production.configuration}')
+            logger.debug(f'is train.median better than prod.median? '
+                         f'{self.training.configuration.median() < self.production.configuration.median()}')
+            if old_best is not self.production.configuration and self.training.configuration.median() < self.production.configuration.median():
+            # if best is not old_best and best is not self.production.configuration:
             # if best is old_best and best is not self.production.configuration:
                 # makes prod.config == train.config iff teh best config previous selectec remains the best
                 logger.info(f'making prod.config == train.config')
-                logger.debug(f'new config to reinforce: {best.name}:{best.data}')
+                logger.debug(f'new config to reinforce: {old_best.name}:{old_best.data}')
 
                 old_config = self.production.configuration
-                self.production.configuration = best
-                self.training.configuration = best
+                self.production.configuration = old_best
+                self.training.configuration = old_best
                 logger.info(f'[p]: {self.production.configuration.name}')
                 logger.info(f'[t]: {self.production.configuration.name}')
 
@@ -191,7 +198,7 @@ class Planner:
                     logger.debug(f'heap1: {self.heap1}')
                     logger.debug(f'heap2: {self.heap2}')
 
-                    self.save_trace(reinforcement=True)
+                    self.save_trace(reinforcement='prod==train', best=[_best_.serialize() for _best_ in self.best_configuration(n=3)])
 
                     # if i < self.k-1:
                     #     # no need restart if last iteration, it will check this check again out of this loop
@@ -235,15 +242,22 @@ class Planner:
         # returns best config applyed to production
         return self.production.configuration, end_of_tuning
 
-    def best_configuration(self) -> Configuration:
-        best1 = heapq.nsmallest(1, self.heap1)
-        logger.debug(f'best1: {best1}')
-        best2 = heapq.nsmallest(1, self.heap2)
-        logger.debug(f'best2: {best2}')
-        best_concat = best1 + best2
-        heapq.heapify(best_concat)
+    def best_configuration(self, n=1, return_array=False) -> typing.Union[Configuration, list[Configuration]]:
+        if n == 0:
+            logger.warning('n must be > 0, setting 1')
+            n = 1
+        tmp = list(set(self.heap1, self.heap2))
+        heapq.heapify(tmp)
+        # best1 = heapq.nsmallest(n, self.heap1)
+        # logger.debug(f'best1: {best1}')
+        # best2 = heapq.nsmallest(n, self.heap2)
+        # logger.debug(f'best2: {best2}')
+        # best_concat = best1 + best2
+        # heapq.heapify(best_concat)
         # nsmallest returns a list, so returns its head
-        return heapq.nsmallest(1, best_concat)[0]
+        if n > 1 or return_array:
+            return heapq.nsmallest(n, tmp)
+        return heapq.nsmallest(n, tmp)[0]
 
     def update_heap(self, heap: list, configuration: Configuration):
         c: Configuration
