@@ -116,7 +116,7 @@ class Metric:
     def __init__(self, name='', f_cpu: Future = None, cpu: Number = None, f_memory: Future = None,
                  memory: Number = None, f_throughput: Future = None, throughput: Number = None,
                  f_process_time: Future = None, process_time: Number = None, f_errors: Future = None,
-                 errors: Number = None, f_in_out=None, to_eval=config.OBJECTIVE, in_out=None):
+                 errors: Number = None, f_in_out=None, to_eval='', in_out=None):
         self.name = name
         self._f_cpu = f_cpu
         self._cpu = cpu
@@ -130,7 +130,7 @@ class Metric:
         self._errors = errors
         self._f_in_out = f_in_out
         self._in_out = in_out
-        self.to_eval = to_eval
+        self.to_eval = to_eval if len(to_eval) > 0 else config.OBJECTIVE
 
     _instance = None
 
@@ -176,13 +176,14 @@ class Metric:
             return Metric(name=f'{self.name}_{other.name}', cpu=op(self.cpu(), other.cpu()), memory=op(self.memory(), other.memory()),
                           throughput=op(self.throughput(), other.throughput()),
                           process_time=op(self.process_time(), other.process_time()),
-                          errors=op(self.errors(), other.errors()), in_out=op(self.in_out(), other.in_out()))
+                          errors=op(self.errors(), other.errors()), in_out=op(self.in_out(), other.in_out()),
+                          to_eval=self.to_eval)
 
         if isinstance(other, Number):
             logger.debug("op(Metric, Scalar)")
             return Metric(name=f'{self.name}_{other}', cpu=op(self.cpu(), other), memory=op(self.memory(), other),
                           throughput=op(self.throughput(), other), process_time=op(self.process_time(), other),
-                          errors=op(self.errors(), other), in_out=op(self.in_out(), other))
+                          errors=op(self.errors(), other), in_out=op(self.in_out(), other), to_eval=self.to_eval)
 
         raise TypeError(f'other is {type(other)} and it should be a scalar or a Metric type')
 

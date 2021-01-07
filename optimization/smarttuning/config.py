@@ -21,7 +21,7 @@ LOCALHOST = '9.26.100.254'
 # K8S_HOST = 'localhost'
 # LOCALHOST = 'localhost'
 
-K8S_CONF = '/Users/adalbertoibm.com/.kube/trxrhel7perf-1/config'
+K8S_CONF = f'{os.environ.get("HOME")}/.kube/trxrhel7perf-1/config'
 
 def init_k8s(hostname=K8S_HOST):
     if 'KUBERNETES_SERVICE_HOST' in os.environ:
@@ -103,7 +103,7 @@ REINFORCEMENT_RATIO = float(os.environ.get('REINFORCEMENT_RATIO', default='1.0')
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
 # OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='-throughput/(memory / 2 ** 20)'), '<string>', 'eval')
-OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='memory'), '<string>', 'eval')
+OBJECTIVE = str(os.environ.get('OBJECTIVE', default='memory'))
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
 WAITING_TIME = int(os.environ.get('WAITING_TIME', default='60'))
