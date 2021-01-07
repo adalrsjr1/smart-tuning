@@ -46,14 +46,15 @@ def load_raw_data(filename:str) -> pd.DataFrame:
                 math.fabs(record['training']['curr_config']['stats']['median']),
                 math.fabs(record['training']['curr_config']['stats']['min']),
                 math.fabs(record['training']['curr_config']['stats']['max']),
-                record['training']['curr_config']['stats']['stddev']
+                record['training']['curr_config']['stats']['stddev'],
+                {chr(i+97):best['name'][:3] for i, best in enumerate(record['best'])} if 'best' in record else []
             ).__dict__)
     return pd.DataFrame(raw_data).reset_index()
 
 class Iteration:
     def __init__(self, iteration,
                  pname, pscore, pmean, pmedian, pmin, pmax, pstddev,
-                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev):
+                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev, nbest):
         self.pname = pname
         self.pscore = pscore
         self.pmean = pmean
@@ -69,6 +70,7 @@ class Iteration:
         self.tmax = tmin
         self.tstddev = tstddev
         self.iteration = iteration
+        self.nbest = nbest
 
 def plot(df: pd.DataFrame, title:str,save:bool=False):
     # use generate a color pallete
@@ -137,14 +139,30 @@ def plot(df: pd.DataFrame, title:str,save:bool=False):
     newline_yspan([-0.5, 0], [-0.5, top+10], ax)
 
 
-    ax = reduced_table.plot(ax=ax, x='index', y='pmean', color='black', marker='o', markersize=3, yerr='pstddev', linewidth=0, elinewidth=0.7, capsize=3)
     ax = reduced_table.plot(ax=ax, x='index', y='pmedian', color='yellow', marker='^', markersize=3, linewidth=0)
+    ax = reduced_table.plot(ax=ax, x='index', y='pmean', color='black', marker='o', markersize=3, yerr='pstddev', linewidth=0, elinewidth=0.7, capsize=3)
+    ax = reduced_table.plot(ax=ax, x='index', y='tmedian', color='lime', marker='^', markersize=3, linewidth=0)
     ax = reduced_table.plot(ax=ax, x='index', y='pscore', marker='*', markersize=4, color='red', linewidth=0)
     ax.set_ylim(ymin=0)# customize x-ticks
-    ax.xaxis.set_ticks(reduced_table['index'])
+    ax.xaxis.set_ticks([])
+    ax.set_xlabel('')
+    ax.margins(x=0)
+    import pandas.plotting as plotting
+    # table = reduced_table['nbest'].T.to_numpy()
+    # print(table)
+    table = pd.DataFrame(reduced_table['nbest'].to_dict())
+    table = table.fillna(value='')
+    plt_table = ax.table(cellText=table.to_numpy().reshape(3,-1), rowLoc='center',
+             rowLabels=['1st','2nd','3rd'], colLabels=reduced_table['index'],
+             # colWidths=[.5,.5],
+             cellLoc='center',
+             colLoc='center', loc='bottom')
+    plt_table.set_fontsize('x-small')
+    # reduced_table.plot(table=np.array(reduced_table['nbest'].T), ax=ax)
 
     # customize legend
     handles, labels = ax.get_legend_handles_labels()
+    handles.pop()
     handles.pop()
     handles.pop()
     handles.pop()
@@ -152,6 +170,8 @@ def plot(df: pd.DataFrame, title:str,save:bool=False):
         mlines.Line2D([], [], color='black', marker='o', markersize=4, linestyle='-', linewidth=0.7))
     handles.append(
         mlines.Line2D([], [], color='yellow', marker='^', linestyle='None'))
+    handles.append(
+        mlines.Line2D([], [], color='lime', marker='^', linestyle='None'))
     handles.append(
         mlines.Line2D([], [], color='red', marker='*', linestyle='None'))
     handles.append(
@@ -164,6 +184,7 @@ def plot(df: pd.DataFrame, title:str,save:bool=False):
     ax.legend(handles, [
         'avg. of config. \'abc\' in prod',
         'median of config \'abc\' in prod',
+        'median of config \'abc\' in train',
         'prod. value at n-th iteration',
         'train. value at n-th iteration',
         'residual (*:prod, X:train), $y_i - \overline{Y_i}$',
@@ -172,8 +193,8 @@ def plot(df: pd.DataFrame, title:str,save:bool=False):
     ax.set_title(title, loc='left')
     ax.set_ylabel('requests/$')
 
-    plt.text(0.13, 0.85, 'train.\nconfig.', fontsize='smaller', transform=plt.gcf().transFigure)
-    plt.text(0.13, 0.12, 'prod.\nconfig.', fontsize='smaller', transform=plt.gcf().transFigure)
+    plt.text(0.08, 0.85, 'train.\nconfig.', fontsize='smaller', transform=plt.gcf().transFigure)
+    plt.text(0.08, 0.12, 'prod.\nconfig.', fontsize='smaller', transform=plt.gcf().transFigure)
 
     if save:
         fig = plt.gcf()
@@ -300,7 +321,8 @@ if __name__ == '__main__':
     # df = load_raw_data('./resources/trace-2020-12-28T20 30 56.json')
     # df = load_raw_data('./resources/trace-2021-01-02T23 47 40.json')
     # df = load_raw_data('./resources/trace-2021-01-05T19 06 26.json')
-    df = load_raw_data('./resources/trace-2021-01-06T00 41 25.json')
+    # df = load_raw_data('./resources/trace-2021-01-06T00 41 25.json')
+    df = load_raw_data('./resources/trace-2021-01-07T17 05 39.json')
 
 
     plot(df, title='Daytrader',save=False)
