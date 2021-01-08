@@ -36,7 +36,8 @@ class Configuration:
         return self.stats.median() > other.stats.median()
 
     def __eq__(self, other:Configuration):
-        return self.stats == other.stats
+        # return self.stats == other.stats
+        return self.name == other.name
 
     def __str__(self):
         return f'{{"name":{self.name}, "uid":{self.uid}, "score":{self.score}, "mean":{self.mean()}, "std":{self.stddev()}, "median":{self.median()}}}'

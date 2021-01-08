@@ -16,11 +16,15 @@ from models.smartttuningtrials import SmartTuningTrials
 from sampler import Metric
 
 
+
 def metric(production=True):
     # pmetrics = sampler_pmetric()
     # tmetrics = sampler_tmetric()
+    counter = 0
     def anonymous():
         # raw_metric = next(pmetrics) if production else next(tmetrics)
+        global counter
+        counter += 1
         return Metric(
             name='',
             # cpu=raw_metric['cpu'],
@@ -28,7 +32,8 @@ def metric(production=True):
             # throughput=raw_metric['throughput'],
             # process_time=raw_metric['process_time'],
             # errors=raw_metric['errors'],
-            to_eval=f'{random.uniform(-random.uniform(500,300), 0)}'
+            # to_eval=f'{random.uniform(-random.uniform(500,300), -random.uniform(300,100))}'
+            to_eval=f'{counter}'
         )
 
     return anonymous
@@ -37,6 +42,7 @@ def metric(production=True):
 def smarttuning_trials():
     trials = Trials()
     strials = SmartTuningTrials(space={}, trials=trials)
+    strials.serialize = MagicMock()
     strials.new_hyperopt_trial_entry(configuration={}, loss=0, status=STATUS_OK, classification='')
     return strials
 
@@ -63,7 +69,8 @@ def get_from_engine():
 
 counter = 0
 
-
+c1 = 0
+c2 = 0
 def wait_for_metrics(planner: Planner):
     # pmetrics = next(sampler_pmetric())
     # tmetrics = sampler_tmetric()
@@ -90,13 +97,14 @@ def wait_for_metrics(planner: Planner):
         # except:
         #     p = Metric.zero()
         # return t, p
-        return Metric(to_eval=f'{random.uniform(-300, 0)}'), Metric(to_eval=f'{random.uniform(-300, 0)}')
+        return Metric(to_eval=f'{random.uniform(-300, -100)}'), Metric(to_eval=f'{random.uniform(-300, -100)}')
 
     return anonymous
 
 
 class TestPlanner(TestCase):
     def test_planner(self):
+        random.seed(123)
         ctx = MagicMock()
         ctx.get_current_config = get_current_config()
         ctx.get_from_engine = get_from_engine()
@@ -127,7 +135,9 @@ class TestPlanner(TestCase):
         p.restart = MagicMock(return_value=None)
 
         planner = Planner(p, t, ctx, k=10, ratio=0.3334)
-        planner.save_trace = MagicMock()
+        def annonymous(reinforcement=None, best=None):
+            print([cfg['name'] for cfg in best])
+        planner.save_trace = annonymous
         planner.wait_for_metrics = wait_for_metrics(planner)
 
         # tmetrics = sampler_tmetric()
@@ -137,7 +147,7 @@ class TestPlanner(TestCase):
 
         results = []
         try:
-            for _ in range(1000):
+            for _ in range(60):
                 c: tuple[Configuration, bool] = copy.deepcopy(next(planner))
                 results.append(f'{c[0].name}, {c[0].score:.2f}, {c[0].median():.2f}')
         finally:
@@ -146,15 +156,10 @@ class TestPlanner(TestCase):
 
 
 if __name__ == '__main__':
-    def reset_seeds():
-        random.seed(123)
-
-
-    reset_seeds()
-
-    SEED = 0
-    hashseed = os.getenv('PYTHONHASHSEED')
-    if not hashseed:
-        os.environ['PYTHONHASHSEED'] = str(SEED)
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+    # random.seed(123)
+    # SEED = 0
+    # hashseed = os.getenv('PYTHONHASHSEED')
+    # if not hashseed:
+    #     os.environ['PYTHONHASHSEED'] = str(SEED)
+    #     os.execv(sys.executable, [sys.executable] + sys.argv)
     unittest.main()

@@ -71,6 +71,7 @@ class Planner:
             if instance.configuration.score == 0 or instance.configuration.score > instance.configuration.median():
                 logger.warning(
                     f'[{self.iteration}] poor perf [perf:{instance.configuration.score} > median{instance.configuration.median()}] at {instance.name} -- restarting')
+                # TODO: add restart counting to the configs
                 instance.restart()
 
         end_of_tuning: bool = False
@@ -246,7 +247,7 @@ class Planner:
         if n == 0:
             logger.warning('n must be > 0, setting 1')
             n = 1
-        tmp = list(set(self.heap1, self.heap2))
+        tmp = list(set(self.heap1 + self.heap2))
         heapq.heapify(tmp)
         # best1 = heapq.nsmallest(n, self.heap1)
         # logger.debug(f'best1: {best1}')
@@ -256,7 +257,9 @@ class Planner:
         # heapq.heapify(best_concat)
         # nsmallest returns a list, so returns its head
         if n > 1 or return_array:
+            # return heapq.nsmallest(n, best_concat)
             return heapq.nsmallest(n, tmp)
+        # return heapq.nsmallest(n, best_concat)[0]
         return heapq.nsmallest(n, tmp)[0]
 
     def update_heap(self, heap: list, configuration: Configuration):

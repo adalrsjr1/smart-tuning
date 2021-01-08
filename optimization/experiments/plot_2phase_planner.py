@@ -72,7 +72,7 @@ class Iteration:
         self.iteration = iteration
         self.nbest = nbest
 
-def plot(df: pd.DataFrame, title:str,save:bool=False):
+def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
     # use generate a color pallete
     from SecretColors.cmaps import ColorMap, TableauMap
     from SecretColors import Palette
@@ -144,20 +144,26 @@ def plot(df: pd.DataFrame, title:str,save:bool=False):
     ax = reduced_table.plot(ax=ax, x='index', y='tmedian', color='lime', marker='^', markersize=3, linewidth=0)
     ax = reduced_table.plot(ax=ax, x='index', y='pscore', marker='*', markersize=4, color='red', linewidth=0)
     ax.set_ylim(ymin=0)# customize x-ticks
-    ax.xaxis.set_ticks([])
-    ax.set_xlabel('')
-    ax.margins(x=0)
-    import pandas.plotting as plotting
-    # table = reduced_table['nbest'].T.to_numpy()
-    # print(table)
-    table = pd.DataFrame(reduced_table['nbest'].to_dict())
-    table = table.fillna(value='')
-    plt_table = ax.table(cellText=table.to_numpy().reshape(3,-1), rowLoc='center',
-             rowLabels=['1st','2nd','3rd'], colLabels=reduced_table['index'],
-             # colWidths=[.5,.5],
-             cellLoc='center',
-             colLoc='center', loc='bottom')
-    plt_table.set_fontsize('x-small')
+
+    if not show_table:
+        ax.xaxis.set_ticks(range(len(reduced_table)))
+        ax.set_xlabel('index')
+        ax.margins(x=0)
+        ax.tick_params(axis='x', which='major', labelsize='x-small')
+        ax.tick_params(axis='x', which='minor', labelsize='x-small')
+    else:
+        ax.xaxis.set_ticks([])
+        ax.set_xlabel('')
+        ax.margins(x=0)
+
+        table = pd.DataFrame(reduced_table['nbest'].to_dict())
+        table = table.fillna(value='')
+        plt_table = ax.table(cellText=table.to_numpy().reshape(3,-1), rowLoc='center',
+                 rowLabels=['1st','2nd','3rd'], colLabels=reduced_table['index'],
+                 # colWidths=[.5,.5],
+                 cellLoc='center',
+                 colLoc='center', loc='bottom')
+        plt_table.set_fontsize('x-small')
     # reduced_table.plot(table=np.array(reduced_table['nbest'].T), ax=ax)
 
     # customize legend
@@ -322,7 +328,8 @@ if __name__ == '__main__':
     # df = load_raw_data('./resources/trace-2021-01-02T23 47 40.json')
     # df = load_raw_data('./resources/trace-2021-01-05T19 06 26.json')
     # df = load_raw_data('./resources/trace-2021-01-06T00 41 25.json')
-    df = load_raw_data('./resources/trace-2021-01-07T17 05 39.json')
 
+    name = 'trace-2021-01-07T17 05 39'
 
-    plot(df, title='Daytrader',save=False)
+    df = load_raw_data('./resources/'+name+'.json')
+    plot(df, title='Daytrader: '+name,save=False, show_table=False)
