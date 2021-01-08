@@ -122,7 +122,7 @@ class Planner:
         logger.debug(f'best: {best}')
 
         self.save_trace(best=[_best_.serialize() for _best_ in self.best_configuration(n=3)])
-        if end_of_tuning or (self.iteration >= self.k and self.iteration % self.k == 0):
+        if end_of_tuning or (best is not self.production.configuration and self.iteration >= self.k and self.iteration % self.k == 0):
             # ensure if the selected config is realy the best running it n times at training replica
 
             self.training.configuration = best
