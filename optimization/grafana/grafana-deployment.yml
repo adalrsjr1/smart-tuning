@@ -65,7 +65,8 @@ spec:
                       - docker-desktop
       containers:
         - name: grafana
-          image: grafana/grafana:7.0.1
+          #image: grafana/grafana:7.0.1
+          image: https://quay.io/repository/app-sre/grafana:7.0.1
           env:
             - name: GF_INSTALL_PLUGINS
               value: jdbranham-diagram-panel
@@ -122,3 +123,4 @@ spec:
     - port: 3000
       targetPort: 3000
       nodePort: 30030
+---

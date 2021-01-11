@@ -22,7 +22,7 @@ spec:
                       - docker-desktop
       containers:
         - name: prometheus
-          image: prom/prometheus:v2.2.1
+          image: quay.io/prometheus/prometheus:v2.2.1
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus/"
@@ -66,3 +66,4 @@ spec:
     - port: 9090
       targetPort: 9090
       nodePort: 30099
+---

@@ -41,8 +41,8 @@ data:
   # prometheus config
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
-  SAMPLING_METRICS_TIMEOUT: '300'
-  WAITING_TIME: '300'
+  SAMPLING_METRICS_TIMEOUT: '600'
+  WAITING_TIME: '600'
   SAMPLE_SIZE: '0.3334'
   # classification config
   K: '1'
@@ -57,7 +57,7 @@ data:
   N_EI_CANDIDATES: '24'
   # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
   GAMMA: '0.25'
-  NUMBER_ITERATIONS: '60'
+  NUMBER_ITERATIONS: '55'
   METRIC_THRESHOLD: '0.0'
   RANDOM_SEED: '31'
   ## the objective is always to minimize
@@ -97,7 +97,7 @@ spec:
                       - docker-desktop
       containers:
         - name: smarttuning
-          image: smarttuning
+          image: quay.io/smarttuning/smarttuning:dev
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
