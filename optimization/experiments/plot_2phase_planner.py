@@ -328,8 +328,11 @@ if __name__ == '__main__':
     # df = load_raw_data('./resources/trace-2021-01-02T23 47 40.json')
     # df = load_raw_data('./resources/trace-2021-01-05T19 06 26.json')
     # df = load_raw_data('./resources/trace-2021-01-06T00 41 25.json')
+    # df = load_raw_data('./resources/trace-2021-01-06T00 41 25.json')
 
     name = 'trace-2021-01-07T17 05 39'
+    name = 'acme-trace-2021-01-09T00 03 17'
+    title = 'AcmeAir'
 
     df = load_raw_data('./resources/'+name+'.json')
-    plot(df, title='Daytrader: '+name,save=False, show_table=False)
+    plot(df, title=title+': '+name, save=False, show_table=True)
