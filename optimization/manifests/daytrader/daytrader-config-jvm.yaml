@@ -3,6 +3,9 @@ kind: ConfigMap
 metadata:
   name: daytrader-config-jvm
 data:
+  # cannot set empty jvm.options
+  # if it is candidate to be tuned, i.e., they are set on the search space
+  # put here the default values of these knobs
   jvm.options: |-
     -Dcom.sun.management.jmxremote
     -Dcom.sun.management.jmxremote.authenticate=false

@@ -65,7 +65,7 @@ data:
         - name: "gc"
           values:
             - "-Xgcpolicy:gencon"
-            - "-Xgc:concurrentScavenge"
+            - "-Xgcpolicy:concurrentScavenge"
             - "-Xgcpolicy:metronome"
             - "-Xgcpolicy:optavgpause"
             - "-Xgcpolicy:optthruput"
