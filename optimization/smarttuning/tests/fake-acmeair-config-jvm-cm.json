@@ -1,0 +1,39 @@
+{
+    "apiVersion": "v1",
+    "data": {
+        "jvm.options": "-XX:+UseContainerSupport\n-Xgcpolicy:gencon"
+    },
+    "kind": "ConfigMap",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"data\":{\"jvm.options\":\"\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"name\":\"acmeair-config-jvm\",\"namespace\":\"default\"}}\n"
+        },
+        "creationTimestamp": "2021-01-11T15:29:15Z",
+        "managedFields": [
+            {
+                "apiVersion": "v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:data": {
+                        ".": {},
+                        "f:jvm.options": {}
+                    },
+                    "f:metadata": {
+                        "f:annotations": {
+                            ".": {},
+                            "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                        }
+                    }
+                },
+                "manager": "kubectl-client-side-apply",
+                "operation": "Update",
+                "time": "2021-01-11T15:29:15Z"
+            }
+        ],
+        "name": "acmeair-config-jvm",
+        "namespace": "default",
+        "resourceVersion": "204207",
+        "selfLink": "/api/v1/namespaces/default/configmaps/acmeair-config-jvm",
+        "uid": "b2b1531e-16b4-430b-a7df-91c36eece2b8"
+    }
+}

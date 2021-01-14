@@ -1,0 +1,180 @@
+{
+    "apiVersion": "smarttuning.ibm.com/v1alpha2",
+    "data": [
+        {
+            "filename": "",
+            "name": "acmeair-service",
+            "tunables": {
+                "number": [
+                    {
+                    "dependsOn": "",
+                    "lower": {
+                        "dependsOn": "",
+                        "value": 2
+                    },
+                    "name": "cpu",
+                    "real": true,
+                    "step": 2,
+                    "upper": {
+                        "dependsOn": "",
+                        "value": 8
+                    }
+                },
+                {
+                    "dependsOn": "",
+                    "lower": {
+                        "dependsOn": "",
+                        "value": 512
+                    },
+                    "name": "memory",
+                    "real": true,
+                    "step": 512,
+                    "upper": {
+                        "dependsOn": "",
+                        "value": 2048
+                    }
+                }
+                ]
+            }
+        },
+        {
+            "filename": "",
+            "name": "acmeair-config-app",
+            "tunables": {
+                "number": [
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 10
+                        },
+                        "name": "HTTP_MAX_KEEP_ALIVE_REQUESTS",
+                        "real": false,
+                        "step": 25,
+                        "upper": {
+                            "dependsOn": "",
+                            "value": 200
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 15
+                        },
+                        "name": "HTTP_PERSIST_TIMEOUT",
+                        "real": false,
+                        "step": 5,
+                        "upper": {
+                            "dependsOn": "",
+                            "value": 45
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 10
+                        },
+                        "name": "MONGO_MAX_CONNECTIONS",
+                        "real": false,
+                        "step": 25,
+                        "upper": {
+                            "dependsOn": "",
+                            "value": 200
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "filename": "jvm.options",
+            "name": "acmeair-config-jvm",
+            "tunables": {
+                "boolean": [
+                    {
+                        "name": "-Xtune:virtualized"
+                    }
+                ],
+                "option": [
+                    {
+                        "name": "gc",
+                        "type": "string",
+                        "values": [
+                            "-Xgcpolicy:gencon",
+                            "-Xgc:concurrentScavenge",
+                            "-Xgcpolicy:metronome",
+                            "-Xgcpolicy:optavgpause",
+                            "-Xgcpolicy:optthruput"
+                        ]
+                    },
+                    {
+                        "name": "container_support",
+                        "type": "string",
+                        "values": [
+                            "-XX:+UseContainerSupport",
+                            "-XX:-UseContainerSupport"
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "kind": "SearchSpace",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"smarttuning.ibm.com/v1alpha2\",\"data\":[{\"name\":\"acmeair-service\",\"tunables\":{\"option\":[{\"name\":\"cpu\",\"type\":\"integer\",\"values\":[\"2\",\"4\",\"8\"]},{\"name\":\"memory\",\"type\":\"integer\",\"values\":[\"512\",\"1024\",\"2048\",\"4096\",\"8192\"]}]}},{\"name\":\"acmeair-config-app\",\"tunables\":{\"number\":[{\"lower\":{\"value\":10},\"name\":\"HTTP_MAX_KEEP_ALIVE_REQUESTS\",\"real\":false,\"step\":25,\"upper\":{\"value\":200}},{\"lower\":{\"value\":15},\"name\":\"HTTP_PERSIST_TIMEOUT\",\"real\":false,\"step\":5,\"upper\":{\"value\":45}},{\"lower\":{\"value\":10},\"name\":\"MONGO_MAX_CONNECTIONS\",\"real\":false,\"step\":25,\"upper\":{\"value\":200}}]}},{\"filename\":\"jvm.options\",\"name\":\"acmeair-config-jvm\",\"tunables\":{\"boolean\":[{\"name\":\"-Xtune:virtualized\"}],\"option\":[{\"name\":\"gc\",\"values\":[\"-Xgcpolicy:gencon\",\"-Xgc:concurrentScavenge\",\"-Xgcpolicy:metronome\",\"-Xgcpolicy:optavgpause\",\"-Xgcpolicy:optthruput\"]},{\"name\":\"container_support\",\"values\":[\"-XX:+UseContainerSupport\",\"-XX:-UseContainerSupport\"]}]}}],\"kind\":\"SearchSpace\",\"metadata\":{\"annotations\":{},\"name\":\"acmeair-ss\",\"namespace\":\"default\"},\"spec\":{\"deployment\":\"acmeair-service\",\"manifests\":[{\"name\":\"acmeair-service\",\"type\":\"deployment\"},{\"name\":\"acmeair-config-app\",\"type\":\"configMap\"},{\"name\":\"acmeair-config-jvm\",\"type\":\"configMap\"}],\"namespace\":\"default\",\"service\":\"acmeair-svc\"}}\n"
+        },
+        "creationTimestamp": "2021-01-11T15:29:59Z",
+        "generation": 1,
+        "managedFields": [
+            {
+                "apiVersion": "smarttuning.ibm.com/v1alpha2",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:data": {},
+                    "f:metadata": {
+                        "f:annotations": {
+                            ".": {},
+                            "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                        }
+                    },
+                    "f:spec": {
+                        ".": {},
+                        "f:deployment": {},
+                        "f:manifests": {},
+                        "f:namespace": {},
+                        "f:service": {}
+                    }
+                },
+                "manager": "kubectl-client-side-apply",
+                "operation": "Update",
+                "time": "2021-01-11T15:29:59Z"
+            }
+        ],
+        "name": "acmeair-ss",
+        "namespace": "default",
+        "resourceVersion": "204340",
+        "selfLink": "/apis/smarttuning.ibm.com/v1alpha2/namespaces/default/searchspaces/acmeair-ss",
+        "uid": "f40a9655-4b71-4a91-970b-1885fba398fc"
+    },
+    "spec": {
+        "deployment": "acmeair-service",
+        "manifests": [
+            {
+                "name": "acmeair-service",
+                "type": "deployment"
+            },
+            {
+                "name": "acmeair-config-app",
+                "type": "configMap"
+            },
+            {
+                "name": "acmeair-config-jvm",
+                "type": "configMap"
+            }
+        ],
+        "namespace": "default",
+        "service": "acmeair-svc"
+    }
+}

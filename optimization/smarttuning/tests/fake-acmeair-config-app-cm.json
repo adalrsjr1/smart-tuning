@@ -1,0 +1,77 @@
+{
+    "apiVersion": "v1",
+    "data": {
+        "EXECUTOR_CORE_THREADS": "-1",
+        "EXECUTOR_KEEP_ALIVE": "60",
+        "EXECUTOR_MAX_THREADS": "-1",
+        "EXECUTOR_REJECTED_WORK_POLICY": "CALLER_RUNS",
+        "EXECUTOR_STEAL_POLICY": "LOCAL",
+        "HTTP_MAX_KEEP_ALIVE_REQUESTS": "100",
+        "HTTP_PERSIST_TIMEOUT": "30",
+        "HTTP_READ_TIMEOUT": "60",
+        "HTTP_WRITE_TIMEOUT": "60",
+        "LOG_DIR": "/logs",
+        "MONGO_CONNECTION_TIMEOUT": "10",
+        "MONGO_DBNAME": "acmeair",
+        "MONGO_HOST": "acmeair-db.default.svc.cluster.local",
+        "MONGO_MAX_CONNECTIONS": "100",
+        "MONGO_MIN_CONNECTIONS": "1",
+        "MONGO_PORT": "27017",
+        "SERVER_PORT": "9080",
+        "USE_FLIGHT_DATA_RELATED_CACHING": "false",
+        "WLP_LOGGING_CONSOLE_FORMAT": "basic",
+        "WLP_LOGGING_CONSOLE_LOGLEVEL": "info"
+    },
+    "kind": "ConfigMap",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"data\":{\"EXECUTOR_CORE_THREADS\":\"-1\",\"EXECUTOR_KEEP_ALIVE\":\"60\",\"EXECUTOR_MAX_THREADS\":\"-1\",\"EXECUTOR_REJECTED_WORK_POLICY\":\"CALLER_RUNS\",\"EXECUTOR_STEAL_POLICY\":\"LOCAL\",\"HTTP_MAX_KEEP_ALIVE_REQUESTS\":\"100\",\"HTTP_PERSIST_TIMEOUT\":\"30\",\"HTTP_READ_TIMEOUT\":\"60\",\"HTTP_WRITE_TIMEOUT\":\"60\",\"LOG_DIR\":\"/logs\",\"MONGO_CONNECTION_TIMEOUT\":\"10\",\"MONGO_DBNAME\":\"acmeair\",\"MONGO_HOST\":\"acmeair-db.default.svc.cluster.local\",\"MONGO_MAX_CONNECTIONS\":\"100\",\"MONGO_MIN_CONNECTIONS\":\"1\",\"MONGO_PORT\":\"27017\",\"SERVER_PORT\":\"9080\",\"USE_FLIGHT_DATA_RELATED_CACHING\":\"false\",\"WLP_LOGGING_CONSOLE_FORMAT\":\"basic\",\"WLP_LOGGING_CONSOLE_LOGLEVEL\":\"info\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"name\":\"acmeair-config-app\",\"namespace\":\"default\"}}\n"
+        },
+        "creationTimestamp": "2021-01-11T15:29:15Z",
+        "managedFields": [
+            {
+                "apiVersion": "v1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:data": {
+                        ".": {},
+                        "f:EXECUTOR_CORE_THREADS": {},
+                        "f:EXECUTOR_KEEP_ALIVE": {},
+                        "f:EXECUTOR_MAX_THREADS": {},
+                        "f:EXECUTOR_REJECTED_WORK_POLICY": {},
+                        "f:EXECUTOR_STEAL_POLICY": {},
+                        "f:HTTP_MAX_KEEP_ALIVE_REQUESTS": {},
+                        "f:HTTP_PERSIST_TIMEOUT": {},
+                        "f:HTTP_READ_TIMEOUT": {},
+                        "f:HTTP_WRITE_TIMEOUT": {},
+                        "f:LOG_DIR": {},
+                        "f:MONGO_CONNECTION_TIMEOUT": {},
+                        "f:MONGO_DBNAME": {},
+                        "f:MONGO_HOST": {},
+                        "f:MONGO_MAX_CONNECTIONS": {},
+                        "f:MONGO_MIN_CONNECTIONS": {},
+                        "f:MONGO_PORT": {},
+                        "f:SERVER_PORT": {},
+                        "f:USE_FLIGHT_DATA_RELATED_CACHING": {},
+                        "f:WLP_LOGGING_CONSOLE_FORMAT": {},
+                        "f:WLP_LOGGING_CONSOLE_LOGLEVEL": {}
+                    },
+                    "f:metadata": {
+                        "f:annotations": {
+                            ".": {},
+                            "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                        }
+                    }
+                },
+                "manager": "kubectl-client-side-apply",
+                "operation": "Update",
+                "time": "2021-01-11T15:29:15Z"
+            }
+        ],
+        "name": "acmeair-config-app",
+        "namespace": "default",
+        "resourceVersion": "204208",
+        "selfLink": "/api/v1/namespaces/default/configmaps/acmeair-config-app",
+        "uid": "a78ec483-65e2-4cd6-99d2-3ea1b2580f96"
+    }
+}
