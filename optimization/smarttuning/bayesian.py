@@ -139,21 +139,27 @@ class BayesianEngine:
             return self._stoped, [count + 1]
 
         def objective_fn():
-            partial_fmin = partial(fmin, fn=self.objective, trials=self.trials, space=self._space, algo=surrogate,
-                    max_evals=max_evals,
-                    verbose=False, show_progressbar=False,
-                    rstate=np.random.RandomState(random.randint(0, 1000)),
-                    early_stop_fn=stop_iterations)
+            try:
+                partial_fmin = partial(fmin, fn=self.objective, trials=self.trials, space=self._space, algo=surrogate,
+                        max_evals=max_evals,
+                        verbose=False, show_progressbar=False,
+                        rstate=np.random.RandomState(random.randint(0, 1000)),
+                        early_stop_fn=stop_iterations)
 
-            best = partial_fmin()
-            best = self.eval_data(best)
-            logger.info(f'final best config: {best}')
-            best.update({'is_best_config':True})
+                best = partial_fmin()
+                best = self.eval_data(best)
+                logger.info(f'final best config: {best}')
+                best.update({'is_best_config':True})
 
-            best_config = Configuration(data=best, trials=self.smarttuning_trials)
-            logger.info(f'found best config after {max_evals} iterations: {best_config}')
-            BayesianChannel.put_out(self.id(), best_config)
-            # BayesianChannel.put_out(self.id(), best)
+                best_config = Configuration(data=best, trials=self.smarttuning_trials)
+                logger.info(f'found best config after {max_evals} iterations: {best_config}')
+                BayesianChannel.put_out(self.id(), best_config)
+                # BayesianChannel.put_out(self.id(), best)
+            except:
+                logger.exception('error while evaluating fmin')
+                from pprint import pprint
+                pprint(self.trials.trials)
+                pprint(self._space)
 
         self.fmin = threading.Thread(name='bayesian-engine-' + name, target=objective_fn, daemon=True)
         self.fmin.start()
