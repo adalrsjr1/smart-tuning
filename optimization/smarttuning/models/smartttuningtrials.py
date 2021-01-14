@@ -15,18 +15,48 @@ if TYPE_CHECKING:
 logger = logging.getLogger(config.SMARTTUNING_TRIALS_LOGGER)
 logger.setLevel(config.LOGGING_LEVEL)
 
+
 class SmartTuningTrials:
-    def __init__(self, space:dict, trials:Trials):
-        self._data:dict[str,Configuration] = {}
+    def __init__(self, space: dict, trials: Trials):
+        self._data: dict[str, Configuration] = {}
         self._space = space
         self._trials = trials
+
+    def clean_space(self, to_eval: dict) -> dict:
+        new_space = {}
+        """
+         {
+            'manifest_name': {
+                'tunable1': 'v1',
+                'tunable2': 'v2',
+                'tunable3': 'v3',
+            },
+            'another_manifest': {
+                [0, 1]
+            }
+        """
+        for k, v in self._space.items():
+            for manifest_k, manifest_v in v.items():
+                if manifest_k in to_eval:
+                    if k in new_space:
+                        new_space[k].update({manifest_k:manifest_v})
+                    else:
+                        new_space[k] = {manifest_k:manifest_v}
+
+        return new_space
+
 
     def serialize(self) -> list[dict]:
         documents = []
         try:
             for i, trial in enumerate(self.wrapped_trials.trials):
                 to_eval = {k: v[0] for k, v in trial['misc'].get('vals', {}).items()}
-                params = space_eval(self._space, to_eval)
+                reduced_space = self.clean_space(to_eval)
+                # logger.debug(f'[{i}] serializing trials')
+                # logger.debug(f'space: {reduced_space}')
+                # logger.debug(f'to_eval: {to_eval}')
+                # logger.debug(' ****** ')
+                params = space_eval(reduced_space, to_eval)
                 tid = trial['misc'].get('tid', -1)
                 loss = trial['result'].get('loss', float('inf'))
                 status = trial['result'].get('status', None)
@@ -48,16 +78,16 @@ class SmartTuningTrials:
         logger.warning('no trial available')
         return -1
 
-
     @property
     def wrapped_trials(self) -> Trials:
         return self._trials
 
-    def add_default_config(self, configuration:Configuration, score:float):
+    def add_default_config(self, configuration: Configuration, score: float):
         self.new_hyperopt_trial_entry(configuration.data, score, STATUS_OK, classification=None)
         self.add_new_configuration(configuration)
 
-    def new_hyperopt_trial_entry(self, configuration:dict, loss:float, status:int, classification:str=None) -> int:
+    def new_hyperopt_trial_entry(self, configuration: dict, loss: float, status: int,
+                                 classification: str = None) -> int:
         rval_spec = [None]
         rval_results = [{
             'loss': loss,
@@ -97,23 +127,24 @@ class SmartTuningTrials:
 
         return uid
 
-    def add_new_configuration(self, configuration:Configuration):
+    def add_new_configuration(self, configuration: Configuration):
         if not self.get_config_by_name(configuration.name):
             self._data[configuration.name] = configuration
         return self._data[configuration.name]
 
-    def get_config_by_name(self, name:str):
+    def get_config_by_name(self, name: str):
         return self._data.get(name, None)
 
-    def get_config_by_data(self, data:dict):
+    def get_config_by_data(self, data: dict):
         for value in self._data.values():
             if data == value.data:
                 return value
 
-    def update_hyperopt_score(self, configuration:Configuration):
+    def update_hyperopt_score(self, configuration: Configuration):
         trial_to_update = self.wrapped_trials.trials[configuration.uid]
         trial_to_update['result']['loss'] = configuration.mean()
         self.wrapped_trials.refresh()
+
 
 class EmptySmartTuningTrials(SmartTuningTrials):
     def __init__(self):

@@ -10,21 +10,23 @@ from kubernetes.utils import quantity
 from hyperopt.pyll.base import scope
 from distutils.util import strtobool
 import config
+import sys
 
 logger = logging.getLogger(config.SEARCH_SPACE_LOGGER)
 logger.setLevel(logging.DEBUG)
 
+
 class SearchSpaceModel:
     def __init__(self, o):
         if o:
-            temp =  self.parse_manifests(o)
+            temp = self.parse_manifests(o)
 
             self.deployment = temp['deployment']
             self.manifests = temp['models']
             self.namespace = temp['namespace']
             self.service = temp['service']
 
-    def parse_manifests(self, o:dict) -> dict:
+    def parse_manifests(self, o: dict) -> dict:
         manifests = o['spec']['manifests']
         data = o['data']
         context = o['spec']['deployment']
@@ -52,13 +54,13 @@ class SearchSpaceModel:
             ss[manifest.name] = manifest.search_space()
         return ss
 
+
 class DeploymentSearchSpaceModel:
     def __init__(self, name, namespace, deployment, tunables):
         self.name = name
         self.namespace = namespace
         self.deployment = deployment
         self.tunables = self.__parse_tunables(tunables)
-
 
     def __repr__(self):
         return f'{{"name": "{self.name}", "namespace": "{self.namespace}", "deployment": "{self.deployment}"' \
@@ -91,6 +93,9 @@ class DeploymentSearchSpaceModel:
         api_instance = config.appsApi()
         deployment: V1Deployment = api_instance.read_namespaced_deployment(name=self.name, namespace=self.namespace)
 
+        return self.get_current_config_from_spec(deployment)
+
+    def get_current_config_from_spec(self, deployment: V1Deployment) -> (dict, dict):
         containers = deployment.spec.template.spec.containers
         config_limits = {'cpu': 0, 'memory': 0}
         container: V1Container
@@ -104,16 +109,16 @@ class DeploymentSearchSpaceModel:
             if not limits:
                 limits = {}
 
-            config_limits['cpu'] += float(quantity.parse_quantity(limits.get('cpu',0)))
-            config_limits['memory'] += float(quantity.parse_quantity(limits.get('memory', 0))) / (2**20)
+            config_limits['cpu'] += float(quantity.parse_quantity(limits.get('cpu', 0)))
+            config_limits['memory'] += float(quantity.parse_quantity(limits.get('memory', 0))) / (2 ** 20)
 
         keys = set(config_limits.keys()).intersection(set(self.tunables.keys()))
 
         valued_default_config = {}
         indexed_default_config = {}
         # if Option set index to default config
-        # otherwise set values
-        for k,v in config_limits.items():
+        # otherwise set limit values
+        for k, v in config_limits.items():
             if k in keys and k in self.tunables:
                 valued_default_config[k] = v
                 if isinstance(self.tunables[k], OptionRangeModel):
@@ -130,6 +135,21 @@ class DeploymentSearchSpaceModel:
 
     def patch(self, new_config: dict, production=False):
         api_instance = config.appsApi()
+        name, namespace, containers = self.core_patch(new_config, production)
+
+        body = {
+            "kind": "Deployment",
+            "apiVersion": "v1",
+            "metadata": {"labels": {"date": str(int(time.time()))}},
+            "spec": {"template": {"spec": {"containers": containers}}}
+        }
+
+        if 'replicas' in new_config:
+            body['spec'].update({'replicas': new_config['replicas']})
+
+        return api_instance.patch_namespaced_deployment(name, namespace, body, pretty='false')
+
+    def core_patch(self, new_config: dict, production=False):
         name = self.name if production else self.name + config.PROXY_TAG
         namespace = self.namespace
 
@@ -166,27 +186,19 @@ class DeploymentSearchSpaceModel:
 
             container.resources.limits = limits
 
-        body = {
-            "kind": "Deployment",
-            "apiVersion": "v1",
-            "metadata": {"labels": {"date": str(int(time.time()))}},
-            "spec": {"template": {"spec": {"containers": containers}}}
-        }
+        return name, namespace, containers
 
-        if 'replicas' in new_config:
-            body['spec'].update({'replicas': new_config['replicas']})
-
-
-        return api_instance.patch_namespaced_deployment(name, namespace, body, pretty='false')
 
 def update_n_replicas(deployment_name, namespace, curr_n_replicas):
     if curr_n_replicas > 1:
         logger.info(f'updating {deployment_name} replicas to {curr_n_replicas}')
-        body = {"spec":{"replicas":curr_n_replicas}}
+        body = {"spec": {"replicas": curr_n_replicas}}
         config.appsApi().patch_namespaced_deployment(name=deployment_name, namespace=namespace, body=body)
+
 
 def get_deployment(name, namespace) -> V1Deployment:
     return config.appsApi().read_namespaced_deployment(name, namespace)
+
 
 class ConfigMapSearhSpaceModel:
     def __init__(self, name, namespace, deployment, filename, tunables):
@@ -225,13 +237,26 @@ class ConfigMapSearhSpaceModel:
     def get_current_config(self) -> (dict, dict):
         coreApi = config.coreApi()
         configMap: V1ConfigMap = coreApi.read_namespaced_config_map(name=self.name, namespace=self.namespace)
+
+        return self.get_current_config_core(configMap)
+
+    def get_current_config_core(self, configMap: V1ConfigMap) -> (dict, dict):
         keys = set(configMap.data.keys()).intersection(set(self.tunables.keys()))
 
         valued_default_config = {}
         indexed_default_config = {}
         # if Option set index to default config
         # otherwise set values
+        print(configMap.data.items())
+        if 'jvm.options' in configMap.data:
+            # TODO: workaround to get inital config from jvm
+            if len(configMap.data['jvm.options']) == 0:
+                raise RuntimeError(f'config file: {configMap.data} cannot be empty -- set default config')
+            else:
+                keys, configMap.data = jmvoptions_to_dict(configMap.data['jvm.options'])
+
         for k, v in configMap.data.items():
+
             if k in keys and k in self.tunables:
                 valued_default_config[k] = v
                 if isinstance(self.tunables[k], OptionRangeModel):
@@ -277,7 +302,7 @@ class ConfigMapSearhSpaceModel:
 
         return config.coreApi().patch_namespaced_config_map(name, namespace, body, pretty='false')
 
-    def patch_jvm(self, new_config, production=False):
+    def core_patch_jvm(self, new_config, production=False):
         name = self.name if production else self.name + config.PROXY_TAG
         namespace = self.namespace
         filename = self.filename
@@ -290,6 +315,10 @@ class ConfigMapSearhSpaceModel:
             "metadata": {"labels": {"date": str(int(time.time()))}},
             "data": {filename: '\n'.join(params)}
         }
+        return name, namespace, body
+
+    def patch_jvm(self, new_config, production=False):
+        name, namespace, body = self.core_patch_jvm(new_config, production)
 
         return config.coreApi().patch_namespaced_config_map(name, namespace, body, pretty='false')
 
@@ -307,7 +336,8 @@ class NumberRangeModel:
     def __unpack_value(self, item):
         if item and isinstance(item, dict):
             return item['value'], item['dependsOn']
-        raise ValueError(f'{self.name} has a invalid item:{item}, expecting a dict:{{"dependsOn":"str", "value":"int-or-str"}}')
+        raise ValueError(
+            f'{self.name} has a invalid item:{item}, expecting a dict:{{"dependsOn":"str", "value":"int-or-str"}}')
 
     def __repr__(self):
         return f'{{"name": "{self.name}", ' \
@@ -391,6 +421,7 @@ class NumberRangeModel:
         self.__hyper_interval = {self.name: to_int(value)}
         return self.__hyper_interval
 
+
 def to_scale(x1, y1, x2, y2, k):
     """
     does a linear transformation leading the xs values to ys values
@@ -422,8 +453,10 @@ def to_scale(x1, y1, x2, y2, k):
     # print(f'{m}*x+{b} --> p=({x1},{y1}) q=({x2},{y2}) ')
     return (m * k) + b
 
+
 def normalize(k, mx, mn):
     return (k - mn) / (mx - mn)
+
 
 class OptionRangeModel:
     def __init__(self, r):
@@ -448,7 +481,7 @@ class OptionRangeModel:
         return -1
 
     def cast(self, values, new_type):
-        to_bool = lambda x : bool(strtobool(x))
+        to_bool = lambda x: bool(strtobool(x))
         types = {'integer': int, 'real': float, 'string': str, 'bool': to_bool}
         return [types[new_type](value) for value in values]
 
@@ -458,6 +491,52 @@ class OptionRangeModel:
     def get_hyper_interval(self, ctx={}) -> dict:
         """ ctx['name'] = 'OptionRangeModel'"""
         return {self.name: hyperopt.hp.choice(self.name, self.get_values())}
+
+def jmvoptions_to_dict(jvm_options):
+    data = jvm_options.split('\n')
+    params = {}
+    keys = []
+    # if '-Xmx' in data:
+    #     params['-Xmx'] = data['']
+    #     params.append('-Xmx' + str(data['-Xmx']) + 'm')
+    #     del (data['-Xmx'])
+    #
+    # if '-Dhttp.keepalive' in data:
+    #     params.append('-Dhttp.keepalive=' + str(data['-Dhttp.keepalive']))
+    #     del (data['-Dhttp.keepalive'])
+    #
+    # if '-Dhttp.maxConnections' in data:
+    #     params.append('-Dhttp.maxConnections=' + str(data['-Dhttp.maxConnections']))
+    #     del (data['-Dhttp.maxConnections'])
+
+    params['-Xtune:virtualized'] = False
+    keys.append('-Xtune:virtualized')
+    if '-Xtune:virtualized' in data:
+        params['-Xtune:virtualized'] = True
+
+    params['container_support'] = '-XX:+UseContainerSupport'
+    keys.append('container_support')
+    if '-XX:-UseContainerSupport' in data:
+        params['container_support'] = '-XX:-UseContainerSupport'
+
+    params['gc'] = '-Xgcpolicy:gencon'
+    keys.append('gc')
+    gc = [item for item in data if item.startswith('-Xgcpolicy')]
+    if len(gc) > 0:
+        gc = gc[-1]
+        params['gc'] = gc
+
+    # if '-Xnojit' in data:
+    #     if data['-Xnojit']:
+    #         params.append('-Xnojit')
+    #     del (data['-Xnojit'])
+    #
+    # if '-Xnoaot' in data:
+    #     if data['-Xnoaot']:
+    #         params.append('-Xnoaot')
+    #     del (data['-Xnoaot'])
+    return keys, params
+
 
 
 def dict_to_jvmoptions(data):
@@ -475,7 +554,8 @@ def dict_to_jvmoptions(data):
         del (data['-Dhttp.maxConnections'])
 
     if '-Xtune:virtualized' in data:
-        params.append('-Xtune:virtualized')
+        if data['-Xtune:virtualized']:
+            params.append('-Xtune:virtualized')
         del (data['-Xtune:virtualized'])
 
     if '-Xnojit' in data:
