@@ -154,6 +154,31 @@ class TestPlanner(TestCase):
             from pprint import pprint
             pprint(results)
 
+    def test_update_heap(self):
+        c1 = Configuration(data={'name': 1}, trials=MagicMock())
+        c2 = Configuration(data={'name': 2}, trials=MagicMock())
+        a = Configuration(data={'name': 1}, trials=MagicMock())
+        b = Configuration(data={'name': 2}, trials=MagicMock())
+        c = Configuration(data={'name': 3}, trials=MagicMock())
+
+        planner = Planner(MagicMock(), MagicMock(), MagicMock(), k=0, ratio=0)
+        planner.heap1 = [c1]
+        planner.heap2 = [c2]
+        self.assertIs(planner.heap1[0], c1)
+        self.assertIs(planner.heap2[0], c2)
+        planner.update_heap(planner.heap1, a)
+        self.assertIs(planner.heap1[0], a)
+
+        planner.update_heap(planner.heap2, b)
+        self.assertIs(planner.heap2[0], b)
+
+        planner.update_heap(planner.heap1, c)
+        self.assertIn(c, planner.heap1)
+        self.assertIn(a, planner.heap1)
+
+        planner.update_heap(planner.heap2, c)
+        self.assertIn(c, planner.heap2)
+        self.assertIn(b, planner.heap2)
 
 if __name__ == '__main__':
     # random.seed(123)
