@@ -1,4 +1,4 @@
-FROM python:3.9-alpine AS builder
+FROM python:3.9.1-alpine3.12 AS builder
 ENV PATH=$PATH:/root/.local/bin
 COPY requirements.txt .
 RUN /usr/local/bin/python -m pip install --upgrade pip
