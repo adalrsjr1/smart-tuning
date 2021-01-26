@@ -387,7 +387,6 @@ class NumberRangeModel:
             upper += 0.1
 
         logger.debug(f'{self}')
-
         upper_dep = ctx.get(self.get_upper_dep(), None)
         lower_dep = ctx.get(self.get_lower_dep(), None)
 
@@ -494,6 +493,7 @@ class OptionRangeModel:
 
 def jmvoptions_to_dict(jvm_options):
     data = jvm_options.split('\n')
+    data = [item for item in data if not item.startswith('#')]
     params = {}
     keys = []
     # if '-Xmx' in data:
@@ -510,21 +510,27 @@ def jmvoptions_to_dict(jvm_options):
     #     del (data['-Dhttp.maxConnections'])
 
     params['-Xtune:virtualized'] = False
-    keys.append('-Xtune:virtualized')
-    if '-Xtune:virtualized' in data:
-        params['-Xtune:virtualized'] = True
-
-    params['container_support'] = '-XX:+UseContainerSupport'
-    keys.append('container_support')
-    if '-XX:-UseContainerSupport' in data:
-        params['container_support'] = '-XX:-UseContainerSupport'
-
     params['gc'] = '-Xgcpolicy:gencon'
-    keys.append('gc')
-    gc = [item for item in data if item.startswith('-Xgcpolicy')]
-    if len(gc) > 0:
-        gc = gc[-1]
-        params['gc'] = gc
+    params['container_support'] = '-XX:+UseContainerSupport'
+    for item in data:
+        if item.startswith('-XX:InitialRAMPercentage'):
+            params['-XX:InitialRAMPercentage'] = int(item.split('-XX:InitialRAMPercentage=')[1])
+        elif item.startswith('-XX:MaxRAMPercentage'):
+            params['-XX:MaxRAMPercentage'] = int(item.split('-XX:MaxRAMPercentage=')[1])
+        elif item.startswith('-Xmn'):
+            params['-Xmn'] = int(item.split('-Xmn')[1].split('m')[0])
+        elif item.startswith('-XX:SharedCacheHardLimit'):
+            params['-XX:SharedCacheHardLimit'] = int(item.split('-XX:SharedCacheHardLimit=')[1].split('m')[0])
+        elif item.startswith('-Xscmx'):
+            params['-Xscmx'] = int(item.split('-Xscmx=')[1].split('m')[0])
+        elif item.startswith('-Xtune:virtualized'):
+            params['-Xtune:virtualized'] = True
+        elif item.startswith('-XX:-UseContainerSupport'):
+            params['container_support'] = '+XX:-UseContainerSupport'
+        elif item.startswith('-XX:+UseContainerSupport'):
+            params['container_support'] = '-XX:+UseContainerSupport'
+        elif item.startswith('-Xgcpolicy:'):
+            params['gc'] = item
 
     # if '-Xnojit' in data:
     #     if data['-Xnojit']:
@@ -535,37 +541,57 @@ def jmvoptions_to_dict(jvm_options):
     #     if data['-Xnoaot']:
     #         params.append('-Xnoaot')
     #     del (data['-Xnoaot'])
-    return keys, params
+    return set(params.keys()), params
 
 
 
 def dict_to_jvmoptions(data):
     params = []
+    if '-XX:InitialRAMPercentage' in data:
+        params.append('-XX:InitialRAMPercentage='+str(data['-XX:InitialRAMPercentage']))
+        del data['-XX:InitialRAMPercentage']
+
+    if '-XX:MaxRAMPercentage' in data:
+        params.append('-XX:MaxRAMPercentage='+str(data['-XX:MaxRAMPercentage']))
+        del data['-XX:MaxRAMPercentage']
+
+    if '-Xmn' in data:
+        params.append('-Xmn' + str(data['-Xmn']) + 'm')
+        del data['-Xmn']
+
     if '-Xmx' in data:
         params.append('-Xmx' + str(data['-Xmx']) + 'm')
-        del (data['-Xmx'])
+        del data['-Xmx']
+
+    if '-XX:SharedCacheHardLimit' in data:
+        params.append('-XX:SharedCacheHardLimit=' + str(data['-XX:SharedCacheHardLimit']) + 'm')
+        del data['-XX:SharedCacheHardLimit']
+
+    if '-Xscmx' in data:
+        params.append('-Xscmx=' + str(data['-Xscmx']) + 'm')
+        del data['-Xscmx']
 
     if '-Dhttp.keepalive' in data:
         params.append('-Dhttp.keepalive=' + str(data['-Dhttp.keepalive']))
-        del (data['-Dhttp.keepalive'])
+        del data['-Dhttp.keepalive']
 
     if '-Dhttp.maxConnections' in data:
         params.append('-Dhttp.maxConnections=' + str(data['-Dhttp.maxConnections']))
-        del (data['-Dhttp.maxConnections'])
+        del data['-Dhttp.maxConnections']
 
     if '-Xtune:virtualized' in data:
         if data['-Xtune:virtualized']:
             params.append('-Xtune:virtualized')
-        del (data['-Xtune:virtualized'])
+        del data['-Xtune:virtualized']
 
     if '-Xnojit' in data:
         if data['-Xnojit']:
             params.append('-Xnojit')
-        del (data['-Xnojit'])
+        del data['-Xnojit']
 
     if '-Xnoaot' in data:
         if data['-Xnoaot']:
             params.append('-Xnoaot')
-        del (data['-Xnoaot'])
+        del data['-Xnoaot']
 
     return params + [item for item in data.values()]

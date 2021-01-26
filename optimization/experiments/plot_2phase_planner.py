@@ -335,6 +335,7 @@ if __name__ == '__main__':
     name = 'acme-trace-2021-01-12T01 39 15'
     name = 'acme-trace-2021-01-12T18 28 15'
     name = 'acme-trace-2021-01-13T02 29 40'
+    name = 'trace-2021-01-26T05 28 33'
     title = 'AcmeAir'
 
     df = load_raw_data('./resources/'+name+'.json')

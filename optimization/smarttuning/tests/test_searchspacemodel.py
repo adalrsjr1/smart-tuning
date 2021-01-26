@@ -13,6 +13,23 @@ class TestSearchModel(TestCase):
         cls.ss = mock_acmeair_search_space()
         cls.ss_dep_continuous = mock_acmeair_search_space_dep_continous()
 
+    def test_jmvoptions_to_dict(self):
+        jvm_options_file = "#-Dcom.sun.management.jmxremote\n#-Dcom.sun.management.jmxremote.authenticate=false\n#-Dcom.sun.management.jmxremote.ssl=false\n#-Dcom.sun.management.jmxremote.local.only=false\n#-Dcom.sun.management.jmxremote.port=1099\n#-Dcom.sun.management.jmxremote.rmi.port=1099\n#-Djava.rmi.server.hostname=127.0.0.1\n-XX:+UseContainerSupport\n#-xms512m\n#-xmx512m\n-Xgcpolicy:gencon\n-Xtune:virtualized\n-XX:InitialRAMPercentage=25\n-XX:MaxRAMPercentage=75\n-Xmn128m\n-XX:SharedCacheHardLimit=32m\n-Xscmx=16m\n#-verbose:gc\n#-Xverbosegclog:/home/daytrader/verbosegc.%Y%m%d.%H%M%S.%pid.txt"
+        _, params = jmvoptions_to_dict(jvm_options_file)
+        from pprint import pprint
+        pprint(params)
+        self.assertDictEqual(params, {
+            '-XX:InitialRAMPercentage': 25,
+            '-XX:MaxRAMPercentage': 75,
+            '-Xmn':128,
+            '-XX:SharedCacheHardLimit': 32,
+            '-Xscmx': 16,
+            '-Xtune:virtualized': True,
+            'container_support': '-XX:+UseContainerSupport',
+            'gc': '-Xgcpolicy:gencon',
+
+        })
+
     def test_searchspace_model(self):
         ss = SearchSpaceModel(self.ss)
 

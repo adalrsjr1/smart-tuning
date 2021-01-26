@@ -11,8 +11,8 @@ spec:
       type: "deployment"
     - name: daytrader-config-app
       type: "configMap"
-#    - name: daytrader-config-jvm
-#      type: "configMap"
+    - name: daytrader-config-jvm
+      type: "configMap"
 data:
   - name: daytrader-service
     tunables:
@@ -157,20 +157,58 @@ data:
 #          values:
 #            - "0"
 #            - "1"
-#  - name: daytrader-config-jvm
-#    filename: "jvm.options"
-#    tunables:
-#      boolean:
-#        - name: "-Xtune:virtualized"
-#      option:
-#        - name: "gc"
-#          values:
-#            - "-Xgcpolicy:gencon"
+  - name: daytrader-config-jvm
+    filename: "jvm.options"
+    tunables:
+      number:
+        - name: "-XX:MaxRAMPercentage"
+          lower:
+            value: 20
+          upper:
+            value: 95
+          step: 5
+          real: False
+        - name: "-XX:InitialRAMPercentage"
+          lower:
+            value: 20
+          upper:
+            value: 95
+          step: 5
+          real: False
+#        - name: "-Xmn"
+#          lower:
+#            value: 8
+#          upper:
+#            value: 512
+#            dependsOn: "Memory"
+#          step: 128
+#          real: False
+        - name: "-Xscmx"
+          lower:
+            value: 16
+          upper:
+            value: 128
+            dependsOn: "-XX:SharedCacheHardLimit"
+          step: 16
+          real: False
+        - name: "-XX:SharedCacheHardLimit"
+          lower:
+            value: 16
+          upper:
+            value: 128
+          step: 16
+          real: False
+      boolean:
+        - name: "-Xtune:virtualized"
+      option:
+        - name: "gc"
+          values:
+            - "-Xgcpolicy:gencon"
 #            - "-Xgc:concurrentScavenge"
 #            - "-Xgcpolicy:metronome"
 #            - "-Xgcpolicy:optavgpause"
 #            - "-Xgcpolicy:optthruput"
-#        - name: "container_support"
-#          values:
-#            - "-XX:+UseContainerSupport"
+        - name: "container_support"
+          values:
+            - "-XX:+UseContainerSupport"
 #            - "-XX:-UseContainerSupport"

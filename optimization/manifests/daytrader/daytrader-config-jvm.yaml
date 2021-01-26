@@ -4,20 +4,25 @@ metadata:
   name: daytrader-config-jvm
 data:
   # cannot set empty jvm.options
-  # if it is candidate to be tuned, i.e., they are set on the search space
-  # put here the default values of these knobs
+  # it is necessary to put here the default values of those knobs that are
+  # candidate to be tuned, i.e., the knobs set on thhe search space
   jvm.options: |-
-    -Dcom.sun.management.jmxremote
-    -Dcom.sun.management.jmxremote.authenticate=false
-    -Dcom.sun.management.jmxremote.ssl=false
-    -Dcom.sun.management.jmxremote.local.only=false
-    -Dcom.sun.management.jmxremote.port=1099
-    -Dcom.sun.management.jmxremote.rmi.port=1099
-    -Djava.rmi.server.hostname=127.0.0.1
+    #-Dcom.sun.management.jmxremote
+    #-Dcom.sun.management.jmxremote.authenticate=false
+    #-Dcom.sun.management.jmxremote.ssl=false
+    #-Dcom.sun.management.jmxremote.local.only=false
+    #-Dcom.sun.management.jmxremote.port=1099
+    #-Dcom.sun.management.jmxremote.rmi.port=1099
+    #-Djava.rmi.server.hostname=127.0.0.1
     -XX:+UseContainerSupport
     #-xms512m
     #-xmx512m
     -Xgcpolicy:gencon
     -Xtune:virtualized
+    -XX:InitialRAMPercentage=25
+    -XX:MaxRAMPercentage=75
+    -Xmn128m
+    -XX:SharedCacheHardLimit=32m
+    -Xscmx=16m
     #-verbose:gc
     #-Xverbosegclog:/home/daytrader/verbosegc.%Y%m%d.%H%M%S.%pid.txt

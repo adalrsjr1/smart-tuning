@@ -103,6 +103,16 @@ class DefaultConfiguration(Configuration):
     def vdata(self):
         return self._vdata
 
+    def serialize(self) -> dict:
+        return {
+            'uid': self.uid,
+            'name': self.name,
+            'data': self.vdata,
+            'score': self.score,
+            'stats': self.stats.serialize(),
+            'trials': self._trials.serialize()
+        }
+
 class EmptyConfiguration(Configuration):
     def __init__(self):
         from models.smartttuningtrials import EmptySmartTuningTrials
