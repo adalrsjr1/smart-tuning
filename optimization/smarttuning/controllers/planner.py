@@ -40,7 +40,7 @@ class Planner:
     def reinforcement_iterations(self):
         return int(round(self.k * self.ratio))
 
-    def save_trace(self, reinforcement=False, best: list[dict] = None):
+    def save_trace(self, reinforcement: typing.Union[str, bool] = True, best: list[dict] = None):
         if best is None:
             best = [{}]
 
@@ -59,7 +59,7 @@ class Planner:
                 'production': self.production.serialize(),
                 'training': self.training.serialize(),
             })
-        except:
+        except Exception:
             logger.exception('error when saving data')
         pass
 
@@ -128,9 +128,9 @@ class Planner:
         self.save_trace(best=[_best_.serialize() for _best_ in self.best_configuration(n=3)])
         if end_of_tuning or \
                 (
-                    best.name != self.production.configuration.name
-                    and self.iteration >= self.k
-                    # and self.iteration % self.k == 0
+                        best.name != self.production.configuration.name
+                        and self.iteration >= self.k
+                        # and self.iteration % self.k == 0
                 ):
 
             # ensure that only the first best config will be applied after K iterations
@@ -241,11 +241,6 @@ class Planner:
         return heapq.nsmallest(n, tmp)[0]
 
     def update_heap(self, heap: list, configuration: Configuration):
-        # c: Configuration
-        # logger.debug('loopping through heap1')
-        # add_to_heap1 = True
-        # add_to_heap2 = True
-
         def _update_heap(_heap: list, _configuration: Configuration, to_add=False):
             c: Configuration
             for i, c in enumerate(_heap):
@@ -264,35 +259,6 @@ class Planner:
         _update_heap(self.heap1, configuration, to_add=heap is self.heap1)
         logger.debug('loopping through heap2')
         _update_heap(self.heap2, configuration, to_add=heap is self.heap2)
-
-        # for i, c in enumerate(self.heap1):
-        #     # avoid repeated configs
-        #     if c.name == configuration.name:
-        #         logger.debug(f'[h1] updating old config:{self.heap1[i]}')
-        #         logger.debug(f'[h1] updating new config:{configuration}')
-        #         self.heap1[i] = configuration
-        #         # TODO: optimize this doing a single loop -- O(n^2) -> O(n)
-        #         heapq.heapify(self.heap1)
-        #         add_to_heap1 = False
-        #         break
-        #
-        # logger.debug('loopping through heap2')
-        # for i, c in enumerate(self.heap2):
-        #     # avoid repeated configs
-        #     if c.name == configuration.name:
-        #         logger.debug(f'[h2] updating old config:{self.heap2[i]}')
-        #         logger.debug(f'[h2] updating new config:{configuration}')
-        #         self.heap2[i] = configuration
-        #         # TODO: optimize this doing a single loop -- O(n^2) -> O(n)
-        #         heapq.heapify(self.heap2)
-        #         add_to_heap2 = False
-        #         break
-        #
-        # # add config to the heap is if not exits
-        # if add_to_heap1 and heap is self.heap1:
-        #     heapq.heappush(heap, configuration)
-        # elif add_to_heap2 and heap is self.heap2:
-        #     heapq.heappush(heap, configuration)
 
     def wait_for_metrics(self, interval: int, n_sampling_subintervals: int = 3, logging_subinterval: float = 0.2):
         """
