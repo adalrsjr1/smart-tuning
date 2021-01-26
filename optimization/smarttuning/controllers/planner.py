@@ -127,13 +127,14 @@ class Planner:
 
         self.save_trace(best=[_best_.serialize() for _best_ in self.best_configuration(n=3)])
         if end_of_tuning or \
-                (best.name != self.production.configuration.name and
-                 self.iteration >= self.k and
-                 self.iteration % self.k == 0):
+                (
+                    best.name != self.production.configuration.name
+                    and self.iteration >= self.k
+                    # and self.iteration % self.k == 0
+                ):
 
             # ensure that only the first best config will be applied after K iterations
             # all other will be applied as soon as they pop up
-            self.k = 1
 
             self.training.configuration = best
             curr_best: Configuration = best
