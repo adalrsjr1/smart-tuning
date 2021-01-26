@@ -17,7 +17,7 @@ echo -e "\ndeploying searchspace\n"
 kubectl apply --kubeconfig=$1 -f  search-space/search-space-crd-2.yaml
 sleep 1
 echo -e "\ndeploying proxy config\n"
-kubectl apply --kubeconfig=$1.yaml
+kubectl apply --kubeconfig=$1 -f proxy-config.yaml
 sleep 1
 echo -e "\ndeploying mongo\n"
 kubectl apply --kubeconfig=$1 -f  mongo-deployment.yaml
