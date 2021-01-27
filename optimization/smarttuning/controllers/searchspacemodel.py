@@ -342,7 +342,7 @@ class NumberRangeModel:
     def __repr__(self):
         return f'{{"name": "{self.name}", ' \
                f'"lower": {self.get_lower()}, ' \
-               f'"lower_deps":{self.get_lower_dep()}, ' \
+               f'"lower_dep":{self.get_lower_dep()}, ' \
                f'"upper": {self.get_upper()}, ' \
                f'"upper_dep":{self.get_upper_dep()}, ' \
                f'"real": "{self.get_real()}", ' \
@@ -387,21 +387,25 @@ class NumberRangeModel:
             upper += 0.1
 
         logger.debug(f'{self}')
-        upper_dep = ctx.get(self.get_upper_dep(), None)
-        lower_dep = ctx.get(self.get_lower_dep(), None)
 
-        upper = list(upper_dep.get_hyper_interval().values())[0] if upper_dep else self.get_upper()
-        lower = list(lower_dep.get_hyper_interval().values())[0] if lower_dep else self.get_lower()
+        # dep_eval(self.get_upper_dep(), ctx=ctx if self.get_upper_dep() else )
+        import numpy as np
+        from hyperopt.pyll.stochastic import sample
+        inner_ctx = {}
+        for k, v in ctx.items():
+            item = v.get_hyper_interval()
+            inner_ctx.update(item)
 
-        ## begin -- using normalization and avoid step
-        # if upper_dep or lower_dep:
-        #     value = (upper + lower)/2
-        # else:
-        #     if self.get_step():
-        #         value = hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step())
-        #     else:
-        #         value = hyperopt.hp.uniform(self.name, self.get_lower(), self.get_upper())
-        ## end
+        upper = dep_eval(self.get_upper_dep(), ctx=inner_ctx, default=self.get_upper())
+        lower = dep_eval(self.get_lower_dep(), ctx=inner_ctx, default=self.get_lower())
+
+    # upper_dep = ctx.get(self.get_upper_dep(), None)
+        # lower_dep = ctx.get(self.get_lower_dep(), None)
+        #
+        # upper = list(upper_dep.get_hyper_interval().values())[0] if upper_dep else self.get_upper()
+        # print(upper)
+        # lower = list(lower_dep.get_hyper_interval().values())[0] if lower_dep else self.get_lower()
+        # print(lower)
 
         ## begin -- using linear transformation
         if self.get_step():
@@ -419,6 +423,89 @@ class NumberRangeModel:
         ## end
         self.__hyper_interval = {self.name: to_int(value)}
         return self.__hyper_interval
+
+
+def dep_eval(expr, ctx=None, default=None):
+    if ctx is None:
+        ctx = {}
+    if default is None:
+        default = {}
+
+    expr_lst = tokenize(expr, ctx, default)
+    return polish_eval(expr_lst)
+
+
+def tokenize(expr, ctx=None, default=None):
+    if ctx is None:
+        ctx = {}
+    if default is None:
+        default = {}
+
+    if len(expr) != 0:
+        return [dep_eval_expr(token, ctx, default) for token in expr.split()]
+    return [dep_eval_expr('', ctx, default)]
+
+
+def dep_eval_expr(token, ctx=None, default=None):
+    if ctx is None:
+        ctx = {}
+    if default is None:
+        default = {}
+    import re
+
+    if len(token) == 0:
+        if isinstance(default, dict) and len(default) > 0:
+            return list(default.values()[0])
+        if not isinstance(default, dict):
+            return default
+
+    if re.compile(r"[-+]?\d*\.\d+|\d+").match(token):
+        return float(token)
+    else:
+        if token in '+-*/':
+            return token
+        else:
+            if token in ctx:
+                return ctx[token]
+            if isinstance(default, dict):
+                if token in default:
+                    return default[token]
+                else:
+                    raise KeyError(f'cannot evaluate token:{token}, it is not within the ctx')
+            elif default is None:
+                raise KeyError(f'there is no default value for token:{token}')
+            else:
+                return default
+
+def polish_eval(expr: list):
+    if len(expr) == 0:
+        return 0
+    if len(expr) == 1:
+        if isinstance(expr[0], dict):
+            return list(expr[0].values())[0]
+        else:
+            return expr[0] if str(expr[0]) not in '+-*/' else None
+    stack = []
+
+    def op(a, b, s):
+        if '+' == s:
+            return a + b
+        if '-' == s:
+            return a - b
+        if '*' == s:
+            return a * b
+        if '/' == s:
+            return a / b
+
+    for token in expr:
+        if str(token) not in '+-*/':
+            stack.insert(0, token)
+        else:
+            e2 = stack.pop(0)
+            e1 = stack.pop(0)
+            stack.insert(0, op(e1, e2, token))
+
+    return stack[0]
 
 
 def to_scale(x1, y1, x2, y2, k):
@@ -491,6 +578,7 @@ class OptionRangeModel:
         """ ctx['name'] = 'OptionRangeModel'"""
         return {self.name: hyperopt.hp.choice(self.name, self.get_values())}
 
+
 def jmvoptions_to_dict(jvm_options):
     data = jvm_options.split('\n')
     data = [item for item in data if not item.startswith('#')]
@@ -544,15 +632,14 @@ def jmvoptions_to_dict(jvm_options):
     return set(params.keys()), params
 
 
-
 def dict_to_jvmoptions(data):
     params = []
     if '-XX:InitialRAMPercentage' in data:
-        params.append('-XX:InitialRAMPercentage='+str(data['-XX:InitialRAMPercentage']))
+        params.append('-XX:InitialRAMPercentage=' + str(data['-XX:InitialRAMPercentage']))
         del data['-XX:InitialRAMPercentage']
 
     if '-XX:MaxRAMPercentage' in data:
-        params.append('-XX:MaxRAMPercentage='+str(data['-XX:MaxRAMPercentage']))
+        params.append('-XX:MaxRAMPercentage=' + str(data['-XX:MaxRAMPercentage']))
         del data['-XX:MaxRAMPercentage']
 
     if '-Xmn' in data:

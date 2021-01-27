@@ -175,14 +175,31 @@ data:
             value: 95
           step: 5
           real: False
-#        - name: "-Xmn"
-#          lower:
-#            value: 8
-#          upper:
-#            value: 512
-#            dependsOn: "Memory"
-#          step: 128
-#          real: False
+        - name: "-Xms"
+          lower:
+            value: 8
+          upper:
+            value: 7680
+            dependsOn: "-Xmx"
+          step: 256
+          real: False
+        - name: "-Xmx"
+          lower:
+            value: 8
+            dependsOn: "-Xms"
+          upper:
+            value: 7680
+            dependsOn: "Memory"
+          step: 256
+          real: False
+        - name: "-Xmn"
+          lower:
+            value: 8
+          upper:
+            value: 1920
+            dependsOn: "-Xms"
+          step: 128
+          real: False
         - name: "-Xscmx"
           lower:
             value: 16

@@ -148,6 +148,187 @@ class TestSearchModel(TestCase):
         orm = OptionRangeModel(r)
         self.assertListEqual([3.14, 2.71, 1.618], orm.get_values())
 
+    def test_number_range(self):
+
+        r1 = {
+            'dependsOn': '',
+            'name': 'test_name',
+            'upper': {
+                'value': 100,
+                'dependsOn':'another_name'
+            },
+            'lower': {
+                'value': 3,
+                'dependsOn':''
+            },
+            'step': 1,
+            'real': True
+        }
+        r2 = {
+            'dependsOn': '',
+            'name': 'another_name',
+            'upper': {
+                'value': 10,
+                'dependsOn':''
+            },
+            'lower': {
+                'value': 5,
+                'dependsOn':''
+            },
+            'step': 1,
+            'real': True
+        }
+        nrm1 = NumberRangeModel(r1)
+        nrm2 = NumberRangeModel(r2)
+        tunables = {'test_name':nrm1, 'another_name':nrm2}
+        value = nrm1.get_hyper_interval(ctx=tunables)
+        import numpy as np
+        from hyperopt.pyll.stochastic import sample
+        count = 0
+        for i in range(1000):
+            x = sample(value, np.random.RandomState(i))['test_name']
+            if x == 0:
+                count += 1
+            self.assertTrue(3 <= x <= 10, msg=f'{x}')
+            self.assertNotEqual(1000, count)
+
+    def test_number_range_expr(self):
+
+        r1 = {
+            'dependsOn': '',
+            'name': 'test_name',
+            'upper': {
+                'value': 100,
+                'dependsOn':'another_name 0.95 *'
+            },
+            'lower': {
+                'value': 50,
+                'dependsOn':''
+            },
+            'step': 1,
+            'real': True
+        }
+        r2 = {
+            'dependsOn': '',
+            'name': 'another_name',
+            'upper': {
+                'value': 100,
+                'dependsOn':''
+            },
+            'lower': {
+                'value': 10,
+                'dependsOn':''
+            },
+            'step': 1,
+            'real': True
+        }
+        nrm1 = NumberRangeModel(r1)
+        nrm2 = NumberRangeModel(r2)
+        tunables = {'test_name':nrm1, 'another_name':nrm2}
+        value = nrm1.get_hyper_interval(ctx=tunables)
+        import numpy as np
+        from hyperopt.pyll.stochastic import sample
+        count = 0
+        for i in range(1000):
+            x = sample(value, np.random.RandomState(i))['test_name']
+            if x == 0:
+                count += 1
+            self.assertTrue(10*0.95 <= x <= 100*0.95, msg=f'{i}:{x}')
+            self.assertNotEqual(1000, count)
+
+    def test_number_option_range(self):
+
+        r1 = {
+            'dependsOn': '',
+            'name': 'test_name',
+            'upper': {
+                'value': 100,
+                'dependsOn':'another_name 0.95 *'
+            },
+            'lower': {
+                'value': 20,
+                'dependsOn':''
+            },
+            'step': 1,
+            'real': True
+        }
+        r2 = {
+            'name': 'another_name',
+            'type': 'integer',
+            'values': [20, 30, 40]
+        }
+        nrm1 = NumberRangeModel(r1)
+        nrm2 = OptionRangeModel(r2)
+        tunables = {'test_name':nrm1, 'another_name':nrm2}
+        value = nrm1.get_hyper_interval(ctx=tunables)
+        import numpy as np
+        from hyperopt.pyll.stochastic import sample
+        count = 0
+        for i in range(1000):
+            x = sample(value, np.random.RandomState(i))['test_name']
+            if x == 0:
+                count += 1
+            self.assertTrue(20*0.95 <= x <= 40*0.95, msg=f'{i}:{x}')
+            self.assertNotEqual(1000, count)
+
+    def test_to_scale(self):
+        from hyperopt import hp
+        a = hp.uniform('a', 0, 8192) * 0.95
+        print('...', to_scale(8, 8, a, 1024, 7680))
+
+    def test_dep_regex(self):
+        self.assertEqual(dep_eval('0.95 name * ', {'name': 1.0}), 0.95)
+        self.assertEqual(dep_eval('name 0.95 *', {'name': 1.0}), 0.95)
+        self.assertEqual(dep_eval('name 1 *', {'name': 1.0}),1.0)
+        self.assertEqual(dep_eval('name 1.000 *', {'name': 1.0}), 1.0)
+        self.assertEqual(dep_eval('name 2 *', {'name': 1.0}), 2.0)
+        self.assertEqual(dep_eval('1 name +', {'name': 1.0}), 2.0)
+        self.assertEqual(dep_eval('1.000 name + ', {'name': 1.0}), 2.0)
+        self.assertEqual(dep_eval('2 name * ', {'name': 1.0}), 2)
+        self.assertEqual(dep_eval('name 1 * ', {'name': 1.0}), 1)
+        self.assertEqual(dep_eval('1 name * ', {'name': 1.0}), 1)
+        self.assertEqual(dep_eval('name 1.00 * ', {'name': 1.0}), 1)
+        self.assertEqual(dep_eval('1.1234 name * ', {'name': 1.0}), 1.1234)
+        import math
+        with self.assertRaises(KeyError):
+            dep_eval('test', {'name': 1.0})
+        self.assertTrue(math.isnan(dep_eval('test 1 + ', {'name': 1.0}, default=float('nan'))))
+        self.assertEqual(dep_eval('test 1 + ', {'name': 1.0}, default=3), 4)
+
+    def test_dep_eval(self):
+        self.assertEqual(dep_eval_expr('VAT', {'VAR': 7}, default={'VAT':5}), 5)
+        self.assertEqual(dep_eval_expr('VAT', {'VAR': 7}, default=3.14), 3.14)
+        with self.assertRaises(KeyError):
+            dep_eval_expr('VAT', {'VAR': 7})
+        self.assertEqual(dep_eval_expr('1'), 1.0)
+        self.assertEqual(dep_eval_expr('1.1'), 1.1)
+        self.assertEqual(dep_eval_expr('+'), '+')
+        self.assertEqual(dep_eval_expr('VAR', {'VAR': 7}), 7)
+
+
+
+    def test_tokenize(self):
+        expr = 'NAME 3 +'
+        self.assertEqual([3.14, 3, '+'], tokenize(expr, {'NAME':3.14}))
+        self.assertEqual([7], tokenize('', {'NAME':3.14}, default=7))
+
+    def test_polish_eval(self):
+
+        self.assertEqual(-17,polish_eval([3, 4, 5, '*', '-']))
+        self.assertEqual(14, polish_eval([5,1,2,'+',4,'*','+',3,'-']))
+        self.assertEqual(35, polish_eval([3, 4, '+', 5, '*']))
+        self.assertEqual(15, polish_eval([3, 4, '+', 2, '*', 1, '+']))
+        self.assertEqual(0,polish_eval([]))
+        from hyperopt import hp
+        a = hp.uniform('a', 0, 1)
+        self.assertEqual(a, polish_eval([a]))
+        self.assertEqual(None, polish_eval(['-']))
+
+
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
