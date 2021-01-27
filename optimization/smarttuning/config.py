@@ -15,21 +15,25 @@ def print_config(toPrint=False):
                 print('\t', item)
         print('\n *** config loaded *** \n')
 
-K8S_HOST = 'trxrhel7perf-1'
-LOCALHOST = '9.26.100.254'
+# K8S_HOST = 'trxrhel7perf-1'
+# LOCALHOST = '9.26.100.254'
+
+K8S_HOST = 'trinity01'
+LOCALHOST = '127.0.0.1'
 
 # K8S_HOST = 'localhost'
 # LOCALHOST = 'localhost'
 
-K8S_CONF = f'{os.environ.get("HOME")}/.kube/trxrhel7perf-1/config'
+# K8S_CONF = f'{os.environ.get("HOME")}/.kube/trxrhel7perf-1/config'
+K8S_CONF = f'{os.environ.get("HOME")}/.kube/trinity01/config'
 
 def init_k8s(hostname=K8S_HOST):
     if 'KUBERNETES_SERVICE_HOST' in os.environ:
         logging.info('loading K8S configuration')
         kubernetes.config.load_incluster_config()
     else:
-        if 'trxrhel7perf-1' == hostname:
-            logging.info('loading trxrhel7perf-1 configuration')
+        if 'localhost' != hostname:
+            logging.info(f'loading remote:{hostname} configuration')
             kubernetes.config.load_kube_config(config_file=K8S_CONF)
         else:
             logging.info('loading localhost configuration')

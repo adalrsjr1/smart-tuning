@@ -161,25 +161,25 @@ data:
     filename: "jvm.options"
     tunables:
       number:
-        - name: "-XX:MaxRAMPercentage"
-          lower:
-            value: 20
-          upper:
-            value: 95
-          step: 5
-          real: False
-        - name: "-XX:InitialRAMPercentage"
-          lower:
-            value: 20
-          upper:
-            value: 95
-          step: 5
-          real: False
+#        - name: "-XX:MaxRAMPercentage"
+#          lower:
+#            value: 20
+#          upper:
+#            value: 95
+#          step: 5
+#          real: False
+#        - name: "-XX:InitialRAMPercentage"
+#          lower:
+#            value: 20
+#          upper:
+#            value: 95
+#          step: 5
+#          real: False
         - name: "-Xms"
           lower:
             value: 8
           upper:
-            value: 7680
+            value: 8192
             dependsOn: "-Xmx"
           step: 256
           real: False
@@ -188,23 +188,24 @@ data:
             value: 8
             dependsOn: "-Xms"
           upper:
-            value: 7680
-            dependsOn: "Memory"
+            value: 8192
+            dependsOn: "Memory 0.95 *"
           step: 256
           real: False
         - name: "-Xmn"
           lower:
             value: 8
           upper:
-            value: 1920
-            dependsOn: "-Xms"
+            value: 8192
+            # https://www.ibm.com/support/pages/maximo-75-64-bit-application-won%E2%80%99t-start-after-automated-installation
+            dependsOn: "-Xms 0.95 *"
           step: 128
           real: False
         - name: "-Xscmx"
           lower:
             value: 16
           upper:
-            value: 128
+            value: 512
             dependsOn: "-XX:SharedCacheHardLimit"
           step: 16
           real: False
@@ -212,7 +213,7 @@ data:
           lower:
             value: 16
           upper:
-            value: 128
+            value: 512
           step: 16
           real: False
       boolean:

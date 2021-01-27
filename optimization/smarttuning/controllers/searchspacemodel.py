@@ -607,6 +607,10 @@ def jmvoptions_to_dict(jvm_options):
             params['-XX:MaxRAMPercentage'] = int(item.split('-XX:MaxRAMPercentage=')[1])
         elif item.startswith('-Xmn'):
             params['-Xmn'] = int(item.split('-Xmn')[1].split('m')[0])
+        elif item.startswith('-Xms'):
+            params['-Xms'] = int(item.split('-Xms')[1].split('m')[0])
+        elif item.startswith('-Xmx'):
+            params['-Xmx'] = int(item.split('-Xmx')[1].split('m')[0])
         elif item.startswith('-XX:SharedCacheHardLimit'):
             params['-XX:SharedCacheHardLimit'] = int(item.split('-XX:SharedCacheHardLimit=')[1].split('m')[0])
         elif item.startswith('-Xscmx'):
@@ -649,6 +653,10 @@ def dict_to_jvmoptions(data):
     if '-Xmx' in data:
         params.append('-Xmx' + str(data['-Xmx']) + 'm')
         del data['-Xmx']
+
+    if '-Xms' in data:
+        params.append('-Xms' + str(data['-Xms']) + 'm')
+        del data['-Xms']
 
     if '-XX:SharedCacheHardLimit' in data:
         params.append('-XX:SharedCacheHardLimit=' + str(data['-XX:SharedCacheHardLimit']) + 'm')

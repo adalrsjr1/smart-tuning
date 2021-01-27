@@ -105,7 +105,7 @@ class Instance:
                 data_to_apply = config_to_apply.data if not isinstance(config_to_apply, DefaultConfiguration) else config_to_apply.vdata
                 self._do_patch(manifests, data_to_apply)
             except:
-                logger.exception(f'error when patching config:{config_to_apply}')
+                logger.exception(f'error when patching config:{config_to_apply.data}')
 
     def _do_patch(self, manifests, configuration):
         for key, value in configuration.items():
