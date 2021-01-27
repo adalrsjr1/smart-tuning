@@ -20,13 +20,14 @@ logger.setLevel(config.LOGGING_LEVEL)
 
 
 class Planner:
-    def __init__(self, production: Instance, training: Instance, ctx: SearchSpaceContext, k: int, ratio: float = 1):
+    def __init__(self, production: Instance, training: Instance, ctx: SearchSpaceContext, k: int, ratio: float = 1, when_try=1):
         self._date = datetime.datetime.now(datetime.timezone.utc).isoformat()
         self.training = training
         self.production = production
         self.ctx = ctx
         self.k = k
         self.ratio = ratio
+        self.when_try = when_try
 
         self.heap1: list[Configuration] = []
         self.heap2: list[Configuration] = []
@@ -130,7 +131,7 @@ class Planner:
                 (
                         best.name != self.production.configuration.name
                         and self.iteration >= self.k
-                        # and self.iteration % self.k == 0
+                        and self.iteration % self.when_try == 0
                 ):
 
             # ensure that only the first best config will be applied after K iterations

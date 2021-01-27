@@ -198,42 +198,105 @@ class TestSearchModel(TestCase):
             'dependsOn': '',
             'name': 'test_name',
             'upper': {
-                'value': 100,
-                'dependsOn':'another_name 0.95 *'
+                'value': 8192,
+                'dependsOn':'another_name 0.05 *'
             },
             'lower': {
-                'value': 50,
-                'dependsOn':''
+                'value': 8,
+                'dependsOn':'another_name 0.01 *'
             },
-            'step': 1,
+            'step': 8,
             'real': True
         }
         r2 = {
             'dependsOn': '',
             'name': 'another_name',
             'upper': {
-                'value': 100,
+                'value': 8192,
                 'dependsOn':''
             },
             'lower': {
-                'value': 10,
+                'value': 8,
                 'dependsOn':''
             },
-            'step': 1,
+            'step': 8,
             'real': True
         }
         nrm1 = NumberRangeModel(r1)
         nrm2 = NumberRangeModel(r2)
-        tunables = {'test_name':nrm1, 'another_name':nrm2}
-        value = nrm1.get_hyper_interval(ctx=tunables)
+        tunables = {'test_name': nrm1, 'another_name': nrm2}
+
         import numpy as np
         from hyperopt.pyll.stochastic import sample
         count = 0
         for i in range(1000):
+            value = nrm1.get_hyper_interval(ctx=tunables)
             x = sample(value, np.random.RandomState(i))['test_name']
+            print(x)
             if x == 0:
                 count += 1
-            self.assertTrue(10*0.95 <= x <= 100*0.95, msg=f'{i}:{x}')
+            self.assertTrue(8*0.01 <= x <= 8192*0.05, msg=f'{i}:{x}')
+            self.assertNotEqual(1000, count)
+
+    def test_number_range_expr_transitive(self):
+
+        r1 = {
+            'dependsOn': '',
+            'name': 'test_name',
+            'upper': {
+                'value': 8192,
+                'dependsOn':'another_name 0.75 *'
+            },
+            'lower': {
+                'value': 8,
+                'dependsOn':'another_name 2 *'
+            },
+            'step': 8,
+            'real': True
+        }
+        r2 = {
+            'dependsOn': '',
+            'name': 'another_name',
+            'upper': {
+                'value': 8192,
+                'dependsOn':'another_other_name 0.5 *'
+            },
+            'lower': {
+                'value': 8,
+                'dependsOn':'another_other_name 128 *'
+            },
+            'step': 8,
+            'real': True
+        }
+        r3 = {
+            'dependsOn': '',
+            'name': 'another_other_name',
+            'upper': {
+                'value': 8192,
+                'dependsOn':''
+            },
+            'lower': {
+                'value': 8,
+                'dependsOn':''
+            },
+            'step': 8,
+            'real': True
+        }
+        nrm1 = NumberRangeModel(r1)
+        nrm2 = NumberRangeModel(r2)
+        nrm3 = NumberRangeModel(r3)
+        tunables = {'test_name': nrm1, 'another_name': nrm2, 'another_other_name': nrm3}
+
+        import numpy as np
+        from hyperopt.pyll.stochastic import sample
+        count = 0
+        for i in range(1000):
+            value = nrm1.get_hyper_interval(ctx=tunables)
+            x = sample(value, np.random.RandomState(i))['test_name']
+            print(x)
+            if x == 0:
+                count += 1
+            self.assertTrue(2048 <= x <= 3072, msg=f'{i}:{x}')
             self.assertNotEqual(1000, count)
 
     def test_number_option_range(self):
@@ -274,7 +337,10 @@ class TestSearchModel(TestCase):
     def test_to_scale(self):
         from hyperopt import hp
         a = hp.uniform('a', 0, 8192) * 0.95
-        print('...', to_scale(8, 8, a, 1024, 7680))
+        print('...', to_scale(8, 8, 8192, 7680, 7680))
+        print('...', to_scale(8, 8, 8192, 7680, 8))
+        print('...', to_scale(8, 8, 8192, 7680, 8192))
+        print('...', to_scale(8, 8, 8192, 7680, 4096))
 
     def test_dep_regex(self):
         self.assertEqual(dep_eval('0.95 name * ', {'name': 1.0}), 0.95)

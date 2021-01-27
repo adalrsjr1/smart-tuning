@@ -103,6 +103,7 @@ N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
 GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(float(os.environ.get('NUMBER_ITERATIONS', default='1e15'))) # check if hyperopt version is updated to use stop iterations
 ITERATIONS_BEFORE_REINFORCE = int(os.environ.get('ITERATIONS_BEFORE_REINFORCE', default='3'))
+TRY_BEST_AT_EVERY = int(os.environ.get('TRY_BEST_AT_EVERY'), default=ITERATIONS_BEFORE_REINFORCE)
 REINFORCEMENT_RATIO = float(os.environ.get('REINFORCEMENT_RATIO', default='1.0'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
