@@ -97,12 +97,14 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
         if not punique in memoization:
 
             memoization[punique] = abs(hash(punique)) / sys.maxsize
+            memoization[punique[:3]] = memoization[punique]
 
         if punique in memoization:
             new_colors.append(memoization[punique])
 
         if not tunique in memoization:
             memoization[tunique] = abs(hash(tunique)) / sys.maxsize
+            memoization[tunique[:3]] = memoization[tunique]
 
         if tunique in memoization:
             new_colors.append(memoization[tunique])
@@ -156,6 +158,7 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
         ax.set_xlabel('')
         ax.margins(x=0)
 
+        plt_table: matplotlib.table
         table = pd.DataFrame(reduced_table['nbest'].to_dict())
         table = table.fillna(value='')
         plt_table = ax.table(cellText=table.to_numpy().reshape(3,-1), rowLoc='center',
@@ -164,6 +167,13 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
                  cellLoc='center',
                  colLoc='center', loc='bottom')
         plt_table.set_fontsize('x-small')
+
+        for pos, cell in plt_table.get_celld().items():
+            cell.fill = True
+            text = cell.get_text().get_text()
+            if len(text) == 3 and text not in '1st2nd3rd':
+                plt_table[pos].set_facecolor(cmap(memoization[text]))
+                cell.set_alpha(0.7)
     # reduced_table.plot(table=np.array(reduced_table['nbest'].T), ax=ax)
 
     # customize legend
@@ -336,7 +346,8 @@ if __name__ == '__main__':
     name = 'acme-trace-2021-01-12T18 28 15'
     name = 'acme-trace-2021-01-13T02 29 40'
     name = 'trace-2021-01-26T05 28 33'
-    title = 'AcmeAir'
+    name = 'trace-2021-01-27T03 23 48'
+    title = 'Daytrader'
 
     df = load_raw_data('./resources/'+name+'.json')
     plot(df, title=title+': '+name, save=False, show_table=True)
