@@ -22,10 +22,11 @@ data:
         - name: "cpu"
           type: "integer"
           values:
-#            - "2"
+            - "2"
             - "4"
-            - "8"
-            - "16"
+            - "6"
+#            - "8"
+#            - "16"
         - name: "memory"
           type: "integer"
           values:
@@ -181,7 +182,7 @@ data:
           lower:
             value: 8
           upper:
-            value: 512
+            value: 896
           step: 8
           real: False
         - name: "-Xmx"
@@ -190,18 +191,18 @@ data:
             dependsOn: "-Xms"
           upper:
             value: 8192
-            dependsOn: "Memory 0.95 *"
+            dependsOn: "Memory 0.8 *"
           step: 16
           real: False
-        - name: "-Xmn"
-          lower:
-            value: 8
-          upper:
-            value: 512
-            # https://www.ibm.com/support/pages/maximo-75-64-bit-application-won%E2%80%99t-start-after-automated-installation
-            dependsOn: "-Xms 0.95 *"
-          step: 8
-          real: False
+#        - name: "-Xmn"
+#          lower:
+#            value: 8
+#          upper:
+#            value: 888
+#             https://www.ibm.com/support/pages/maximo-75-64-bit-application-won%E2%80%99t-start-after-automated-installation
+#            dependsOn: "-Xms 0.8 *"
+#          step: 8
+#          real: False
         - name: "-Xscmx"
           lower:
             value: 16
