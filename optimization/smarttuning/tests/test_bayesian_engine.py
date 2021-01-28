@@ -1,3 +1,4 @@
+import threading
 import unittest
 from hyperopt import hp, STATUS_OK
 import time
@@ -6,8 +7,38 @@ from concurrent.futures import ThreadPoolExecutor
 from hyperopt import fmin,tpe, Trials, STATUS_FAIL, STATUS_OK, space_eval
 from hyperopt.fmin import generate_trials_to_calculate
 
+from models.configuration import Configuration
+from sampler import Metric
+
 
 class TestBayesianEngine(unittest.TestCase):
+
+    def test_e2e_bayesian(self):
+        max_evals = 2
+        engine = BayesianEngine(
+            name='test',
+            space={'a': hp.uniform('a', -100, 100)},
+            is_bayesian=True,
+            max_evals=max_evals,
+        )
+        thread = engine.fmin
+
+        def put():
+            for _ in range(max_evals):
+                engine.put(BayesianDTO(metric=Metric.zero()))
+
+        def get():
+            for i in range(1, max_evals+1):
+                c:Configuration = engine.get()
+                print(c)
+
+            self.assertEqual(i, max_evals)
+
+        threading.Thread(name='put-metric', target=put).start()
+        threading.Thread(name='put-metric', target=get).start()
+
+
+        thread.join()
 
     executor = ThreadPoolExecutor()
 
