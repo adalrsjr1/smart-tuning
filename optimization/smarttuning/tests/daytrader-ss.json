@@ -1,0 +1,322 @@
+{
+    "apiVersion": "smarttuning.ibm.com/v1alpha2",
+    "data": [
+        {
+            "filename": "",
+            "name": "daytrader-service",
+            "tunables": {
+                "option": [
+                    {
+                        "name": "cpu",
+                        "type": "integer",
+                        "values": [
+                            "2",
+                            "4",
+                            "6"
+                        ]
+                    },
+                    {
+                        "name": "memory",
+                        "type": "integer",
+                        "values": [
+                            "1024",
+                            "2048",
+                            "4096",
+                            "8192"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "filename": "",
+            "name": "daytrader-config-app",
+            "tunables": {
+                "number": [
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 4
+                        },
+                        "name": "MAX_THREADS",
+                        "real": false,
+                        "step": 10,
+                        "upper": {
+                            "dependsOn": "CONMGR1_MAX_POOL_SIZE",
+                            "value": 60
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 4
+                        },
+                        "name": "CONMGR1_MAX_POOL_SIZE",
+                        "real": false,
+                        "step": 10,
+                        "upper": {
+                            "dependsOn": "",
+                            "value": 100
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 4
+                        },
+                        "name": "CONMGR1_MIN_POOL_SIZE",
+                        "real": false,
+                        "step": 10,
+                        "upper": {
+                            "dependsOn": "CONMGR1_MAX_POOL_SIZE",
+                            "value": 100
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 1
+                        },
+                        "name": "CONMGR1_TIMEOUT",
+                        "real": false,
+                        "step": 10,
+                        "upper": {
+                            "dependsOn": "",
+                            "value": 300
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 1
+                        },
+                        "name": "CONMGR1_AGED_TIMEOUT",
+                        "real": false,
+                        "step": 10,
+                        "upper": {
+                            "dependsOn": "",
+                            "value": 300
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 1
+                        },
+                        "name": "CONMGR1_MAX_IDLE_TIMEOUT",
+                        "real": false,
+                        "step": 30,
+                        "upper": {
+                            "dependsOn": "",
+                            "value": 300
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 1
+                        },
+                        "name": "CONMGR1_REAP_TIME",
+                        "real": false,
+                        "step": 30,
+                        "upper": {
+                            "dependsOn": "CONMGR1_MAX_IDLE_TIMEOUT",
+                            "value": 300
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "MAX_THREADS",
+                            "value": 4
+                        },
+                        "name": "HTTP_MAX_KEEP_ALIVE_REQUESTS",
+                        "real": false,
+                        "step": 10,
+                        "upper": {
+                            "dependsOn": "CONMGR1_MAX_POOL_SIZE",
+                            "value": 100
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 15
+                        },
+                        "name": "HTTP_PERSIST_TIMEOUT",
+                        "real": false,
+                        "step": 5,
+                        "upper": {
+                            "dependsOn": "",
+                            "value": 45
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "filename": "jvm.options",
+            "name": "daytrader-config-jvm",
+            "tunables": {
+                "boolean": [
+                    {
+                        "name": "-Xtune:virtualized"
+                    }
+                ],
+                "number": [
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 8
+                        },
+                        "name": "-Xms",
+                        "real": false,
+                        "step": 8,
+                        "upper": {
+                            "dependsOn": "",
+                            "value": 896
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "-Xms",
+                            "value": 16
+                        },
+                        "name": "-Xmx",
+                        "real": false,
+                        "step": 16,
+                        "upper": {
+                            "dependsOn": "memory 0.8 *",
+                            "value": 8192
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 8
+                        },
+                        "name": "-Xmn",
+                        "real": false,
+                        "step": 8,
+                        "upper": {
+                            "dependsOn": "-Xms 0.8 *",
+                            "value": 896
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 16
+                        },
+                        "name": "-Xscmx",
+                        "real": false,
+                        "step": 16,
+                        "upper": {
+                            "dependsOn": "-XX:SharedCacheHardLimit",
+                            "value": 512
+                        }
+                    },
+                    {
+                        "dependsOn": "",
+                        "lower": {
+                            "dependsOn": "",
+                            "value": 16
+                        },
+                        "name": "-XX:SharedCacheHardLimit",
+                        "real": false,
+                        "step": 16,
+                        "upper": {
+                            "dependsOn": "",
+                            "value": 512
+                        }
+                    }
+                ],
+                "option": [
+                    {
+                        "name": "gc",
+                        "type": "string",
+                        "values": [
+                            "-Xgcpolicy:gencon"
+                        ]
+                    },
+                    {
+                        "name": "container_support",
+                        "type": "string",
+                        "values": [
+                            "-XX:+UseContainerSupport"
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "kind": "SearchSpace",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"smarttuning.ibm.com/v1alpha2\",\"data\":[{\"name\":\"daytrader-service\",\"tunables\":{\"option\":[{\"name\":\"cpu\",\"type\":\"integer\",\"values\":[\"2\",\"4\",\"6\"]},{\"name\":\"memory\",\"type\":\"integer\",\"values\":[\"1024\",\"2048\",\"4096\",\"8192\"]}]}},{\"name\":\"daytrader-config-app\",\"tunables\":{\"number\":[{\"lower\":{\"value\":4},\"name\":\"MAX_THREADS\",\"real\":false,\"step\":10,\"upper\":{\"dependsOn\":\"CONMGR1_MAX_POOL_SIZE\",\"value\":60}},{\"lower\":{\"value\":4},\"name\":\"CONMGR1_MAX_POOL_SIZE\",\"real\":false,\"step\":10,\"upper\":{\"value\":100}},{\"lower\":{\"value\":4},\"name\":\"CONMGR1_MIN_POOL_SIZE\",\"real\":false,\"step\":10,\"upper\":{\"dependsOn\":\"CONMGR1_MAX_POOL_SIZE\",\"value\":100}},{\"lower\":{\"value\":1},\"name\":\"CONMGR1_TIMEOUT\",\"real\":false,\"step\":10,\"upper\":{\"value\":300}},{\"lower\":{\"value\":1},\"name\":\"CONMGR1_AGED_TIMEOUT\",\"real\":false,\"step\":10,\"upper\":{\"value\":300}},{\"lower\":{\"value\":1},\"name\":\"CONMGR1_MAX_IDLE_TIMEOUT\",\"real\":false,\"step\":30,\"upper\":{\"value\":300}},{\"lower\":{\"value\":1},\"name\":\"CONMGR1_REAP_TIME\",\"real\":false,\"step\":30,\"upper\":{\"dependsOn\":\"CONMGR1_MAX_IDLE_TIMEOUT\",\"value\":300}},{\"lower\":{\"dependsOn\":\"MAX_THREADS\",\"value\":4},\"name\":\"HTTP_MAX_KEEP_ALIVE_REQUESTS\",\"real\":false,\"step\":10,\"upper\":{\"dependsOn\":\"CONMGR1_MAX_POOL_SIZE\",\"value\":100}},{\"lower\":{\"value\":15},\"name\":\"HTTP_PERSIST_TIMEOUT\",\"real\":false,\"step\":5,\"upper\":{\"value\":45}}]}},{\"filename\":\"jvm.options\",\"name\":\"daytrader-config-jvm\",\"tunables\":{\"boolean\":[{\"name\":\"-Xtune:virtualized\"}],\"number\":[{\"lower\":{\"value\":8},\"name\":\"-Xms\",\"real\":false,\"step\":8,\"upper\":{\"value\":896}},{\"lower\":{\"dependsOn\":\"-Xms\",\"value\":16},\"name\":\"-Xmx\",\"real\":false,\"step\":16,\"upper\":{\"dependsOn\":\"memory 0.8 *\",\"value\":8192}},{\"lower\":{\"value\":8},\"name\":\"-Xmn\",\"real\":false,\"step\":8,\"upper\":{\"dependsOn\":\"-Xms 0.8 *\",\"value\":896}},{\"lower\":{\"value\":16},\"name\":\"-Xscmx\",\"real\":false,\"step\":16,\"upper\":{\"dependsOn\":\"-XX:SharedCacheHardLimit\",\"value\":512}},{\"lower\":{\"value\":16},\"name\":\"-XX:SharedCacheHardLimit\",\"real\":false,\"step\":16,\"upper\":{\"value\":512}}],\"option\":[{\"name\":\"gc\",\"values\":[\"-Xgcpolicy:gencon\"]},{\"name\":\"container_support\",\"values\":[\"-XX:+UseContainerSupport\"]}]}}],\"kind\":\"SearchSpace\",\"metadata\":{\"annotations\":{},\"name\":\"daytrader-ss\",\"namespace\":\"default\"},\"spec\":{\"deployment\":\"daytrader-service\",\"manifests\":[{\"name\":\"daytrader-service\",\"type\":\"deployment\"},{\"name\":\"daytrader-config-app\",\"type\":\"configMap\"},{\"name\":\"daytrader-config-jvm\",\"type\":\"configMap\"}],\"namespace\":\"default\",\"service\":\"daytrader\"}}\n"
+        },
+        "creationTimestamp": "2021-02-01T22:37:34Z",
+        "generation": 1,
+        "managedFields": [
+            {
+                "apiVersion": "smarttuning.ibm.com/v1alpha2",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:data": {},
+                    "f:metadata": {
+                        "f:annotations": {
+                            ".": {},
+                            "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                        }
+                    },
+                    "f:spec": {
+                        ".": {},
+                        "f:deployment": {},
+                        "f:manifests": {},
+                        "f:namespace": {},
+                        "f:service": {}
+                    }
+                },
+                "manager": "kubectl-client-side-apply",
+                "operation": "Update",
+                "time": "2021-02-01T22:37:34Z"
+            }
+        ],
+        "name": "daytrader-ss",
+        "namespace": "default",
+        "resourceVersion": "2774449",
+        "selfLink": "/apis/smarttuning.ibm.com/v1alpha2/namespaces/default/searchspaces/daytrader-ss",
+        "uid": "d06dd417-7805-4269-8715-baff4d9a157b"
+    },
+    "spec": {
+        "deployment": "daytrader-service",
+        "manifests": [
+            {
+                "name": "daytrader-service",
+                "type": "deployment"
+            },
+            {
+                "name": "daytrader-config-app",
+                "type": "configMap"
+            },
+            {
+                "name": "daytrader-config-jvm",
+                "type": "configMap"
+            }
+        ],
+        "namespace": "default",
+        "service": "daytrader"
+    }
+}

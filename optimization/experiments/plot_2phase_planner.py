@@ -347,7 +347,10 @@ if __name__ == '__main__':
     name = 'acme-trace-2021-01-13T02 29 40'
     name = 'trace-2021-01-26T05 28 33'
     name = 'trace-2021-01-27T03 23 48'
-    title = 'Daytrader'
+    name = 'trace-2021-01-07T17 05 39'
+    name = 'trace-2021-01-28T15 30 14' # 100 extra params
+    name = 'trace-2021-01-29T13 01 23'
+    title = 'tDaytrader'
 
     df = load_raw_data('./resources/'+name+'.json')
     plot(df, title=title+': '+name, save=False, show_table=True)

@@ -319,6 +319,7 @@ class PrometheusSampler:
         """
         # The better metric is container_memory_working_set_bytes as this is what the OOM killer is watching for.
         logger.debug(f'sampling memory at {self.podname}.* in {self.namespace}')
+        # container_spec_memory_limit_bytes
         query = f'sum(max_over_time(container_memory_working_set_bytes{{id=~".kubepods.*",namespace="{self.namespace}", container!="",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)

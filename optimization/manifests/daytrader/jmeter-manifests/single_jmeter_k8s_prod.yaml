@@ -8,6 +8,9 @@ spec:
   containers:
     - name: jmeter-prod
       image: smarttuning/jmeter_daytrader
+#      resources:
+#        limits:
+#          cpu: "2"
       lifecycle:
         preStop:
           exec:

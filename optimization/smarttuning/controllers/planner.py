@@ -7,6 +7,8 @@ import math
 import time
 import typing
 
+import optuna
+
 import config
 from bayesian import BayesianDTO, EmptyBayesianDTO
 from controllers.searchspace import SearchSpaceContext
@@ -56,6 +58,7 @@ class Planner:
             collection.insert_one({
                 'iteration': self.iteration,
                 'best': best,
+                'params_importance': {k:v for k,v in optuna.importance.get_param_importances(self.ctx.model.study, evaluator=optuna.importance.MeanDecreaseImpurityImportanceEvaluator()).items()},
                 'reinforcement': reinforcement,
                 'production': self.production.serialize(),
                 'training': self.training.serialize(),
@@ -223,6 +226,7 @@ class Planner:
 
                 logger.debug(f'heap1: {self.heap1}')
                 logger.debug(f'heap2: {self.heap2}')
+                self._iteration = -1
 
         self._iteration += 1
         # returns best config applyed to production

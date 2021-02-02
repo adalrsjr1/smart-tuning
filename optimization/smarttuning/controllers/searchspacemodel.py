@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import abc
 import copy
 import json
 import logging
+import random
 import time
 from distutils.util import strtobool
 from typing import Union
+from unittest import TestCase
 
 import optuna
 from kubernetes.client.models import *
 from kubernetes.utils import quantity
+from optuna.distributions import UniformDistribution, DiscreteUniformDistribution, IntUniformDistribution, \
+    CategoricalDistribution
 
 import config
 
@@ -24,9 +29,31 @@ class SearchSpaceModel:
             temp = parse_manifests(o, self)
 
             self.deployment: str = temp['deployment']
-            self.manifests: list[BaseRangeModel] = temp['models']
+            self.manifests: list[BaseSearchSpaceModel] = temp['models']
             self.namespace: str = temp['namespace']
             self.service: str = temp['service']
+
+    def adhoc_trial(self) -> optuna.trial.FixedTrial:
+        memo = {}
+        params = {}
+
+        for name, tunable in self.tunables().items():
+            params.update({name: tunable.sample(trial=None, memo=memo)})
+
+        return optuna.trial.FixedTrial(params)
+
+    def default_structure(self, plain_config:dict) -> dict:
+        tunables = self.tunables()
+        _sample = {}
+        for manifest in self.manifests:
+            name = manifest.name
+            ss = {name: {}}
+            tunables = manifest.tunables
+            for key, tunable in tunables.items():
+                ss[name][key] = plain_config[key]
+            _sample.update(ss)
+
+        return _sample
 
     def tunables(self) -> dict[str, BaseRangeModel]:
         manifest: BaseSearchSpaceModel
@@ -36,11 +63,30 @@ class SearchSpaceModel:
 
         return all_tunables
 
-    def sample(self, trial: optuna.trial.BaseTrial):
+    def sample(self, trial: optuna.trial.BaseTrial, full=False):
+        """
+        trial: optuna.trial.BaseTrial
+        full: if true return the tunables hierarchy {'manifest-name': {'tunable-name': value}}
+        otherwise return a plain list of tunables {'tunable-name': 'value'}
+        """
         tunable: BaseRangeModel
         _sample = {}
-        for key, tunable in self.tunables().items():
-            _sample[key] = tunable.sample(trial)
+        memo = {}
+        if full:
+            for manifest in self.manifests:
+                name = manifest.name
+                ss = {name: {}}
+                tunables = manifest.tunables
+                for key, tunable in tunables.items():
+                    try:
+                        ss[name][key] = tunable.sample(trial, memo)
+                    except:
+                        logger.exception(f'{name}:{key}')
+                        exit(1)
+                _sample.update(ss)
+        else:
+            for key, tunable in self.tunables().items():
+                _sample[key] = tunable.sample(trial, memo)
 
         return _sample
 
@@ -115,7 +161,7 @@ class DeploymentSearchSpaceModel(BaseSearchSpaceModel):
 
         return self.get_current_config_from_spec(deployment)
 
-    def get_current_config_from_spec(self, deployment: V1Deployment) -> (dict, dict):
+    def get_current_config_from_spec(self, deployment: V1Deployment) -> dict:
         containers = deployment.spec.template.spec.containers
         config_limits = {'cpu': 0, 'memory': 0}
         container: V1Container
@@ -212,7 +258,7 @@ class ConfigMapSearhSpaceModel(BaseSearchSpaceModel):
         return f'{{"name": "{self.name}", "namespace": "{self.namespace}", "deployment": "{self.deployment}"' \
                f'tunables: {str(self.tunables)}}}'
 
-    def get_current_config(self) -> (dict, dict):
+    def get_current_config(self) -> dict:
         core_api = config.coreApi()
         config_map: V1ConfigMap = core_api.read_namespaced_config_map(name=self.name, namespace=self.namespace)
 
@@ -287,8 +333,13 @@ class BaseRangeModel:
         self.name = name
         self.ctx = ctx
 
-    def sample(self, trial: optuna.trial.BaseTrial) -> Union[int, float, str]:
-        pass
+    @abc.abstractmethod
+    def sample(self, trial: optuna.trial.BaseTrial, memo:dict) -> Union[int, float, str]:
+        return
+
+    @abc.abstractmethod
+    def distribution(self, trial: optuna.trial.BaseTrial, memo: dict) -> optuna.distributions.BaseDistribution:
+        return
 
 
 class NumberRangeModel(BaseRangeModel):
@@ -314,41 +365,112 @@ class NumberRangeModel(BaseRangeModel):
                f'"real": "{self.real}", ' \
                f'"step": {self.step}}}'
 
-    def sample(self, trial: optuna.trial.BaseTrial) -> Union[int, float, str]:
-        if self.get_real():
-            return trial.suggest_float(name=self.name,
-                                       low=self.get_lower(trial),
-                                       high=self.get_upper(trial),
-                                       step=self.get_step(),
-                                       log=False)
+    def sample(self, trial: optuna.trial.BaseTrial, memo: dict) -> Union[int, float, str]:
+
+        if self.name in memo:
+            return memo[self.name]
+
+
+        step = self.get_step()
+        if isinstance(trial, optuna.trial.FixedTrial):
+            d = self.distribution(None, memo)
+            lower = d.low
+            upper = d.high
         else:
-            return trial.suggest_int(name=self.name,
-                                     low=self.get_lower(trial),
-                                     high=self.get_upper(trial),
-                                     step=self.get_step() if self.get_step() and self.get_step() > 0 else 1,
-                                     log=False)
+            lower = self.get_lower(trial, memo, eval_dep=trial is not None)
+            upper = self.get_upper(trial, memo, eval_dep=trial is not None)
+
+            if lower > upper:
+                step = None
+                lower = upper
+
+            assert lower <= upper, f' {self.name}: lower[{lower}] >= upper[{upper}]'
+            # print('[s]', self.name, lower, upper, step)
+
+
+
+        if trial:
+            if self.get_real():
+                value = trial.suggest_float(name=self.name,
+                                            low=lower,
+                                            high=upper,
+                                            step=step,
+                                            log=False)
+            else:
+                value = trial.suggest_int(name=self.name,
+                                          low=lower,
+                                          high=upper,
+                                          step=step if step and step > 0 else 1,
+                                          log=False)
+        else:
+            d = self.distribution(None, memo)
+            low = d.low
+            high = d.high
+            q = 1.0
+            if isinstance(d, DiscreteUniformDistribution):
+                q = d.q
+            elif isinstance(d, IntUniformDistribution):
+                q = d.step
+
+            if self.get_real():
+                value = random.uniform(low, high) * q // q
+            else:
+                value = random.randint(low, high) * q // q
+
+        memo[self.name] = value
+        return value
+
+    def distribution(self, trial: optuna.trial.BaseTrial, memo: dict) -> optuna.distributions.BaseDistribution:
+        lower = self.get_lower(trial, memo, eval_dep=trial is not None)
+        upper = self.get_upper(trial, memo, eval_dep=trial is not None)
+        # print('[d]', self.name, lower, upper, self.get_step())
+        step = self.get_step()
+        if lower > upper:
+            step = None
+            lower = upper
+
+        assert lower <= upper, f' {self.name}: lower[{lower}] >= upper[{upper}]'
+
+        if self.get_real():
+            if self.get_step() is None:
+                return UniformDistribution(low=lower, high=upper)
+            else:
+                return DiscreteUniformDistribution(low=lower, high=upper, q=step)
+        else:
+            if self.get_step() is None or self.get_step() <= 1:
+                return IntUniformDistribution(low=lower, high=upper)
+            else:
+                return IntUniformDistribution(low=lower, high=upper, step=step)
 
     def __is_a_numeric_string(self, value):
         return isinstance(value, str) and str.isalpha(value)
 
-    def get_upper(self, trial: optuna.trial.BaseTrial):
-        if not self.get_upper_dep():
+    def get_upper(self, trial: optuna.trial.BaseTrial, memo: dict, eval_dep=True):
+        if self.name in memo:
+            return memo[self.name]
+
+        if not eval_dep or self.get_upper_dep() == '':
             if self.__is_a_numeric_string(self.upper):
-                return self.upper
-            return float(self.upper)
+                return float(self.upper) if self.get_real() else int(self.upper)
+            return float(self.upper) if self.get_real() else int(self.upper)
         else:
-            return dep_eval(self.get_upper_dep(), self.ctx, trial)
+            upper = dep_eval(self.get_upper_dep(), self.ctx, trial, memo)
+            return float(upper) if self.get_real() else int(upper)
 
     def get_upper_dep(self):
         return self.upper_dep
 
-    def get_lower(self, trial: optuna.trial.BaseTrial):
-        if not self.get_lower_dep():
+    def get_lower(self, trial: optuna.trial.BaseTrial, memo: dict, eval_dep=True):
+        if self.name in memo:
+            return memo[self.name]
+
+        if not eval_dep or self.get_lower_dep() == '':
             if self.__is_a_numeric_string(self.lower):
-                return self.lower
-            return float(self.lower)
+                return float(self.lower) if self.get_real() else int(self.lower)
+            return float(self.lower) if self.get_real() else int(self.lower)
         else:
-            return dep_eval(self.get_lower_dep(), self.ctx, trial)
+            lower = dep_eval(self.get_lower_dep(), self.ctx, trial, memo)
+            return float(lower) if self.get_real() else int(lower)
 
     def get_lower_dep(self):
         return self.lower_dep
@@ -363,20 +485,23 @@ class NumberRangeModel(BaseRangeModel):
             return self.real
         return strtobool(self.real)
 
-
-def dep_eval(expr, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial):
-    expr_lst = tokenize(expr, ctx, trial)
+def dep_eval(expr, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial, memo: dict):
+    expr_lst = tokenize(expr, ctx, trial, memo)
     return polish_eval(expr_lst)
 
 
-def tokenize(expr, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial):
+def tokenize(expr, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial, memo: dict):
     if len(expr) != 0:
-        return [eval_token(token, ctx, trial) for token in expr.split()]
-    return [eval_token('', ctx, trial)]
+        tokens = expr.split()
+        return [eval_token(token, ctx, trial, memo) for token in tokens]
+    return [eval_token('', ctx, trial, memo)]
 
 
-def eval_token(token, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial):
+def eval_token(token, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial, memo: dict):
     import re
+
+    if token in memo:
+        return memo[token]
 
     if re.compile(r"[-+]?\d*\.\d+|\d+").match(token):
         return float(token)
@@ -386,8 +511,9 @@ def eval_token(token, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial):
         else:
             tunables = ctx.tunables()
             if token in tunables:
-                return tunables[token].sample(trial)
-    raise TypeError(f'cant parse: {token} not defined as a tunable')
+                return tunables[token].sample(trial, memo)
+
+    raise TypeError(f'cant parse: "{token}" not defined as a tunable')
 
 
 def polish_eval(expr: list):
@@ -430,13 +556,27 @@ class OptionRangeModel(BaseRangeModel):
     def __repr__(self):
         return f'{{"name": "{self.name}, "type":{self.type}, "values": {json.dumps(self.values)} }}'
 
-    def sample(self, trial: optuna.trial.BaseTrial) -> Union[int, float, str]:
-        value = trial.suggest_categorical(name=self.name, choices=self.values)
+    def sample(self, trial: optuna.trial.BaseTrial, memo: dict) -> Union[int, float, str]:
+        if self.name in memo:
+            return memo[self.name]
+        if trial:
+            value = trial.suggest_categorical(name=self.name, choices=self.get_values())
+        else:
+            value = random.choice(self.get_values())
         if 'integer' == self.type:
-            return int(value)
-        if 'real' == self.type:
-            return float(value)
-        return str(value)
+            value = int(value)
+        elif 'real' == self.type:
+            value = float(value)
+        elif 'bool' == self.type:
+            value = True if value == 1 or value == True else False
+        else:
+            value = str(value)
+
+        memo[self.name] = value
+        return value
+
+    def distribution(self, trial: optuna.trial.BaseTrial, memo: dict) -> optuna.distributions.BaseDistribution:
+        return CategoricalDistribution(self.get_values())
 
     def index_of_value(self, value):
         if self.type == 'integer':

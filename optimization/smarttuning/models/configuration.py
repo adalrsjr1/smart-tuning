@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-import copy
 import hashlib
 import logging
 from typing import TYPE_CHECKING
+
+import optuna
 
 import config
 
 # workaround to fix circular dependency
 # https://www.stefaanlippens.net/circular-imports-type-hints-python.html
+from controllers.searchspacemodel import SearchSpaceModel
+
 if TYPE_CHECKING:
     from models.smartttuningtrials import SmartTuningTrials
 from sampler import Metric
@@ -17,25 +20,27 @@ from util.stats import RunningStats
 logger = logging.getLogger(config.CONFIGURATION_MODEL_LOGGER)
 logger.setLevel(config.LOGGING_LEVEL)
 
+
 class Configuration:
-    def __init__(self, data:dict, trials: SmartTuningTrials):
-        self._name = hashlib.md5(bytes(str(data.items()), 'ascii')).hexdigest()
-        self._data = data
-        self._current_score = float('inf')
-        self.stats = RunningStats()
+    def __init__(self, trial: optuna.trial.FrozenTrial, ctx:SearchSpaceModel, trials: SmartTuningTrials):
+        self._uid = trial.number
+        self._trial = trial
         self._trials = trials
-        self._uid = self._trials.last_uid()
+        self._ctx = ctx
+        self._data = self.ctx.sample(trial, full=True)
+        self._name = hashlib.md5(bytes(str(self.data.items()), 'ascii')).hexdigest()
+        self.stats = RunningStats()
 
     def __hash__(self):
         return hash(self.name)
 
-    def __lt__(self, other:Configuration):
+    def __lt__(self, other: Configuration):
         return self.stats.median() < other.stats.median()
 
-    def __gt__(self, other:Configuration):
+    def __gt__(self, other: Configuration):
         return self.stats.median() > other.stats.median()
 
-    def __eq__(self, other:Configuration):
+    def __eq__(self, other: Configuration):
         # return self.stats == other.stats
         return self.name == other.name
 
@@ -57,7 +62,15 @@ class Configuration:
 
     @property
     def uid(self):
-        return self._uid
+        return self.trial.number
+
+    @property
+    def ctx(self):
+        return self._ctx
+
+    @property
+    def trial(self):
+        return self._trial
 
     @property
     def name(self):
@@ -65,16 +78,15 @@ class Configuration:
 
     @property
     def data(self):
-        return copy.deepcopy(self._data)
+        return self._data
 
     @property
     def score(self):
-        return self._current_score
+        return self.stats.curr()
 
-    def update_score(self, value:Metric, ):
-        self._current_score = value.objective()
-        self.stats.push(self._current_score)
-        self._trials.update_hyperopt_score(self)
+    def update_score(self, value: Metric):
+        self.stats.push(value.objective())
+        self.trial.value = self.median()
 
     def mean(self):
         return self.stats.mean()
@@ -88,36 +100,28 @@ class Configuration:
     def iterations(self):
         self.stats.n()
 
+
 class DefaultConfiguration(Configuration):
-    def __init__(self, data:dict, valued_data:dict, trials: SmartTuningTrials):
-        super().__init__(data, trials)
-        # self._name = hashlib.md5(bytes(str(data.items()), 'ascii')).hexdigest()
-        # self._data = data
-        self._vdata = valued_data
-        # self._current_score = float('inf')
-        # self.stats = RunningStats()
-        # self._trials = trials
-        self._uid = len(self._trials.wrapped_trials.trials)
+    def __init__(self, trial: optuna.trial.FrozenTrial, ctx:SearchSpaceModel, trials: SmartTuningTrials):
+        self._uid = trial.number
+        self._trial = trial
+        self._trials = trials
+        self._ctx = ctx
+        self._data = trial.params
+        self._name = hashlib.md5(bytes(str(self.data.items()), 'ascii')).hexdigest()
+        self.stats = RunningStats()
 
     @property
-    def vdata(self):
-        return self._vdata
+    def data(self):
+        return self.ctx.default_structure(self._data)
 
-    def serialize(self) -> dict:
-        return {
-            'uid': self.uid,
-            'name': self.name,
-            'data': self.vdata,
-            'score': self.score,
-            'stats': self.stats.serialize(),
-            'trials': self._trials.serialize()
-        }
 
 class EmptyConfiguration(Configuration):
     def __init__(self):
-        from models.smartttuningtrials import EmptySmartTuningTrials
-        super().__init__({}, EmptySmartTuningTrials())
+        pass
+
 
 class LastConfig(Configuration):
-    def __init__(self, data:dict, trials: SmartTuningTrials):
-        super().__init__(data, trials)
+    def __init__(self, trial: optuna.trial.Trial, ctx: SearchSpaceModel, trials: SmartTuningTrials):
+        super(LastConfig, self).__init__(trial, ctx, trials)
+

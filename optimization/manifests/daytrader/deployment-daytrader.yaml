@@ -103,9 +103,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: daytrader-config-app
+            - configMapRef:
+                name: daytrader-config-fake
           volumeMounts:
             - mountPath: /etc/daytrader-config-app
               name: daytrader-config-app
+            - mountPath: /etc/daytrader-config-fake
+              name: daytrader-config-fake
             - mountPath: /config/jvm.options
               subPath: jvm.options
               name: daytrader-config-jvm
@@ -115,6 +119,9 @@ spec:
         - name: daytrader-config-app
           configMap:
             name: daytrader-config-app
+        - name: daytrader-config-fake
+          configMap:
+            name: daytrader-config-fake
         - name: daytrader-config-jvm
           configMap:
             name: daytrader-config-jvm
