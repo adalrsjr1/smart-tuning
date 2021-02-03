@@ -113,15 +113,31 @@ def series_to_dict(series: pd.Series):
 
 class Metric:
 
-    def __init__(self, name='', f_cpu: Future = None, cpu: Number = None, f_memory: Future = None,
-                 memory: Number = None, f_throughput: Future = None, throughput: Number = None,
-                 f_process_time: Future = None, process_time: Number = None, f_errors: Future = None,
-                 errors: Number = None, f_in_out=None, to_eval='', in_out=None):
+    def __init__(self,
+                 name='',
+                 f_cpu: Future = None,
+                 cpu: Number = None,
+                 f_memory: Future = None,
+                 memory: Number = None,
+                 f_memory_limit: Future = None,
+                 memory_limit: Number = None,
+                 f_throughput: Future = None,
+                 throughput: Number = None,
+                 f_process_time: Future = None,
+                 process_time: Number = None,
+                 f_errors: Future = None,
+                 errors: Number = None,
+                 f_in_out=None,
+                 to_eval='',
+                 in_out=None):
+
         self.name = name
         self._f_cpu = f_cpu
         self._cpu = cpu
         self._f_memory = f_memory
         self._memory = memory
+        self._f_memory_limit = f_memory_limit
+        self._memory_limit = memory_limit
         self._f_throughput = f_throughput
         self._throughput = throughput
         self._f_process_time = f_process_time
@@ -137,7 +153,7 @@ class Metric:
     @staticmethod
     def zero():
         if not Metric._instance:
-            Metric._instance = Metric(name='', cpu=0, memory=0, throughput=0, process_time=0, errors=0, to_eval='0')
+            Metric._instance = Metric(name='', cpu=0, memory=0, memory_limit=0, throughput=0, process_time=0, errors=0, to_eval='0')
         return Metric._instance
 
     def cpu(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
@@ -149,6 +165,11 @@ class Metric:
         if self._memory is None:
             self._memory = __extract_value_from_future__(self._f_memory, timeout)
         return self._memory
+
+    def memory_limit(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
+        if self._memory_limit is None:
+            self._memory_limit = __extract_value_from_future__(self._f_memory_limit, timeout)
+        return self._memory_limit
 
     def throughput(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
         if self._throughput is None:
@@ -173,17 +194,29 @@ class Metric:
     def __operation__(self, other, op):
         if isinstance(other, Metric):
             logger.debug("op(Metric, Metric)")
-            return Metric(name=f'{self.name}_{other.name}', cpu=op(self.cpu(), other.cpu()), memory=op(self.memory(), other.memory()),
-                          throughput=op(self.throughput(), other.throughput()),
-                          process_time=op(self.process_time(), other.process_time()),
-                          errors=op(self.errors(), other.errors()), in_out=op(self.in_out(), other.in_out()),
-                          to_eval=self.to_eval)
+            return Metric(
+                name=f'{self.name}_{other.name}',
+                cpu=op(self.cpu(), other.cpu()),
+                memory=op(self.memory(), other.memory()),
+                memory_limit=op(self.memory_limit(), other.memory_limit()),
+                throughput=op(self.throughput(), other.throughput()),
+                process_time=op(self.process_time(), other.process_time()),
+                errors=op(self.errors(), other.errors()),
+                in_out=op(self.in_out(), other.in_out()),
+                to_eval=self.to_eval)
 
         if isinstance(other, Number):
             logger.debug("op(Metric, Scalar)")
-            return Metric(name=f'{self.name}_{other}', cpu=op(self.cpu(), other), memory=op(self.memory(), other),
-                          throughput=op(self.throughput(), other), process_time=op(self.process_time(), other),
-                          errors=op(self.errors(), other), in_out=op(self.in_out(), other), to_eval=self.to_eval)
+            return Metric(
+                name=f'{self.name}_{other}',
+                cpu=op(self.cpu(), other),
+                memory=op(self.memory(), other),
+                memory_limit=op(self.memory_limit(), other),
+                throughput=op(self.throughput(), other),
+                process_time=op(self.process_time(), other),
+                errors=op(self.errors(), other),
+                in_out=op(self.in_out(), other),
+                to_eval=self.to_eval)
 
         raise TypeError(f'other is {type(other)} and it should be a scalar or a Metric type')
 
@@ -197,6 +230,7 @@ class Metric:
             'name': self.name,
             'cpu': self.cpu(),
             'memory': self.memory(),
+            'memory_limit': self.memory_limit(),
             'throughput': self.throughput(),
             'process_time': self.process_time(),
             'in_out': self.in_out(),
@@ -209,6 +243,7 @@ class Metric:
         see: https://bugs.python.org/issue28579
         """
         return self.memory() == other.memory() and \
+               self.memory_limit() == other.memory_limit() and \
                self.cpu() == other.cpu() and \
                self.throughput() == other.throughput() and \
                self.process_time() == other.process_time() and \
@@ -290,8 +325,15 @@ class PrometheusSampler:
         return self.executor.submit(self.client.query, query)
 
     def metric(self, quantile=1.0) -> Metric:
-        return Metric(name=self.podname, f_cpu=self.cpu(quantile), f_memory=self.memory(quantile), f_throughput=self.throughput(quantile),
-                      f_process_time=self.process_time(quantile), f_in_out=self.in_out(quantile), f_errors=self.error(quantile))
+        return Metric(
+            name=self.podname,
+            f_cpu=self.cpu(quantile),
+            f_memory=self.memory(quantile),
+            f_memory_limit=self.memory_limit(quantile),
+            f_throughput=self.throughput(quantile),
+            f_process_time=self.process_time(quantile),
+            f_in_out=self.in_out(quantile),
+            f_errors=self.error(quantile))
 
     def throughput(self, quantile=1.0) -> Future:
         """ return future<pd.Series>"""
@@ -321,6 +363,14 @@ class PrometheusSampler:
         logger.debug(f'sampling memory at {self.podname}.* in {self.namespace}')
         # container_spec_memory_limit_bytes
         query = f'sum(max_over_time(container_memory_working_set_bytes{{id=~".kubepods.*",namespace="{self.namespace}", container!="",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
+
+        return self.__do_sample__(query)
+
+    def memory_limit(self, quantily=1.0) -> Future:
+        """ return a concurrent.futures.Future<pandas.Series> with the memory limit (bytes) quantile over time of an specific pod
+            :param quantile a value 0.0 - 1.0
+        """
+        query = f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~".kubepods.*",namespace="{self.namespace}", container!="",pod=~"{self.podname}-.*",name!~".*POD.*"}}[{self.interval}s]))'
 
         return self.__do_sample__(query)
 
