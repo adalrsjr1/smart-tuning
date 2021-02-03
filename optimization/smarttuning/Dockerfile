@@ -9,7 +9,7 @@
 # FROM python:3.9.1-alpine3.12
 # ENV PYTHONUNBUFFERED=1 \
 #     PYTHONIOENCODING=UTF-8 \
-#     PYTHONHASHSEED=$RANDOM_SEED \
+#     PYTHONHASHSEED=31 \
 #     PATH=$PATH:/root/.local/bin
 # 
 # RUN apk --no-cache --update-cache add openblas libstdc++
@@ -36,7 +36,7 @@
 FROM python:3.9.1-slim-buster
 ENV PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING=UTF-8 \
-    PYTHONHASHSEED=$RANDOM_SEED
+    PYTHONHASHSEED=31
 RUN apt-get update && apt-get install -y --no-install-recommends curl build-essential && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app

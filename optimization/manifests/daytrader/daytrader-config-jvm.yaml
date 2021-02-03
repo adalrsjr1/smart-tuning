@@ -19,11 +19,11 @@ data:
     #-xmx512m
     -Xgcpolicy:gencon
     -Xtune:virtualized
-    -Xms800m
-    -Xmx800m
+    -Xms32m
+    -Xmx512m
     #-XX:InitialRAMPercentage=25
     #-XX:MaxRAMPercentage=75
-    -Xmn256m
+    -Xmn24m
     -XX:SharedCacheHardLimit=32m
     -Xscmx=16m
     #-verbose:gc

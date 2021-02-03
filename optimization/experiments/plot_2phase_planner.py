@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import os
@@ -27,27 +28,33 @@ if not hashseed:
 
 def load_raw_data(filename:str) -> pd.DataFrame:
     raw_data = []
+
+    def name(data):
+        return hashlib.md5(bytes(str(data.items()), 'ascii')).hexdigest()
+
     with open(filename) as jsonfile:
         for row in jsonfile:
             row = re.sub(r'\{"_id":\{"\$oid":"[a-z0-9]+"\},', '{', row)
             record = json.loads(row)
             raw_data.append(Iteration(
                 record['iteration'],
-                record['production']['curr_config']['name'],
+                # record['production']['curr_config']['name'],
+                name(record['production']['curr_config']['data']), # generate name on the fly
                 math.fabs(record['production']['curr_config']['score']),
                 math.fabs(record['production']['curr_config']['stats']['mean']),
                 math.fabs(record['production']['curr_config']['stats']['median']),
                 math.fabs(record['production']['curr_config']['stats']['min']),
                 math.fabs(record['production']['curr_config']['stats']['max']),
                 record['production']['curr_config']['stats']['stddev'],
-                record['training']['curr_config']['name'],
+                # record['training']['curr_config']['name'],
+                name(record['training']['curr_config']['data']), # generate name on the fly
                 math.fabs(record['training']['curr_config']['score']),
                 math.fabs(record['training']['curr_config']['stats']['mean']),
                 math.fabs(record['training']['curr_config']['stats']['median']),
                 math.fabs(record['training']['curr_config']['stats']['min']),
                 math.fabs(record['training']['curr_config']['stats']['max']),
                 record['training']['curr_config']['stats']['stddev'],
-                {chr(i+97):best['name'][:3] for i, best in enumerate(record['best'])} if 'best' in record else []
+                {chr(i+97):name(best['data'])[:3] for i, best in enumerate(record['best'])} if 'best' in record else []
             ).__dict__)
     return pd.DataFrame(raw_data).reset_index()
 
@@ -350,6 +357,7 @@ if __name__ == '__main__':
     name = 'trace-2021-01-07T17 05 39'
     name = 'trace-2021-01-28T15 30 14' # 100 extra params
     name = 'trace-2021-01-29T13 01 23'
+    name = 'trace-2021-02-02T21 06 02'
     title = 'tDaytrader'
 
     df = load_raw_data('./resources/'+name+'.json')

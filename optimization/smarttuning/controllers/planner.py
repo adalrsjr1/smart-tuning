@@ -35,6 +35,7 @@ class Planner:
         self.heap2: list[Configuration] = []
 
         self._iteration = 0
+        self._first_iteration = True
 
     @property
     def iteration(self):
@@ -103,10 +104,11 @@ class Planner:
         logger.debug(f'[t] {t_metric.serialize()}')
         logger.debug(f'[p] {p_metric.serialize()}')
 
-        if self.iteration == 0:
+        if self._first_iteration:
             # initialize trials with the default configuration set to production replica
             # no metrics into this config
             self.production.set_default_config(p_metric)
+            self._first_iteration = False
 
         self.production.update_configuration_score(p_metric)
         self.training.update_configuration_score(t_metric)
@@ -226,6 +228,7 @@ class Planner:
 
                 logger.debug(f'heap1: {self.heap1}')
                 logger.debug(f'heap2: {self.heap2}')
+                self.when_try = 1 #try at least k training iterations before attempting to promote a config
                 self._iteration = -1
 
         self._iteration += 1
