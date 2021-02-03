@@ -26,6 +26,7 @@ def __extract_value_from_future__(future, timeout=config.SAMPLING_METRICS_TIMEOU
         logger.error(e)
         return float('nan')
 
+
 def __extract_in_out_balance__(podname, future, timeout=config.SAMPLING_METRICS_TIMEOUT):
     return float('nan')
     try:
@@ -38,7 +39,7 @@ def __extract_in_out_balance__(podname, future, timeout=config.SAMPLING_METRICS_
             k = item['pod'].count('-')
 
             # k - 2 to remove the k8s's auto-generated uuid
-            table[splitted_ip] = '-'.join(item['pod'].split('-', maxsplit=k-1)[:k-1])
+            table[splitted_ip] = '-'.join(item['pod'].split('-', maxsplit=k - 1)[:k - 1])
 
         # replace IPs with service names
         for i, instance in enumerate(links_df['instance']):
@@ -78,6 +79,7 @@ def __extract_in_out_balance__(podname, future, timeout=config.SAMPLING_METRICS_
         logger.exception('cannot calculate in/out balance')
         return float('nan')
 
+
 def series_to(series: pd.Series, container):
     rows = []
     key: str
@@ -96,7 +98,8 @@ def series_to(series: pd.Series, container):
         return table
     return container(table)
 
-def parser_to_dict(string:str) -> dict:
+
+def parser_to_dict(string: str) -> dict:
     string = re.sub('[{}"]', '', string)
     l_string = string.split(',')
     new_dict = {}
@@ -105,11 +108,14 @@ def parser_to_dict(string:str) -> dict:
         new_dict[splited[0]] = splited[1]
     return new_dict
 
+
 def series_to_dataframe(series: pd.Series):
     return series_to(series, pd.DataFrame)
 
+
 def series_to_dict(series: pd.Series):
     return series_to(series, dict)
+
 
 class Metric:
 
@@ -153,7 +159,8 @@ class Metric:
     @staticmethod
     def zero():
         if not Metric._instance:
-            Metric._instance = Metric(name='', cpu=0, memory=0, memory_limit=0, throughput=0, process_time=0, errors=0, to_eval='0')
+            Metric._instance = Metric(name='', cpu=0, memory=0, memory_limit=0, throughput=0, process_time=0, errors=0,
+                                      to_eval='0')
         return Metric._instance
 
     def cpu(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
@@ -237,7 +244,7 @@ class Metric:
             'errors': self.errors()
         }
 
-    def __eq__(self, other:Metric):
+    def __eq__(self, other: Metric):
         """
         retursn False if some value is NaN. According to IEEE 754 nan cannot be compared
         see: https://bugs.python.org/issue28579
@@ -252,7 +259,8 @@ class Metric:
                self.objective() == other.objective()
 
     def __hash__(self):
-        return hash((self.memory(), self.cpu(), self.throughput(), self.process_time(), self.in_out(), self.errors(), self.objective()))
+        return hash((self.memory(), self.cpu(), self.throughput(), self.process_time(), self.in_out(), self.errors(),
+                     self.objective()))
 
     def __add__(self, other):
         return self.__operation__(other, lambda a, b: a + b)
@@ -301,7 +309,8 @@ class Metric:
 
 
 class PrometheusSampler:
-    def __init__(self, podname: str, interval: int, namespace:str = config.NAMESPACE, executor=config.executor(), addr=config.PROMETHEUS_ADDR,
+    def __init__(self, podname: str, interval: int, namespace: str = config.NAMESPACE, executor=config.executor(),
+                 addr=config.PROMETHEUS_ADDR,
                  port=config.PROMETHEUS_PORT, api_url=''):
         if not api_url:
             api_url = f'http://{addr}:{port}'
@@ -317,7 +326,7 @@ class PrometheusSampler:
         return self._interval
 
     @interval.setter
-    def interval(self, value:int):
+    def interval(self, value: int):
         self._interval = int(value)
 
     def __do_sample__(self, query: str) -> Future:
@@ -415,7 +424,6 @@ class PrometheusSampler:
                     f'sum(rate(out_http_requests_total{{namespace="{self.namespace}", pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
 
         return self.__do_sample__(query)
-
 
 
 if __name__ == '__main__':
