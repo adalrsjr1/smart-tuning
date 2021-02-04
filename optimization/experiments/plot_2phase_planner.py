@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 from matplotlib.table import Table
 from matplotlib.text import Text
 from matplotlib.transforms import Bbox
+from pandas.plotting import scatter_matrix
 
 
 def reset_seeds():
@@ -56,6 +57,7 @@ def load_raw_data(filename:str) -> pd.DataFrame:
                 record['production']['metric']['throughput'],
                 record['production']['metric']['memory'] / 2**20,
                 record['production']['metric'].get('memory_limit', record['production']['curr_config']['data']['daytrader-service']['memory'] * 2**20) / 2**20,
+                Param(record['production']['curr_config']['data'], math.fabs(record['production']['curr_config']['score'])),
                 record['training']['curr_config']['name'],
                 # name(record['training']['curr_config']['data']), # generate name on the fly
                 math.fabs(record['training']['curr_config']['score']),
@@ -67,14 +69,20 @@ def load_raw_data(filename:str) -> pd.DataFrame:
                 record['training']['metric']['throughput'],
                 record['training']['metric']['memory'] / 2**20,
                 record['training']['metric'].get('memory_limit', record['training']['curr_config']['data']['daytrader-service']['memory'] * 2**20) / 2**20,
+                Param(record['training']['curr_config']['data'], math.fabs(record['training']['curr_config']['score'])),
                 {chr(i+97):best['name'][:3] for i, best in enumerate(record['best'])} if 'best' in record else []
             ).__dict__)
     return pd.DataFrame(raw_data).reset_index()
 
+class Param:
+    def __init__(self, params, score):
+        self.params = params
+        self.params['score'] = score
+
 class Iteration:
     def __init__(self, iteration,
-                 pname, pscore, pmean, pmedian, pmin, pmax, pstddev, ptruput, pmem, pmem_lim,
-                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev, ttruput, tmem, tmem_lim, nbest):
+                 pname, pscore, pmean, pmedian, pmin, pmax, pstddev, ptruput, pmem, pmem_lim, pparams,
+                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev, ttruput, tmem, tmem_lim, tparams, nbest):
         self.pname = pname
         self.pscore = pscore
         self.pmean = pmean
@@ -85,6 +93,7 @@ class Iteration:
         self.ptruput = ptruput
         self.pmem = pmem
         self.pmem_lim = pmem_lim
+        self.pparams = pparams
         self.tname = tname
         self.tscore = tscore
         self.tmean = tmean
@@ -95,6 +104,7 @@ class Iteration:
         self.ttruput = ttruput
         self.tmem = tmem
         self.tmem_lim = tmem_lim
+        self.tparams = tparams
         self.iteration = iteration
         self.nbest = nbest
 
@@ -383,7 +393,45 @@ def test():
 
     print(best)
 
+def plot_app_curves(df: pd.DataFrame, title:str=''):
+    # to_plot = df[[]]
+    data = {}
+    for index, row in df.iterrows():
+        tmp = {}
+        # print(row['tparams'].params)
+        tmp = row['tparams'].params['daytrader-config-jvm']
+        tmp['score'] = row['tparams'].params['score']
+        # print(row['tparams'].params)
+        # print(tmp)
+        # try:
+        if len(data) == 0:
+            for k, v in tmp.items():
+                try:
+                    data[k] = [float(v)]
+                except:
+                    continue
+        else:
+            for k, v in tmp.items():
+                try:
+                    data[k].append(float(v))
+                except:
+                    continue
+        # except:
+        #     continue
 
+    print(data.keys())
+    df = pd.DataFrame(data)
+    print(df)
+    # df.plot(y=['HTTP_PERSIST_TIMEOUT'])
+    mat_ax = scatter_matrix(df, alpha=0.5, figsize=(6,6), diagonal='kde')
+    # xlabel = ax.get_xlabel()
+    for row in mat_ax:
+        for cel in row:
+            label = cel.get_xlabel()
+            cel.set_xlabel(label, fontsize='xx-small')
+            label = cel.get_ylabel()
+            cel.set_ylabel(label, fontsize='xx-small')
+    plt.show()
 
 if __name__ == '__main__':
     # test()
@@ -424,3 +472,4 @@ if __name__ == '__main__':
 
     df = load_raw_data('./resources/'+name+'.json')
     plot(df, title=title+': '+name, save=False, show_table=True)
+    # plot_app_curves(df)
