@@ -30,6 +30,7 @@ class Configuration:
         self._data = self.ctx.sample(trial, full=True)
         self._name = hashlib.md5(bytes(str(self.data.items()), 'ascii')).hexdigest()
         self.stats = RunningStats()
+        self._n_restarts = 0
 
     def __hash__(self):
         return hash(self.name)
@@ -57,8 +58,16 @@ class Configuration:
             'data': self.data,
             'score': self.score,
             'stats': self.stats.serialize(),
-            'trials': self._trials.serialize()
+            'trials': self._trials.serialize(),
+            'restarts': self.n_restarts,
         }
+
+    @property
+    def n_restarts(self):
+        return self._n_restarts
+
+    def increment_restart_counter(self):
+        self._n_restarts += 1
 
     @property
     def uid(self):
@@ -110,6 +119,7 @@ class DefaultConfiguration(Configuration):
         self._data = trial.params
         self._name = hashlib.md5(bytes(str(self.data.items()), 'ascii')).hexdigest()
         self.stats = RunningStats()
+        self._n_restarts = 0
 
     @property
     def data(self):

@@ -36,7 +36,6 @@ class Instance:
         self._curr_config = None
         self._last_config = None
         self._config_counter = 0
-
         self._cache = {}
 
     def serialize(self) -> dict:
@@ -128,7 +127,9 @@ class Instance:
         self._cache[('metrics', interval)] = self._sampler.metric()
         if cached:
             return self._cache[('metrics', interval)]
-        return self._sampler.metric()
+        metric = self._sampler.metric()
+        metric.set_restarts(self.configuration.n_restarts)
+        return metric
 
     def workload(self, interval: int = 0) -> Future:
         if not self.active:
@@ -146,6 +147,7 @@ class Instance:
 
     def restart(self):
         logger.warning(f'restarting {self.name}')
+        self.configuration.increment_restart_counter()
         try:
             config.appsApi().patch_namespaced_deployment(name=self.name, namespace=self.namespace,
                                                          body={

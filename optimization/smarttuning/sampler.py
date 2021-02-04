@@ -135,7 +135,8 @@ class Metric:
                  errors: Number = None,
                  f_in_out=None,
                  to_eval='',
-                 in_out=None):
+                 in_out=None,
+                 restarts=0):
 
         self.name = name
         self._f_cpu = f_cpu
@@ -153,6 +154,7 @@ class Metric:
         self._f_in_out = f_in_out
         self._in_out = in_out
         self.to_eval = to_eval if len(to_eval) > 0 else config.OBJECTIVE
+        self._restarts = restarts
 
     _instance = None
 
@@ -160,7 +162,7 @@ class Metric:
     def zero():
         if not Metric._instance:
             Metric._instance = Metric(name='', cpu=0, memory=0, memory_limit=0, throughput=0, process_time=0, errors=0,
-                                      to_eval='0')
+                                      to_eval='0', restarts=0)
         return Metric._instance
 
     def cpu(self, timeout=config.SAMPLING_METRICS_TIMEOUT):
@@ -198,6 +200,12 @@ class Metric:
             self._in_out = __extract_in_out_balance__(self.name, self._f_in_out, timeout)
         return self._in_out
 
+    def restarts(self):
+        return self._restarts
+
+    def set_restarts(self, n):
+        self._restasts = n
+
     def __operation__(self, other, op):
         if isinstance(other, Metric):
             logger.debug("op(Metric, Metric)")
@@ -210,7 +218,9 @@ class Metric:
                 process_time=op(self.process_time(), other.process_time()),
                 errors=op(self.errors(), other.errors()),
                 in_out=op(self.in_out(), other.in_out()),
-                to_eval=self.to_eval)
+                to_eval=self.to_eval,
+                restarts=op(self.restarts(), other.restarts())
+            )
 
         if isinstance(other, Number):
             logger.debug("op(Metric, Scalar)")
@@ -223,7 +233,9 @@ class Metric:
                 process_time=op(self.process_time(), other),
                 errors=op(self.errors(), other),
                 in_out=op(self.in_out(), other),
-                to_eval=self.to_eval)
+                to_eval=self.to_eval,
+                restarts=op(self.restarts(), other),
+            )
 
         raise TypeError(f'other is {type(other)} and it should be a scalar or a Metric type')
 
@@ -241,7 +253,8 @@ class Metric:
             'throughput': self.throughput(),
             'process_time': self.process_time(),
             'in_out': self.in_out(),
-            'errors': self.errors()
+            'errors': self.errors(),
+            'restarts': self.restarts()
         }
 
     def __eq__(self, other: Metric):
@@ -249,18 +262,30 @@ class Metric:
         retursn False if some value is NaN. According to IEEE 754 nan cannot be compared
         see: https://bugs.python.org/issue28579
         """
-        return self.memory() == other.memory() and \
-               self.memory_limit() == other.memory_limit() and \
-               self.cpu() == other.cpu() and \
-               self.throughput() == other.throughput() and \
-               self.process_time() == other.process_time() and \
-               self.errors() == other.errors() and \
-               self.in_out() == other.in_out() and \
-               self.objective() == other.objective()
+        return self.__eval_values(self.memory(), other.memory()) and \
+               self.__eval_values(self.memory_limit(), other.memory_limit()) and \
+               self.__eval_values(self.cpu(), other.cpu()) and \
+               self.__eval_values(self.throughput(), other.throughput()) and \
+               self.__eval_values(self.process_time(), other.process_time()) and \
+               self.__eval_values(self.errors(), other.errors()) and \
+               self.__eval_values(self.in_out(), other.in_out()) and \
+               self.__eval_values(self.objective(), other.objective()) and \
+               self.__eval_values(self.restarts(), other.restarts())
+
+
+    def __eval_values(self, a:float, b:float):
+        if math.isfinite(a) and math.isfinite(b):
+            return a == b
+
+        if math.isnan(a) and math.isnan(b):
+            return True
+
+        if math.isinf(a) and math.isinf(b):
+            return True
 
     def __hash__(self):
         return hash((self.memory(), self.cpu(), self.throughput(), self.process_time(), self.in_out(), self.errors(),
-                     self.objective()))
+                     self.objective(), self.restarts()))
 
     def __add__(self, other):
         return self.__operation__(other, lambda a, b: a + b)
@@ -293,8 +318,8 @@ class Metric:
         return self.objective() >= (other.objective() if isinstance(other, Metric) else other)
 
     def __repr__(self):
-        return f'{{"cpu":{self.cpu()}, "memory":{self.memory()}, "throughput":{self.throughput()}, ' \
-               f'"process_time":{self.process_time()}, "in_out":{self.in_out()}, "errors":{self.errors()}, "objective":{self.objective()}}}'
+        return f'{{"cpu":{self.cpu()}, "memory":{self.memory()}, "memory_limit":{self.memory_limit()}, "throughput":{self.throughput()}, ' \
+               f'"process_time":{self.process_time()}, "in_out":{self.in_out()}, "errors":{self.errors()}, "restarts":{self.restarts()}, "objective":{self.objective()}}}'
 
     def objective(self) -> float:
         try:
