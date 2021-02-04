@@ -229,11 +229,12 @@ class Planner:
                 logger.debug(f'heap1: {self.heap1}')
                 logger.debug(f'heap2: {self.heap2}')
                 self.when_try = 1 #try at least k training iterations before attempting to promote a config
-                self._iteration = -1
+                self._iteration = 0
 
         self._iteration += 1
         # returns best config applyed to production
         return self.production.configuration, end_of_tuning
+
 
     def best_configuration(self, n=1, return_array=False) -> typing.Union[Configuration, list[Configuration]]:
         if n == 0:
