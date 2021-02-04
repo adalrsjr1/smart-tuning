@@ -189,6 +189,7 @@ data:
             dependsOn: "-Xms"
           upper:
             value: 8192
+            # change it to 'memory 0.4 *' since memory is split between 2 containers
             dependsOn: "memory 0.8 *"
           step: 16
           real: False
