@@ -116,7 +116,9 @@ class Instance:
 
     def metrics(self, interval: int = 0, cached=False) -> Metric:
         if cached and ('metrics', interval) in self._cache:
-            return self._cache[('metrics', interval)]
+            metric = self._cache[('metrics', interval)]
+            metric.set_restarts(self.configuration.n_restarts)
+            return metric
         if not self.active:
             Metric.zero()
 
@@ -126,7 +128,10 @@ class Instance:
 
         self._cache[('metrics', interval)] = self._sampler.metric()
         if cached:
-            return self._cache[('metrics', interval)]
+            metric = self._cache[('metrics', interval)]
+            metric.set_restarts(self.configuration.n_restarts)
+            return metric
+        
         metric = self._sampler.metric()
         metric.set_restarts(self.configuration.n_restarts)
         return metric
