@@ -1,5 +1,9 @@
 ## Release notes
 
+#### Version 3.0
+* update codebase to use Optuna [#17](/../../issues/17)
+* add new metrics to be used on objective function
+  [#d2de64](https://github.ibm.com/Adalberto/smart-tuning/pull/17/commits/d2de64ef49e0a5b768fd4f7e24fb9a46040871d7), [#5d8deb](https://github.ibm.com/Adalberto/smart-tuning/pull/17/commits/5d8deb56a06aeb9276e36e51c52d31fc659aefe6)
 
 #### Version 2.0
 * ability to tune multiple pods at once
