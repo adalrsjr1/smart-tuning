@@ -1,51 +1,138 @@
 import unittest
-from controllers.searchspacemodel import SearchSpaceModel, ConfigMapSearhSpaceModel
+from unittest import TestCase
+
+import optuna
+from optuna.distributions import UniformDistribution
+from optuna.samplers import RandomSampler
+
+from controllers.searchspacemodel import SearchSpaceModel
+from models.configuration import Configuration
 from models.smartttuningtrials import SmartTuningTrials
-from models.configuration import DefaultConfiguration
-from mock_searchspace import mock_acmeair_search_space
-from hyperopt import Trials, space_eval
+from sampler import Metric
 
 
-def new_smarttunint_trials():
-    trials = Trials()
+def search_space(study):
+    ctx = SearchSpaceModel({
+        "spec": {
+            "deployment": "acmeair-service",
+            "manifests": [
+                {
+                    "name": "manifest-name",
+                    "type": "configMap"
+                }
+            ],
+            "namespace": "default",
+            "service": "fake-svc"
+        },
+        "data": [
+            {
+                "filename": "",
+                "name": "manifest-name",
+                "tunables": {
 
-    ss = SearchSpaceModel(mock_acmeair_search_space())
+                    "number": [
+                        {
+                            "name": "x",
+                            "real": True,
+                            "lower": {
+                                "dependsOn": "",
+                                "value": 0
+                            },
+                            "upper": {
+                                "dependsOn": "",
+                                "value": 100
+                            }
+                        }
+                    ]
+                }
+            },
+        ],
+    }, study)
+    return ctx
 
-    st_trials = SmartTuningTrials(ss.search_space(), trials)
 
-    return st_trials
+def study_filled(n=10):
+    study = optuna.create_study(sampler=RandomSampler())
+
+    for i in range(n):
+        t = optuna.trial.create_trial(
+            params={'x': i},
+            distributions={'x': UniformDistribution(low=0, high=n + 1)},
+            value=i * i
+        )
+        study.add_trial(t)
+
+    return study
 
 
-class MyTestCase(unittest.TestCase):
-    def test_smarttuningtrials_clean_space(self):
-        st_trials = new_smarttunint_trials()
-        c = {"MONGO_MAX_CONNECTIONS": 10, "cpu": 1, "-Xtune:virtualized": True,
-             "container_support": 0}
-        new_space = st_trials.clean_space(c)
-        self.assertIn('acmeair-config-app', new_space)
-        self.assertIn('acmeair-config-jvm', new_space)
-        self.assertIn('acmeair-service', new_space)
-        self.assertIn('MONGO_MAX_CONNECTIONS', new_space['acmeair-config-app'])
-        self.assertIn('-Xtune:virtualized', new_space['acmeair-config-jvm'])
-        self.assertIn('container_support', new_space['acmeair-config-jvm'])
-        self.assertIn('cpu', new_space['acmeair-service'])
+class TestSmartTuningTrials(TestCase):
 
-        self.assertDictEqual(
-            {'acmeair-config-app': {'MONGO_MAX_CONNECTIONS': 10},
-             'acmeair-config-jvm': {'-Xtune:virtualized': False, "container_support": "-XX:+UseContainerSupport"},
-             'acmeair-service': {'cpu': 4}}, space_eval(new_space, c))
+    def test_instantiate(self):
+        study = study_filled(n=10)
+        space = search_space(study)
+        t = SmartTuningTrials(space)
 
-    def test_smarttuningtrials_serialize(self):
-        st_trials = new_smarttunint_trials()
-        st_trials.add_default_config(DefaultConfiguration({
-            "MONGO_MAX_CONNECTION": 100,
-        }, {
-            "MONGO_MAX_CONNECTION": 100
-        }, st_trials), score=10)
+        self.assertIsNotNone(t)
 
-        self.assertListEqual([{'tid': 0, 'params': {'MONGO_MAX_CONNECTION': 100}, 'loss': 10, 'status': 'ok'}],
-                             st_trials.serialize())
+    def test_serialize(self):
+        n = 10
+        study = study_filled(n=n)
+        space = search_space(study)
+        t = SmartTuningTrials(space)
 
+        self.assertListEqual([{
+            'tid': i,
+            'params': {'x': i},
+            'loss': i * i,
+            'status': 'COMPLETE',
+        } for i in range(n)], t.serialize())
+
+    def test_last_uid(self):
+        study = study_filled(n=10)
+        space = search_space(study)
+        t = SmartTuningTrials(space)
+
+        self.assertEqual(9, t.last_uid())
+
+    def test_add_default_config(self):
+        n = 10
+        study = study_filled(n=n)
+        space = search_space(study)
+        t = SmartTuningTrials(space)
+
+        self.assertEqual(n - 1, t.last_uid())
+        c = t.add_default_config(data={'x': 50}, metric=Metric(to_eval='50*50'))
+        self.assertEqual(50 * 50, c.score)
+        self.assertEqual(50 * 50, c.trial.value)
+        self.assertEqual(n, t.last_uid(), msg=f'n:{n}, last_uid:{t.last_uid()}')
+
+        self.assertEqual(10, t.last_uid())
+        trial = t.wrapped_trials[-1]
+        self.assertEqual(50 * 50, trial.value)
+        self.assertEqual(50, trial.params['x'])
+
+    def test_update_trial_score(self):
+        n = 10
+        study = study_filled(n=n)
+        space = search_space(study)
+        t = SmartTuningTrials(space)
+
+        self.assertEqual(n - 1, t.last_uid())
+        c = t.add_default_config(data={'x': 50}, metric=Metric(to_eval='50*50'))
+        self.assertEqual(50 * 50, c.score)
+        self.assertEqual(50 * 50, c.trial.value)
+        self.assertEqual(n, t.last_uid(), msg=f'n:{n}, last_uid:{t.last_uid()}')
+
+        c.update_score(Metric.zero())
+        self.assertEqual(c.median(), c.trial.value)
+
+    def test_default_config(self):
+        n = 10
+        study = study_filled(n=n)
+        space = search_space(study)
+        t = SmartTuningTrials(space)
+
+        t.add_default_config({'a': {'x': 0}}, Metric.zero())
 
 if __name__ == '__main__':
     unittest.main()

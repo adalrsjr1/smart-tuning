@@ -15,26 +15,27 @@ from sampler import PrometheusSampler, Metric
 logger = logging.getLogger('models.smarttuning.ibm')
 logger.setLevel('DEBUG')
 
+
 class Instance:
     def __init__(self,
-                 name:str,
-                 namespace:str,
-                 is_production:bool,
-                 sample_interval_in_secs:int,
+                 name: str,
+                 namespace: str,
+                 is_production: bool,
+                 sample_interval_in_secs: int,
                  ctx: SearchSpaceContext,
-                 sampler:PrometheusSampler=None):
+                 sampler: PrometheusSampler = None):
 
         self._name = name
         self._namespace = namespace
         self._is_production = is_production
-        self._ctx:SearchSpaceContext = ctx
+        self._ctx: SearchSpaceContext = ctx
         self._default_sample_interval = sample_interval_in_secs
-        self._sampler:PrometheusSampler = PrometheusSampler(self.name, self._default_sample_interval) if sampler is None else sampler
+        self._sampler: PrometheusSampler = PrometheusSampler(self.name,
+                                                             self._default_sample_interval) if sampler is None else sampler
         self._active = True
         self._curr_config = None
         self._last_config = None
         self._config_counter = 0
-
         self._cache = {}
 
     def serialize(self) -> dict:
@@ -47,13 +48,11 @@ class Instance:
             'last_config': self.last_config.serialize() if not self.last_config is None else {},
         }
 
-    def set_default_config(self, metrics:Metric):
+    def set_default_config(self, metrics: Metric):
         # eval option data
-        indexed_current_config, valued_current_config = self._ctx.get_current_config()
-        trials = self._ctx.get_smarttuning_trials()
-        default_config = DefaultConfiguration(data=indexed_current_config, valued_data=valued_current_config, trials=trials)
-        trials.add_default_config(default_config, metrics.objective())
-        self.configuration = default_config
+        current_config = self._ctx.get_current_config()
+        strials = self._ctx.get_smarttuning_trials()
+        self.configuration = strials.add_default_config(data=current_config, metric=metrics)
 
     @property
     def name(self) -> str:
@@ -89,7 +88,7 @@ class Instance:
         self._curr_config = new_config
         self.patch_config(new_config)
 
-    def update_configuration_score(self, metric:Metric):
+    def update_configuration_score(self, metric: Metric):
         self.configuration.update_score(metric)
 
     @property
@@ -102,7 +101,8 @@ class Instance:
                 manifests = self._ctx.model.manifests
                 # check if is applying correct data if default config
                 # default config keep indexed and values data
-                data_to_apply = config_to_apply.data if not isinstance(config_to_apply, DefaultConfiguration) else config_to_apply.vdata
+                data_to_apply = config_to_apply.data if not isinstance(config_to_apply,
+                                                                       DefaultConfiguration) else config_to_apply.data
                 self._do_patch(manifests, data_to_apply)
             except:
                 logger.exception(f'error when patching config:{config_to_apply.data}')
@@ -114,9 +114,11 @@ class Instance:
                     manifest.patch(value, production=self.is_production)
                     time.sleep(1)
 
-    def metrics(self, interval:int=0, cached=False) -> Metric:
+    def metrics(self, interval: int = 0, cached=False) -> Metric:
         if cached and ('metrics', interval) in self._cache:
-            return self._cache[('metrics', interval)]
+            metric = self._cache[('metrics', interval)]
+            metric.set_restarts(self.configuration.n_restarts)
+            return metric
         if not self.active:
             Metric.zero()
 
@@ -126,10 +128,15 @@ class Instance:
 
         self._cache[('metrics', interval)] = self._sampler.metric()
         if cached:
-            return self._cache[('metrics', interval)]
-        return self._sampler.metric()
+            metric = self._cache[('metrics', interval)]
+            metric.set_restarts(self.configuration.n_restarts)
+            return metric
 
-    def workload(self, interval:int=0) -> Future:
+        metric = self._sampler.metric()
+        metric.set_restarts(self.configuration.n_restarts if self.configuration else 0)
+        return metric
+
+    def workload(self, interval: int = 0) -> Future:
         if not self.active:
             return Future()
 
@@ -145,21 +152,23 @@ class Instance:
 
     def restart(self):
         logger.warning(f'restarting {self.name}')
+        self.configuration.increment_restart_counter()
         try:
             config.appsApi().patch_namespaced_deployment(name=self.name, namespace=self.namespace,
-                body= {
-                    "spec": {
-                        "template": {
-                            "metadata": {
-                                "annotations": {
-                                    "kubectl.kubernetes.io/restartedAt": datetime.datetime.now(datetime.timezone.utc).isoformat()
-                                }
-                            },
-                        }
-                    }
-                })
+                                                         body={
+                                                             "spec": {
+                                                                 "template": {
+                                                                     "metadata": {
+                                                                         "annotations": {
+                                                                             "kubectl.kubernetes.io/restartedAt": datetime.datetime.now(
+                                                                                 datetime.timezone.utc).isoformat()
+                                                                         }
+                                                                     },
+                                                                 }
+                                                             }
+                                                         })
         except ApiException:
-            logger.exception('cannot restart deployment: ', self.name)
+            logger.exception(f'cannot restart deployment:  {self.name}')
 
     def shutdown(self):
         if not self.active:

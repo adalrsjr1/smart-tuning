@@ -1,65 +1,37 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
-from hyperopt import Trials, space_eval, STATUS_OK, JOB_STATE_DONE
+import optuna
+from hyperopt import Trials
 
 import config
-
 # workaround to fix circular dependency
 # https://www.stefaanlippens.net/circular-imports-type-hints-python.html
-if TYPE_CHECKING:
-    from models.configuration import Configuration
+from controllers.searchspacemodel import SearchSpaceModel
+from models.configuration import Configuration, DefaultConfiguration
+from sampler import Metric
 
 logger = logging.getLogger(config.SMARTTUNING_TRIALS_LOGGER)
 logger.setLevel(config.LOGGING_LEVEL)
 
 
 class SmartTuningTrials:
-    def __init__(self, space: dict, trials: Trials):
-        self._data: dict[str, Configuration] = {}
+    def __init__(self, space: SearchSpaceModel):
+        self.ctx = space.study
         self._space = space
-        self._trials = trials
-
-    def clean_space(self, to_eval: dict) -> dict:
-        new_space = {}
-        """
-         {
-            'manifest_name': {
-                'tunable1': 'v1',
-                'tunable2': 'v2',
-                'tunable3': 'v3',
-            },
-            'another_manifest': {
-                [0, 1]
-            }
-        """
-        for k, v in self._space.items():
-            for manifest_k, manifest_v in v.items():
-                if manifest_k in to_eval:
-                    if k in new_space:
-                        new_space[k].update({manifest_k:manifest_v})
-                    else:
-                        new_space[k] = {manifest_k:manifest_v}
-
-        return new_space
-
+        self._data = {}
 
     def serialize(self) -> list[dict]:
         documents = []
+        i = 0
         try:
-            for i, trial in enumerate(self.wrapped_trials.trials):
-                to_eval = {k: v[0] for k, v in trial['misc'].get('vals', {}).items()}
-                reduced_space = self.clean_space(to_eval)
-                # logger.debug(f'[{i}] serializing trials')
-                # logger.debug(f'space: {reduced_space}')
-                # logger.debug(f'to_eval: {to_eval}')
-                # logger.debug(' ****** ')
-                params = space_eval(reduced_space, to_eval)
-                tid = trial['misc'].get('tid', -1)
-                loss = trial['result'].get('loss', float('inf'))
-                status = trial['result'].get('status', None)
+            trial: optuna.trial.FrozenTrial
+            for i, trial in enumerate(self.wrapped_trials):
+                params = trial.params
+                loss = trial.value
+                status = trial.state.name
+                tid = trial.number
 
                 documents.append({
                     'tid': tid,
@@ -72,78 +44,69 @@ class SmartTuningTrials:
 
         return documents
 
+    def last_trial(self) -> optuna.trial.FrozenTrial:
+        if len(self.wrapped_trials) > 0:
+            return self.wrapped_trials[-1]
+        return None
+        # uid = self.last_uid()
+        # if uid > 0:
+        #     return self.wrapped_trials[uid]
+        # else:
+        #     return None
+
     def last_uid(self) -> int:
-        if self.wrapped_trials:
-            return self.wrapped_trials.trials[-1]['tid']
-        logger.warning('no trial available')
-        return -1
+        if len(self.wrapped_trials) > 0:
+            return self.wrapped_trials[-1].number
+        return 0
+        # logger.warning('no trial available')
+        # raise IndexError
 
     @property
-    def wrapped_trials(self) -> Trials:
-        return self._trials
+    def wrapped_trials(self) -> list[optuna.trial.FrozenTrial]:
+        return self.ctx.get_trials(deepcopy=False)
 
-    def add_default_config(self, configuration: Configuration, score: float):
-        self.new_hyperopt_trial_entry(configuration.data, score, STATUS_OK, classification=None)
-        self.add_new_configuration(configuration)
+    def add_default_config(self, data: dict, metric: Metric) -> DefaultConfiguration:
+        trial = self.new_trial_entry(data, metric.objective(), classification=None)
+        default_configuration = DefaultConfiguration(trial=trial, ctx=self._space, trials=self)
+        self.add_new_configuration(configuration=default_configuration)
+        default_configuration.update_score(metric)
+        return default_configuration
 
-    def new_hyperopt_trial_entry(self, configuration: dict, loss: float, status: int,
-                                 classification: str = None) -> int:
-        rval_spec = [None]
-        rval_results = [{
-            'loss': loss,
-            'classification': classification,
-            'eval_time': 0,
-            'iterations': 1,
-            'status': status}]
+    def new_trial_entry(self, configuration: dict, loss: float,
+                        classification: str = None) -> optuna.trial.BaseTrial:
 
-        uid = self.last_uid() + 1
+        flat_config = {}
+        # {'manifest_name': {'x':0}} --> {'x':0}
+        to_flatten = list(configuration.items())
+        while len(to_flatten) > 0:
+            item = to_flatten.pop()
+            if isinstance(item, tuple):
+                if isinstance(item[1], dict):
+                    to_flatten.append(item[1])
+            else:
+                flat_config.update(item)
 
-        idxs = {}
-        vals = {}
+        new_trial = optuna.create_trial(
+            params=flat_config,
+            distributions={name: optuna.distributions.CategoricalDistribution(choices=[param]) for name, param in flat_config.items()},
+            value=loss
+        )
+        self.ctx.add_trial(new_trial)
 
-        def get_nested_configs(_uid, _configuration, _idxs, _vals):
-            for k, v in _configuration.items():
-                if isinstance(v, dict):
-                    get_nested_configs(_uid, v, _idxs, _vals)
-                else:
-                    _idxs[k] = [_uid]
-                    _vals[k] = [v]
-
-        get_nested_configs(uid, configuration, idxs, vals)
-
-        rval_miscs = [{
-            'tid': uid,
-            'idxs': idxs,
-            'cmd': ('domain_attachment', 'FMinIter_Domain'),
-            'vals': vals,
-            'workdir': None
-        }]
-
-        hyperopt_trial = self.wrapped_trials.new_trial_docs([uid], rval_spec, rval_results, rval_miscs)[0]
-
-        hyperopt_trial['state'] = JOB_STATE_DONE
-        self.wrapped_trials.insert_trial_docs([hyperopt_trial])
-        self.wrapped_trials.refresh()
-
-        return uid
+        return new_trial
 
     def add_new_configuration(self, configuration: Configuration):
         if not self.get_config_by_name(configuration.name):
             self._data[configuration.name] = configuration
         return self._data[configuration.name]
 
-    def get_config_by_name(self, name: str):
+    def get_config_by_name(self, name: str) -> Configuration:
         return self._data.get(name, None)
 
-    def get_config_by_data(self, data: dict):
-        for value in self._data.values():
-            if data == value.data:
-                return value
-
-    def update_hyperopt_score(self, configuration: Configuration):
-        trial_to_update = self.wrapped_trials.trials[configuration.uid]
-        trial_to_update['result']['loss'] = configuration.mean()
-        self.wrapped_trials.refresh()
+    def get_config_by_id(self, uid: int) -> Configuration:
+        for name, configuration in self._data.items():
+            if uid == configuration.uid:
+                return configuration
 
 
 class EmptySmartTuningTrials(SmartTuningTrials):

@@ -1,93 +1,159 @@
+from __future__ import annotations
+
+import abc
 import copy
-import logging
-import time
 import json
-import hyperopt.hp
-import hyperopt.pyll.stochastic
-import kubernetes as k8s
+import logging
+import random
+import time
+from distutils.util import strtobool
+from typing import Union
+from unittest import TestCase
+
+import optuna
 from kubernetes.client.models import *
 from kubernetes.utils import quantity
-from hyperopt.pyll.base import scope
-from distutils.util import strtobool
+from optuna.distributions import UniformDistribution, DiscreteUniformDistribution, IntUniformDistribution, \
+    CategoricalDistribution
+
 import config
-import sys
 
 logger = logging.getLogger(config.SEARCH_SPACE_LOGGER)
 logger.setLevel(logging.DEBUG)
 
 
 class SearchSpaceModel:
-    def __init__(self, o):
+    def __init__(self, o, study: optuna.Study):
+        self.study = study
         if o:
-            temp = self.parse_manifests(o)
+            temp = parse_manifests(o, self)
 
-            self.deployment = temp['deployment']
-            self.manifests = temp['models']
-            self.namespace = temp['namespace']
-            self.service = temp['service']
+            self.deployment: str = temp['deployment']
+            self.manifests: list[BaseSearchSpaceModel] = temp['models']
+            self.namespace: str = temp['namespace']
+            self.service: str = temp['service']
 
-    def parse_manifests(self, o: dict) -> dict:
-        manifests = o['spec']['manifests']
-        data = o['data']
-        context = o['spec']['deployment']
-        namespace = o['spec']['namespace']
-        service = o['spec']['service']
-        models = []
-        for d in data:
-            for manifest in manifests:
-                if manifest['name'] == d['name']:
-                    tunables = d['tunables']
-                    name = d['name']
-                    filename = d['filename']
-                    deployment = manifest['name']
-                    manifest_type = manifest['type']
+    def adhoc_trial(self) -> optuna.trial.FixedTrial:
+        memo = {}
+        params = {}
 
-                    if 'deployment' == manifest_type:
-                        models.append(DeploymentSearchSpaceModel(name, namespace, deployment, tunables))
-                    elif 'configMap' == manifest_type:
-                        models.append(ConfigMapSearhSpaceModel(name, namespace, deployment, filename, tunables))
-        return {'namespace': namespace, 'service': service, 'deployment': context, 'models': models}
+        for name, tunable in self.tunables().items():
+            params.update({name: tunable.sample(trial=None, memo=memo)})
 
-    def search_space(self) -> dict:
-        ss = {}
+        return optuna.trial.FixedTrial(params)
+
+    def default_structure(self, plain_config:dict) -> dict:
+        tunables = self.tunables()
+        _sample = {}
         for manifest in self.manifests:
-            ss[manifest.name] = manifest.search_space()
-        return ss
+            name = manifest.name
+            ss = {name: {}}
+            tunables = manifest.tunables
+            for key, tunable in tunables.items():
+                ss[name][key] = plain_config[key]
+            _sample.update(ss)
+
+        return _sample
+
+    def tunables(self) -> dict[str, BaseRangeModel]:
+        manifest: BaseSearchSpaceModel
+        all_tunables = {}
+        for manifest in self.manifests:
+            all_tunables.update(manifest.tunables)
+
+        return all_tunables
+
+    def sample(self, trial: optuna.trial.BaseTrial, full=False):
+        """
+        trial: optuna.trial.BaseTrial
+        full: if true return the tunables hierarchy {'manifest-name': {'tunable-name': value}}
+        otherwise return a plain list of tunables {'tunable-name': 'value'}
+        """
+        tunable: BaseRangeModel
+        _sample = {}
+        memo = {}
+        if full:
+            for manifest in self.manifests:
+                name = manifest.name
+                ss = {name: {}}
+                tunables = manifest.tunables
+                for key, tunable in tunables.items():
+                    try:
+                        ss[name][key] = tunable.sample(trial, memo)
+                    except:
+                        logger.exception(f'{name}:{key}')
+                        exit(1)
+                _sample.update(ss)
+        else:
+            for key, tunable in self.tunables().items():
+                _sample[key] = tunable.sample(trial, memo)
+
+        return _sample
 
 
-class DeploymentSearchSpaceModel:
-    def __init__(self, name, namespace, deployment, tunables):
-        self.name = name
-        self.namespace = namespace
+def parse_manifests(o: dict, ctx: SearchSpaceModel) -> dict:
+    manifests = o['spec']['manifests']
+    data = o['data']
+    context = o['spec']['deployment']
+    namespace = o['spec']['namespace']
+    service = o['spec']['service']
+    models = []
+    for d in data:
+        for manifest in manifests:
+            if manifest['name'] == d['name']:
+                tunables = d['tunables']
+                name = d['name']
+                filename = d['filename']
+                deployment = manifest['name']
+                manifest_type = manifest['type']
+
+                if 'deployment' == manifest_type:
+                    models.append(DeploymentSearchSpaceModel(name, namespace, deployment, tunables, ctx))
+                elif 'configMap' == manifest_type:
+                    models.append(ConfigMapSearhSpaceModel(name, namespace, deployment, filename, tunables, ctx))
+
+    return {'namespace': namespace, 'service': service, 'deployment': context, 'models': models}
+
+
+class BaseSearchSpaceModel:
+    def __init__(self, name: str, namespace: str, tunables: dict[str, BaseRangeModel], ctx: SearchSpaceModel):
+        self.name: str = name
+        self.ctx: SearchSpaceModel = ctx
+        self.namespace: str = namespace
+        self.tunables: dict[str, BaseRangeModel] = parse_tunables(tunables, self.ctx)
+
+    def get_current_config(self):
+        pass
+
+    def sample(self):
+        pass
+
+
+def parse_tunables(tunables, ctx: SearchSpaceModel) -> dict[str, BaseRangeModel]:
+    parsed_tunables: dict[str, BaseRangeModel] = {}
+    for type_range, list_tunables in tunables.items():
+        for r in list_tunables:
+            if 'boolean' == type_range:
+                r['values'] = ['True', 'False']
+                r['type'] = 'bool'
+                parsed_tunables[r['name']] = OptionRangeModel(r, ctx)
+            elif 'number' == type_range:
+                parsed_tunables[r['name']] = NumberRangeModel(r, ctx)
+            elif 'option' == type_range:
+                parsed_tunables[r['name']] = OptionRangeModel(r, ctx)
+
+    return parsed_tunables
+
+
+class DeploymentSearchSpaceModel(BaseSearchSpaceModel):
+    def __init__(self, name: str, namespace: str, deployment: str, tunables: dict[str, BaseRangeModel],
+                 ctx: SearchSpaceModel):
+        super(DeploymentSearchSpaceModel, self).__init__(name=name, namespace=namespace, tunables=tunables, ctx=ctx)
         self.deployment = deployment
-        self.tunables = self.__parse_tunables(tunables)
 
     def __repr__(self):
         return f'{{"name": "{self.name}", "namespace": "{self.namespace}", "deployment": "{self.deployment}"' \
                f'tunables: {str(self.tunables)}}}'
-
-    def __parse_tunables(self, tunables):
-        parameters = {}
-        for type_range, list_tunables in tunables.items():
-            for r in list_tunables:
-                if 'boolean' == type_range:
-                    r['values'] = ['True', 'False']
-                    r['type'] = 'bool'
-                    parameters[r['name']] = OptionRangeModel(r)
-                elif 'number' == type_range:
-                    parameters[r['name']] = NumberRangeModel(r)
-                elif 'option' == type_range:
-                    parameters[r['name']] = OptionRangeModel(r)
-
-        return parameters
-
-    def search_space(self):
-        model = {}
-        for key, tunable in self.tunables.items():
-            model.update(tunable.get_hyper_interval(self.tunables))
-
-        logger.info(f'search space: {model}')
-        return model
 
     def get_current_config(self) -> (dict, dict):
         api_instance = config.appsApi()
@@ -95,7 +161,7 @@ class DeploymentSearchSpaceModel:
 
         return self.get_current_config_from_spec(deployment)
 
-    def get_current_config_from_spec(self, deployment: V1Deployment) -> (dict, dict):
+    def get_current_config_from_spec(self, deployment: V1Deployment) -> dict:
         containers = deployment.spec.template.spec.containers
         config_limits = {'cpu': 0, 'memory': 0}
         container: V1Container
@@ -112,26 +178,7 @@ class DeploymentSearchSpaceModel:
             config_limits['cpu'] += float(quantity.parse_quantity(limits.get('cpu', 0)))
             config_limits['memory'] += float(quantity.parse_quantity(limits.get('memory', 0))) / (2 ** 20)
 
-        keys = set(config_limits.keys()).intersection(set(self.tunables.keys()))
-
-        valued_default_config = {}
-        indexed_default_config = {}
-        # if Option set index to default config
-        # otherwise set limit values
-        for k, v in config_limits.items():
-            if k in keys and k in self.tunables:
-                valued_default_config[k] = v
-                if isinstance(self.tunables[k], OptionRangeModel):
-                    index_of_value = self.tunables[k].index_of_value(v)
-                    if index_of_value < 0:
-                        # in not exists set first option
-                        indexed_default_config[k] = 0
-                    else:
-                        indexed_default_config[k] = index_of_value
-                else:
-                    indexed_default_config[k] = v
-
-        return indexed_default_config, valued_default_config
+        return {k: config_limits[k] for k, v in self.tunables.items() if k in config_limits}
 
     def patch(self, new_config: dict, production=False):
         api_instance = config.appsApi()
@@ -200,84 +247,42 @@ def get_deployment(name, namespace) -> V1Deployment:
     return config.appsApi().read_namespaced_deployment(name, namespace)
 
 
-class ConfigMapSearhSpaceModel:
-    def __init__(self, name, namespace, deployment, filename, tunables):
-        self.name = name
-        self.namespace = namespace
+class ConfigMapSearhSpaceModel(BaseSearchSpaceModel):
+    def __init__(self, name: str, namespace: str, deployment: str, filename: str, tunables: dict[str, BaseRangeModel],
+                 ctx: SearchSpaceModel):
+        super(ConfigMapSearhSpaceModel, self).__init__(name=name, namespace=namespace, tunables=tunables, ctx=ctx)
         self.deployment = deployment
         self.filename = filename
-        self.tunables = self.__parse_tunables(tunables)
 
     def __repr__(self):
         return f'{{"name": "{self.name}", "namespace": "{self.namespace}", "deployment": "{self.deployment}"' \
                f'tunables: {str(self.tunables)}}}'
 
-    def __parse_tunables(self, tunables):
-        parameters = {}
-        for type_range, list_tunables in tunables.items():
-            for r in list_tunables:
-                if 'boolean' == type_range:
-                    r['values'] = ['True', 'False']
-                    r['type'] = 'bool'
-                    parameters[r['name']] = OptionRangeModel(r)
-                elif 'number' == type_range:
-                    parameters[r['name']] = NumberRangeModel(r)
-                elif 'option' == type_range:
-                    parameters[r['name']] = OptionRangeModel(r)
+    def get_current_config(self) -> dict:
+        core_api = config.coreApi()
+        config_map: V1ConfigMap = core_api.read_namespaced_config_map(name=self.name, namespace=self.namespace)
 
-        return parameters
+        return self.get_current_config_core(config_map)
 
-    def search_space(self):
-        model = {}
-        for key, tunable in self.tunables.items():
-            model.update(tunable.get_hyper_interval(self.tunables))
-
-        return model
-
-    def get_current_config(self) -> (dict, dict):
-        coreApi = config.coreApi()
-        configMap: V1ConfigMap = coreApi.read_namespaced_config_map(name=self.name, namespace=self.namespace)
-
-        return self.get_current_config_core(configMap)
-
-    def get_current_config_core(self, configMap: V1ConfigMap) -> (dict, dict):
-        keys = set(configMap.data.keys()).intersection(set(self.tunables.keys()))
-
-        valued_default_config = {}
-        indexed_default_config = {}
+    def get_current_config_core(self, config_map: V1ConfigMap) -> dict:
         # if Option set index to default config
         # otherwise set values
-        print(configMap.data.items())
-        if 'jvm.options' in configMap.data:
+        if 'jvm.options' in config_map.data:
             # TODO: workaround to get inital config from jvm
-            if len(configMap.data['jvm.options']) == 0:
-                raise RuntimeError(f'config file: {configMap.data} cannot be empty -- set default config')
+            if len(config_map.data['jvm.options']) == 0:
+                raise RuntimeError(f'config file: {config_map.data} cannot be empty -- set default config')
             else:
-                keys, configMap.data = jmvoptions_to_dict(configMap.data['jvm.options'])
+                keys, config_map.data = jmvoptions_to_dict(config_map.data['jvm.options'])
 
-        for k, v in configMap.data.items():
-
-            if k in keys and k in self.tunables:
-                valued_default_config[k] = v
-                if isinstance(self.tunables[k], OptionRangeModel):
-                    index_of_value = self.tunables[k].index_of_value(v)
-                    if index_of_value < 0:
-                        # in not exists set first option
-                        indexed_default_config[k] = 0
-                    else:
-                        indexed_default_config[k] = index_of_value
-                else:
-                    indexed_default_config[k] = v
-
-        return indexed_default_config, valued_default_config
+        return {k: config_map.data[k] for k, v in self.tunables.items() if k in config_map.data}
 
     def patch(self, new_config: dict, production=False):
         if self.filename == 'jvm.options':
-            return self.patch_jvm(new_config, production)
+            return self.__patch_jvm(new_config, production)
         elif self.filename == '':
-            return self.patch_envvar(new_config, production)
+            return self.__patch_envvar(new_config, production)
 
-    def patch_envvar(self, new_config, production=False):
+    def __patch_envvar(self, new_config, production=False):
         name = self.name if production else self.name + config.PROXY_TAG
         namespace = self.namespace
 
@@ -302,7 +307,7 @@ class ConfigMapSearhSpaceModel:
 
         return config.coreApi().patch_namespaced_config_map(name, namespace, body, pretty='false')
 
-    def core_patch_jvm(self, new_config, production=False):
+    def __core_patch_jvm(self, new_config, production=False):
         name = self.name if production else self.name + config.PROXY_TAG
         namespace = self.namespace
         filename = self.filename
@@ -317,21 +322,33 @@ class ConfigMapSearhSpaceModel:
         }
         return name, namespace, body
 
-    def patch_jvm(self, new_config, production=False):
-        name, namespace, body = self.core_patch_jvm(new_config, production)
+    def __patch_jvm(self, new_config, production=False):
+        name, namespace, body = self.__core_patch_jvm(new_config, production)
 
         return config.coreApi().patch_namespaced_config_map(name, namespace, body, pretty='false')
 
 
-class NumberRangeModel:
-    def __init__(self, r):
-        self.name = r['name']
+class BaseRangeModel:
+    def __init__(self, name, ctx: SearchSpaceModel):
+        self.name = name
+        self.ctx = ctx
+
+    @abc.abstractmethod
+    def sample(self, trial: optuna.trial.BaseTrial, memo:dict) -> Union[int, float, str]:
+        return
+
+    @abc.abstractmethod
+    def distribution(self, trial: optuna.trial.BaseTrial, memo: dict) -> optuna.distributions.BaseDistribution:
+        return
+
+
+class NumberRangeModel(BaseRangeModel):
+    def __init__(self, r, ctx: SearchSpaceModel = None):
+        super(NumberRangeModel, self).__init__(r['name'], ctx)
         self.upper, self.upper_dep = self.__unpack_value(r['upper'])
         self.lower, self.lower_dep = self.__unpack_value(r['lower'])
-        self.step = r.get('step', 0)
+        self.step = r.get('step', None)
         self.real = r.get('real', False)
-        ## singleton
-        self.__hyper_interval = None
 
     def __unpack_value(self, item):
         if item and isinstance(item, dict):
@@ -341,33 +358,126 @@ class NumberRangeModel:
 
     def __repr__(self):
         return f'{{"name": "{self.name}", ' \
-               f'"lower": {self.get_lower()}, ' \
-               f'"lower_dep":{self.get_lower_dep()}, ' \
-               f'"upper": {self.get_upper()}, ' \
-               f'"upper_dep":{self.get_upper_dep()}, ' \
-               f'"real": "{self.get_real()}", ' \
-               f'"step": {self.get_step()}}}'
+               f'"lower": {self.lower}, ' \
+               f'"lower_dep":{self.lower_dep}, ' \
+               f'"upper": {self.upper}, ' \
+               f'"upper_dep":{self.upper_dep}, ' \
+               f'"real": "{self.real}", ' \
+               f'"step": {self.step}}}'
 
-    def __is_string(self, value):
+    def sample(self, trial: optuna.trial.BaseTrial, memo: dict) -> Union[int, float, str]:
+
+        if self.name in memo:
+            return memo[self.name]
+
+
+        step = self.get_step()
+        if isinstance(trial, optuna.trial.FixedTrial):
+            d = self.distribution(None, memo)
+            lower = d.low
+            upper = d.high
+        else:
+            lower = self.get_lower(trial, memo, eval_dep=trial is not None)
+            upper = self.get_upper(trial, memo, eval_dep=trial is not None)
+
+            if lower > upper:
+                step = None
+                lower = upper
+
+            assert lower <= upper, f' {self.name}: lower[{lower}] >= upper[{upper}]'
+            # print('[s]', self.name, lower, upper, step)
+
+
+
+        if trial:
+            if self.get_real():
+                value = trial.suggest_float(name=self.name,
+                                            low=lower,
+                                            high=upper,
+                                            step=step,
+                                            log=False)
+            else:
+                value = trial.suggest_int(name=self.name,
+                                          low=lower,
+                                          high=upper,
+                                          step=step if step and step > 0 else 1,
+                                          log=False)
+        else:
+            d = self.distribution(None, memo)
+            low = d.low
+            high = d.high
+            q = 1.0
+            if isinstance(d, DiscreteUniformDistribution):
+                q = d.q
+            elif isinstance(d, IntUniformDistribution):
+                q = d.step
+
+            if self.get_real():
+                value = random.uniform(low, high) * q // q
+            else:
+                value = random.randint(low, high) * q // q
+
+        memo[self.name] = value
+        return value
+
+    def distribution(self, trial: optuna.trial.BaseTrial, memo: dict) -> optuna.distributions.BaseDistribution:
+        lower = self.get_lower(trial, memo, eval_dep=trial is not None)
+        upper = self.get_upper(trial, memo, eval_dep=trial is not None)
+        # print('[d]', self.name, lower, upper, self.get_step())
+        step = self.get_step()
+        if lower > upper:
+            step = None
+            lower = upper
+
+        assert lower <= upper, f' {self.name}: lower[{lower}] >= upper[{upper}]'
+
+        if self.get_real():
+            if self.get_step() is None:
+                return UniformDistribution(low=lower, high=upper)
+            else:
+                return DiscreteUniformDistribution(low=lower, high=upper, q=step)
+        else:
+            if self.get_step() is None or self.get_step() <= 1:
+                return IntUniformDistribution(low=lower, high=upper)
+            else:
+                return IntUniformDistribution(low=lower, high=upper, step=step)
+
+    def __is_a_numeric_string(self, value):
         return isinstance(value, str) and str.isalpha(value)
 
-    def get_upper(self):
-        if self.__is_string(self.upper):
-            return self.upper
-        return float(self.upper)
+    def get_upper(self, trial: optuna.trial.BaseTrial, memo: dict, eval_dep=True):
+        if self.name in memo:
+            return memo[self.name]
+
+        if not eval_dep or self.get_upper_dep() == '':
+            if self.__is_a_numeric_string(self.upper):
+                return float(self.upper) if self.get_real() else int(self.upper)
+            return float(self.upper) if self.get_real() else int(self.upper)
+        else:
+            upper = dep_eval(self.get_upper_dep(), self.ctx, trial, memo)
+            return float(upper) if self.get_real() else int(upper)
 
     def get_upper_dep(self):
         return self.upper_dep
 
-    def get_lower(self):
-        if self.__is_string(self.lower):
-            return self.lower
-        return float(self.lower)
+    def get_lower(self, trial: optuna.trial.BaseTrial, memo: dict, eval_dep=True):
+        if self.name in memo:
+            return memo[self.name]
+
+        if not eval_dep or self.get_lower_dep() == '':
+            if self.__is_a_numeric_string(self.lower):
+                return float(self.lower) if self.get_real() else int(self.lower)
+            return float(self.lower) if self.get_real() else int(self.lower)
+        else:
+            lower = dep_eval(self.get_lower_dep(), self.ctx, trial, memo)
+            return float(lower) if self.get_real() else int(lower)
 
     def get_lower_dep(self):
         return self.lower_dep
 
     def get_step(self):
+        if self.step is None:
+            return self.step
         return float(self.step)
 
     def get_real(self):
@@ -375,107 +485,36 @@ class NumberRangeModel:
             return self.real
         return strtobool(self.real)
 
-    def get_hyper_interval(self, ctx={}) -> dict:
-        ## making the interval singleton
-        if self.__hyper_interval is not None:
-            return self.__hyper_interval
-        """ ctx['name'] = 'NumberRangeModel'"""
-        to_int = lambda x: x if self.get_real() else scope.int(x)
-
-        upper = self.get_upper()
-        if self.get_lower() == upper:
-            upper += 0.1
-
-        logger.debug(f'{self}')
-
-        # dep_eval(self.get_upper_dep(), ctx=ctx if self.get_upper_dep() else )
-        import numpy as np
-        from hyperopt.pyll.stochastic import sample
-        inner_ctx = {}
-        for k, v in ctx.items():
-            item = v.get_hyper_interval()
-            inner_ctx.update(item)
-
-        upper = dep_eval(self.get_upper_dep(), ctx=inner_ctx, default=self.get_upper())
-        lower = dep_eval(self.get_lower_dep(), ctx=inner_ctx, default=self.get_lower())
-
-    # upper_dep = ctx.get(self.get_upper_dep(), None)
-        # lower_dep = ctx.get(self.get_lower_dep(), None)
-        #
-        # upper = list(upper_dep.get_hyper_interval().values())[0] if upper_dep else self.get_upper()
-        # print(upper)
-        # lower = list(lower_dep.get_hyper_interval().values())[0] if lower_dep else self.get_lower()
-        # print(lower)
-
-        ## begin -- using linear transformation
-        if self.get_step():
-            value = hyperopt.hp.quniform(self.name, self.get_lower(), self.get_upper(), self.get_step())
-        else:
-            value = hyperopt.hp.uniform(self.name, self.get_lower(), self.get_upper())
-
-        value = to_scale(
-            self.get_lower(),
-            lower,
-            self.get_upper(),
-            upper,
-            value
-        )
-        ## end
-        self.__hyper_interval = {self.name: to_int(value)}
-        return self.__hyper_interval
-
-
-def dep_eval(expr, ctx=None, default=None):
-    if ctx is None:
-        ctx = {}
-    if default is None:
-        default = {}
-
-    expr_lst = tokenize(expr, ctx, default)
+def dep_eval(expr, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial, memo: dict):
+    expr_lst = tokenize(expr, ctx, trial, memo)
     return polish_eval(expr_lst)
 
 
-def tokenize(expr, ctx=None, default=None):
-    if ctx is None:
-        ctx = {}
-    if default is None:
-        default = {}
-
+def tokenize(expr, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial, memo: dict):
     if len(expr) != 0:
-        return [dep_eval_expr(token, ctx, default) for token in expr.split()]
-    return [dep_eval_expr('', ctx, default)]
+        tokens = expr.split()
+        return [eval_token(token, ctx, trial, memo) for token in tokens]
+    return [eval_token('', ctx, trial, memo)]
 
 
-def dep_eval_expr(token, ctx=None, default=None):
-    if ctx is None:
-        ctx = {}
-    if default is None:
-        default = {}
+def eval_token(token, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial, memo: dict):
     import re
 
-    if len(token) == 0:
-        if isinstance(default, dict) and len(default) > 0:
-            return list(default.values()[0])
-        if not isinstance(default, dict):
-            return default
+    if token in memo:
+        return memo[token]
 
     if re.compile(r"[-+]?\d*\.\d+|\d+").match(token):
         return float(token)
     else:
-        if token in '+-*/':
+        if token in ['+', '-', '*', '/']:
             return token
         else:
-            if token in ctx:
-                return ctx[token]
-            if isinstance(default, dict):
-                if token in default:
-                    return default[token]
-                else:
-                    raise KeyError(f'cannot evaluate token:{token}, it is not within the ctx')
-            elif default is None:
-                raise KeyError(f'there is no default value for token:{token}')
-            else:
-                return default
+            tunables = ctx.tunables()
+            if token in tunables:
+                return tunables[token].sample(trial, memo)
+
+    raise TypeError(f'cant parse: "{token}" not defined as a tunable')
+
 
 def polish_eval(expr: list):
     if len(expr) == 0:
@@ -508,50 +547,36 @@ def polish_eval(expr: list):
     return stack[0]
 
 
-def to_scale(x1, y1, x2, y2, k):
-    """
-    does a linear transformation leading the xs values to ys values
-    xs are the original limits of a parameter
-    ys are the new limits based on their dependencies
-    k is the value sampled from the xs interval that will be scaled to ys interval
-
-    for example:
-        ...
-        - name: "a"
-          lower:
-            value: 100
-          upper:
-            value: 200
-        - name: "b"
-          lower:
-            value: 100
-            dependsOn: "a"
-          upper:
-            value: 200
-        ...
-    the interval b = (100, 200) will be shrink to b = (a, 200), where 'a' is a value sampled from a = (100, 200)
-    """
-    if x1 == y1 and x2 == y2:
-        return k
-
-    m = (y2 - y1) / (x2 - x1)
-    b = y1 - (m * x1)
-    # print(f'{m}*x+{b} --> p=({x1},{y1}) q=({x2},{y2}) ')
-    return (m * k) + b
-
-
-def normalize(k, mx, mn):
-    return (k - mn) / (mx - mn)
-
-
-class OptionRangeModel:
-    def __init__(self, r):
-        self.name = r['name']
+class OptionRangeModel(BaseRangeModel):
+    def __init__(self, r, ctx: SearchSpaceModel = None):
+        super(OptionRangeModel, self).__init__(r['name'], ctx)
         self.type = r['type']
         self.values = r['values']
 
     def __repr__(self):
         return f'{{"name": "{self.name}, "type":{self.type}, "values": {json.dumps(self.values)} }}'
+
+    def sample(self, trial: optuna.trial.BaseTrial, memo: dict) -> Union[int, float, str]:
+        if self.name in memo:
+            return memo[self.name]
+        if trial:
+            value = trial.suggest_categorical(name=self.name, choices=self.get_values())
+        else:
+            value = random.choice(self.get_values())
+        if 'integer' == self.type:
+            value = int(value)
+        elif 'real' == self.type:
+            value = float(value)
+        elif 'bool' == self.type:
+            value = True if value == 1 or value == True else False
+        else:
+            value = str(value)
+
+        memo[self.name] = value
+        return value
+
+    def distribution(self, trial: optuna.trial.BaseTrial, memo: dict) -> optuna.distributions.BaseDistribution:
+        return CategoricalDistribution(self.get_values())
 
     def index_of_value(self, value):
         if self.type == 'integer':
@@ -567,23 +592,18 @@ class OptionRangeModel:
         return -1
 
     def cast(self, values, new_type):
-        to_bool = lambda x: bool(strtobool(x))
-        types = {'integer': int, 'real': float, 'string': str, 'bool': to_bool}
-        return [types[new_type](value) for value in values]
+        types = {'integer': int, 'real': float, 'string': str, 'bool': strtobool}
+        to_return = [types[new_type](value) for value in values]
+        return to_return
 
     def get_values(self):
         return self.cast(self.values, self.type)
-
-    def get_hyper_interval(self, ctx={}) -> dict:
-        """ ctx['name'] = 'OptionRangeModel'"""
-        return {self.name: hyperopt.hp.choice(self.name, self.get_values())}
 
 
 def jmvoptions_to_dict(jvm_options):
     data = jvm_options.split('\n')
     data = [item for item in data if not item.startswith('#')]
     params = {}
-    keys = []
     # if '-Xmx' in data:
     #     params['-Xmx'] = data['']
     #     params.append('-Xmx' + str(data['-Xmx']) + 'm')
@@ -624,15 +644,6 @@ def jmvoptions_to_dict(jvm_options):
         elif item.startswith('-Xgcpolicy:'):
             params['gc'] = item
 
-    # if '-Xnojit' in data:
-    #     if data['-Xnojit']:
-    #         params.append('-Xnojit')
-    #     del (data['-Xnojit'])
-    #
-    # if '-Xnoaot' in data:
-    #     if data['-Xnoaot']:
-    #         params.append('-Xnoaot')
-    #     del (data['-Xnoaot'])
     return set(params.keys()), params
 
 
