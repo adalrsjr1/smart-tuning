@@ -53,3 +53,7 @@ def mock_acmeair_jvm_cm() -> V1ConfigMap:
                                     'V1ConfigMap')
 
 
+def mock_daytrader_ss() -> FakeCustomObject:
+    c = client.CustomObjectsApi()
+    return c.api_client.deserialize(FakeCustomObject('daytrader-ss.json'),
+                                    'object')

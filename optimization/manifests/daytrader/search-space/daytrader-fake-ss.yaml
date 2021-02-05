@@ -1,0 +1,939 @@
+apiVersion: "smarttuning.ibm.com/v1alpha2"
+kind: SearchSpace
+metadata:
+  name: daytrader-ss
+spec:
+  deployment: daytrader-service
+  service: daytrader
+  namespace: "default"
+  manifests:
+    - name: daytrader-service
+      type: "deployment"
+    - name: daytrader-config-app
+      type: "configMap"
+    - name: daytrader-config-jvm
+      type: "configMap"
+    - name: daytrader-config-fake
+      type: "configMap"
+data:
+  - name: daytrader-service
+    tunables:
+      option:
+        - name: "cpu"
+          type: "integer"
+          values:
+            - "2"
+            - "4"
+            - "6"
+#            - "8"
+#            - "16"
+        - name: "memory"
+          type: "integer"
+          values:
+#            - "512"
+            - "1024"
+            - "2048"
+            - "4096"
+            - "8192"
+  - name: daytrader-config-app
+      # https://www.ibm.com/support/pages/tuning-connection-pool-properties-websphere-application-server
+    # https://openliberty.io/docs/20.0.0.9/reference/config/connectionManager.html
+    # https://www.ibm.com/support/knowledgecenter/SSEQTP_liberty/com.ibm.websphere.wlp.doc/ae/twlp_tun.html
+    tunables:
+      number:
+        - name: "MAX_THREADS"
+          lower:
+            value: 4
+          upper:
+            dependsOn: "CONMGR1_MAX_POOL_SIZE"
+            value: 60
+          step: 10
+          real: False
+        # JDBC Conn Pool
+        - name: "CONMGR1_MAX_POOL_SIZE"
+          lower:
+            value: 4
+          upper:
+            value: 100
+          step: 10
+          real: False
+        - name: "CONMGR1_MIN_POOL_SIZE"
+          lower:
+            value: 4
+          upper:
+            value: 100
+            dependsOn: "CONMGR1_MAX_POOL_SIZE"
+          step: 10
+          real: False
+        - name: "CONMGR1_TIMEOUT"
+          lower:
+            value: 1
+          upper:
+            value: 300
+          step: 10
+          real: False
+        - name: "CONMGR1_AGED_TIMEOUT"
+          lower:
+            value: 1
+          upper:
+            value: 300
+          step: 10
+          real: False
+        - name: "CONMGR1_MAX_IDLE_TIMEOUT"
+          lower:
+            value: 1
+          upper:
+            value: 300
+          step: 30
+          real: False
+        - name: "CONMGR1_REAP_TIME"
+          lower:
+            value: 1
+          upper:
+            value: 300
+            dependsOn: "CONMGR1_MAX_IDLE_TIMEOUT"
+          step: 30
+          real: False
+        # TCF Conn Pool
+#        - name: "CONMGR4_MAX_POOL_SIZE"
+#          lower:
+#            value: 30
+#          upper:
+#            value: 200
+#          step: 10
+#          real: False
+#        - name: "CONMGR4_MIN_POOL_SIZE"
+#          lower:
+#            value: 30
+#          upper:
+#            value: 200
+#            dependsOn: "CONMGR4_MAX_POOL_SIZE"
+#          step: 10
+#          real: False
+#        - name: "CONMGR4_TIMEOUT"
+#          lower:
+#            value: 1
+#          upper:
+#            value: 300
+#            dependsOn: "CONMGR4_REAP_TIME"
+#          step: 30
+#          real: False
+#        - name: "CONMGR4_AGED_TIMEOUT"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 300
+#          step: 30
+#          real: False
+#        - name: "CONMGR4_MAX_IDLE_TIMEOUT"
+#          lower:
+#            value: 1
+#          upper:
+#            value: 300
+#          step: 30
+#          real: False
+#        - name: "CONMGR4_REAP_TIME"
+#          lower:
+#            value: -1
+#          upper:
+#            value: 300
+#          step: 10
+#          real: False
+        - name: "HTTP_MAX_KEEP_ALIVE_REQUESTS"
+          lower:
+            value: 4
+            dependsOn: "MAX_THREADS"
+          upper:
+            value: 100
+            dependsOn: "CONMGR1_MAX_POOL_SIZE"
+          step: 10
+          real: False
+        - name: "HTTP_PERSIST_TIMEOUT"
+          lower:
+            value: 15
+          upper:
+            value: 45
+          step: 5
+          real: False
+#        - name: "RUNTIME_MODE"
+##           FULL_EJB:0, DIRECT:1
+#          values:
+#            - "0"
+#            - "1"
+  - name: daytrader-config-jvm
+    filename: "jvm.options"
+    tunables:
+      number:
+#        - name: "-XX:MaxRAMPercentage"
+#          lower:
+#            value: 20
+#          upper:
+#            value: 95
+#          step: 5
+#          real: False
+#        - name: "-XX:InitialRAMPercentage"
+#          lower:
+#            value: 20
+#          upper:
+#            value: 95
+#          step: 5
+#          real: False
+        - name: "-Xms"
+          lower:
+            value: 8
+          upper:
+            value: 896
+          step: 8
+          real: False
+        - name: "-Xmx"
+          lower:
+            value: 16
+            dependsOn: "-Xms"
+          upper:
+            value: 8192
+            dependsOn: "memory 0.8 *"
+          step: 16
+          real: False
+        - name: "-Xmn"
+          lower:
+            value: 8
+          upper:
+            value: 896
+            # https://www.ibm.com/support/pages/maximo-75-64-bit-application-won%E2%80%99t-start-after-automated-installation
+            dependsOn: "-Xms 0.8 *"
+          step: 8
+          real: False
+        - name: "-Xscmx"
+          lower:
+            value: 16
+          upper:
+            value: 512
+            dependsOn: "-XX:SharedCacheHardLimit"
+          step: 16
+          real: False
+        - name: "-XX:SharedCacheHardLimit"
+          lower:
+            value: 16
+          upper:
+            value: 512
+          step: 16
+          real: False
+      boolean:
+        - name: "-Xtune:virtualized"
+      option:
+        - name: "gc"
+          values:
+            - "-Xgcpolicy:gencon"
+#            - "-Xgc:concurrentScavenge"
+#            - "-Xgcpolicy:metronome"
+#            - "-Xgcpolicy:optavgpause"
+#            - "-Xgcpolicy:optthruput"
+        - name: "container_support"
+          values:
+            - "-XX:+UseContainerSupport"
+#            - "-XX:-UseContainerSupport"
+#  - name: daytrader-config-fake
+#    # substitute <placeholder> with value
+#    # let i=0 | g/<placeholder>/s//\=i/ | let i=i+1
+#    tunables:
+#      number:
+#        - name: "PARAM_0"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_1"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_2"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_3"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_4"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_5"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_6"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_7"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_8"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_9"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_10"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_11"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_12"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_13"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_14"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_15"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_16"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_17"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_18"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_19"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_20"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_21"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_22"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_23"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_24"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_25"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_26"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_27"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_28"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_29"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_30"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_31"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_32"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_33"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_34"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_35"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_36"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_37"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_38"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_39"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_40"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_41"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_42"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_43"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_44"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_45"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_46"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_47"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_48"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_49"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_50"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_51"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_52"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_53"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_54"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_55"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_56"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_57"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_58"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_59"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_60"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_61"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_62"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_63"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_64"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_65"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_66"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_67"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_68"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_69"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_70"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_71"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_72"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_73"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_74"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_75"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_76"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_77"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_78"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_79"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_80"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_81"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_82"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_83"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_84"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_85"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_86"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_87"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_88"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_89"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_90"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_91"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_92"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_93"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_94"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_95"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_96"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_97"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_98"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True
+#        - name: "PARAM_99"
+#          lower:
+#            value: 0
+#          upper:
+#            value: 100
+#          step: 10
+#          real: True

@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import time
 import kubernetes
 from concurrent.futures import ThreadPoolExecutor
@@ -15,26 +16,31 @@ def print_config(toPrint=False):
                 print('\t', item)
         print('\n *** config loaded *** \n')
 
-K8S_HOST = 'trxrhel7perf-1'
-LOCALHOST = '9.26.100.254'
+
+# K8S_HOST = 'trxrhel7perf-1'
+# LOCALHOST = '9.26.100.254'
+
+K8S_HOST = 'trinity01'
+LOCALHOST = '127.0.0.1'
 
 # K8S_HOST = 'localhost'
 # LOCALHOST = 'localhost'
 
-K8S_CONF = f'{os.environ.get("HOME")}/.kube/trxrhel7perf-1/config'
+# K8S_CONF = f'{os.environ.get("HOME")}/.kube/trxrhel7perf-1/config'
+K8S_CONF = f'{os.environ.get("HOME")}/.kube/trinity01/config'
+
 
 def init_k8s(hostname=K8S_HOST):
     if 'KUBERNETES_SERVICE_HOST' in os.environ:
         logging.info('loading K8S configuration')
         kubernetes.config.load_incluster_config()
     else:
-        if 'trxrhel7perf-1' == hostname:
-            logging.info('loading trxrhel7perf-1 configuration')
+        if 'localhost' != hostname:
+            logging.info(f'loading remote:{hostname} configuration')
             kubernetes.config.load_kube_config(config_file=K8S_CONF)
         else:
             logging.info('loading localhost configuration')
             kubernetes.config.load_kube_config()
-
 
 
 ## to disable loggers
@@ -92,13 +98,15 @@ URL_SIMILARITY_THRESHOLD = float(os.environ.get('URL_SIMILARITY_THRESHOLD', defa
 # optimization config
 BAYESIAN = eval(os.environ.get('OPTIMIZATION_METHOD', default='True'))
 # n_startup_jobs: # of jobs doing random search at begining of optimization
-N_STARTUP_JOBS = int(os.environ.get('N_STARTUP_JOBS', default=10))
+N_STARTUP_JOBS = int(os.environ.get('N_STARTUP_JOBS', default=2))
 # n_EI_candidades: number of config samples draw before select the best. lower number encourages exploration
 N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
 # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
 GAMMA = float(os.environ.get('GAMMA', default=0.25))
-NUMBER_ITERATIONS = int(float(os.environ.get('NUMBER_ITERATIONS', default='1e15'))) # check if hyperopt version is updated to use stop iterations
+NUMBER_ITERATIONS = int(float(
+    os.environ.get('NUMBER_ITERATIONS', default='55')))  # check if hyperopt version is updated to use stop iterations
 ITERATIONS_BEFORE_REINFORCE = int(os.environ.get('ITERATIONS_BEFORE_REINFORCE', default='3'))
+TRY_BEST_AT_EVERY = int(os.environ.get('TRY_BEST_AT_EVERY', default=ITERATIONS_BEFORE_REINFORCE))
 REINFORCEMENT_RATIO = float(os.environ.get('REINFORCEMENT_RATIO', default='1.0'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
@@ -106,7 +114,7 @@ RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
 OBJECTIVE = str(os.environ.get('OBJECTIVE', default='memory'))
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
-WAITING_TIME = int(os.environ.get('WAITING_TIME', default='60'))
+WAITING_TIME = int(os.environ.get('WAITING_TIME', default='10'))
 GATEWAY_NAME = os.environ.get('GATEWAY_NAME', default='acmeair-nginxservice')
 
 # failfast threshold
@@ -132,14 +140,29 @@ print_config(PRINT_CONFIG)
 _executor = None
 _client = None
 
+__customApi = None
+
+
+def customApi() -> kubernetes.client.CustomObjectsApi:
+    global __customApi
+    if not __customApi:
+        __customApi = kubernetes.client.CustomObjectsApi()
+    return __customApi
+
+
 __coreV1Api = None
+
+
 def coreApi() -> kubernetes.client.CoreV1Api:
     global __coreV1Api
     if not __coreV1Api:
         __coreV1Api = kubernetes.client.CoreV1Api()
     return __coreV1Api
 
+
 __appsApi = None
+
+
 def appsApi() -> kubernetes.client.AppsV1Api:
     global __appsApi
     if not __appsApi:
@@ -147,20 +170,21 @@ def appsApi() -> kubernetes.client.AppsV1Api:
     return __appsApi
 
 
-def executor():
+def executor() -> ThreadPoolExecutor:
     global _executor
     if not _executor:
         _executor = ThreadPoolExecutor()
     return _executor
 
 
-def mongo():
+def mongo() -> MongoClient:
     global _client
     if not _client:
         _client = MongoClient(MONGO_ADDR, MONGO_PORT)
     return _client
 
-def ping(address:str, port:int) -> bool:
+
+def ping(address: str, port: int) -> bool:
     import socket
     a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     location = (address, port)
@@ -168,6 +192,7 @@ def ping(address:str, port:int) -> bool:
     result_of_check = a_socket.connect_ex(location)
     a_socket.close()
     return result_of_check == 0
+
 
 import ctypes
 
@@ -201,8 +226,8 @@ def shutdown():
             logging.exception('error while shutdown thread pool')
 
 # if __name__ == '__main__':
-    # init_k8s(K8S_HOST)
-    # podList = coreApi().list_pod_for_all_namespaces()
-    # for pod in podList.items:
-    #     print(pod.metadata.name)
-    # print(ping(PROMETHEUS_ADDR, int(PROMETHEUS_PORT)))
+# init_k8s(K8S_HOST)
+# podList = coreApi().list_pod_for_all_namespaces()
+# for pod in podList.items:
+#     print(pod.metadata.name)
+# print(ping(PROMETHEUS_ADDR, int(PROMETHEUS_PORT)))

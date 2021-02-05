@@ -35,7 +35,7 @@ spec:
           imagePullPolicy: IfNotPresent
           resources:
             limits:
-              cpu: "16"
+              cpu: "4"
           volumeMounts:
             - name: db2-volume
               mountPath: /database

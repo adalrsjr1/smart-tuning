@@ -1,0 +1,782 @@
+apiVersion: "smarttuning.ibm.com/v1alpha2"
+kind: SearchSpace
+metadata:
+  name: acmeair-ss
+spec:
+  deployment: acmeair-service
+  service: acmeair-svc
+  namespace: "default"
+  manifests:
+    - name: acmeair-service
+      type: "deployment"
+    - name: acmeair-config-app
+      type: "configMap"
+    - name: acmeair-config-jvm
+      type: "configMap"
+    - name: acmeair-config-fake
+      type: "configMap"
+data:
+  - name: acmeair-service
+    tunables:
+      option:
+        - name: "cpu"
+          type: "integer"
+          values:
+            - "2"
+            - "4"
+            - "8"
+#            - "16"
+        - name: "memory"
+          type: "integer"
+          values:
+            - "512"
+            - "1024"
+            - "2048"
+            - "4096"
+            - "8192"
+  - name: acmeair-config-app
+    tunables:
+      number:
+        - name: "HTTP_MAX_KEEP_ALIVE_REQUESTS"
+          lower:
+            value: 10
+          upper:
+            value: 200
+          step: 25
+          real: False
+        - name: "HTTP_PERSIST_TIMEOUT"
+          lower:
+            value: 15
+          upper:
+            value: 45
+          step: 5
+          real: False
+        - name: "MONGO_MAX_CONNECTIONS"
+          lower:
+            value: 10
+          upper:
+            value: 200
+          step: 25
+          real: False
+  - name: acmeair-config-jvm
+    filename: "jvm.options"
+    tunables:
+      boolean:
+        - name: "-Xtune:virtualized"
+      option:
+        - name: "gc"
+          values:
+            - "-Xgcpolicy:gencon"
+            - "-Xgcpolicy:concurrentScavenge"
+            - "-Xgcpolicy:metronome"
+            - "-Xgcpolicy:optavgpause"
+            - "-Xgcpolicy:optthruput"
+        - name: "container_support"
+          values:
+            - "-XX:+UseContainerSupport"
+            - "-XX:-UseContainerSupport"
+  - name: acmeair-config-fake
+    # substitute <placeholder> with value
+    # let i=0 | g/<placeholder>/s//\=i/ | let i=i+1
+    tunables:
+      number:
+        - name: "PARAM_0"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_1"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_2"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_3"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_4"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_5"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_6"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_7"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_8"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_9"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_10"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_11"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_12"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_13"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_14"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_15"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_16"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_17"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_18"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_19"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_20"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_21"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_22"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_23"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_24"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_25"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_26"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_27"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_28"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_29"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_30"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_31"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_32"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_33"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_34"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_35"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_36"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_37"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_38"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_39"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_40"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_41"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_42"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_43"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_44"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_45"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_46"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_47"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_48"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_49"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_50"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_51"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_52"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_53"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_54"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_55"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_56"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_57"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_58"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_59"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_60"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_61"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_62"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_63"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_64"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_65"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_66"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_67"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_68"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_69"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_70"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_71"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_72"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_73"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_74"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_75"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_76"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_77"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_78"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_79"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_80"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_81"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_82"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_83"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_84"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_85"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_86"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_87"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_88"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_89"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_90"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_91"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_92"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_93"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_94"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_95"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_96"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_97"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_98"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True
+        - name: "PARAM_99"
+          lower:
+            value: 0
+          upper:
+            value: 100
+          step: 10
+          real: True

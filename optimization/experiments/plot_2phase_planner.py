@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import os
@@ -13,6 +14,14 @@ import numpy as np
 import random
 import math
 
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+from matplotlib.table import Table
+from matplotlib.text import Text
+from matplotlib.transforms import Bbox
+from pandas.plotting import scatter_matrix
+
+
 def reset_seeds():
    np.random.seed(123)
    random.seed(123)
@@ -27,6 +36,10 @@ if not hashseed:
 
 def load_raw_data(filename:str) -> pd.DataFrame:
     raw_data = []
+
+    def name(data):
+        return hashlib.md5(bytes(str(data.items()), 'ascii')).hexdigest()
+
     with open(filename) as jsonfile:
         for row in jsonfile:
             row = re.sub(r'\{"_id":\{"\$oid":"[a-z0-9]+"\},', '{', row)
@@ -34,27 +47,42 @@ def load_raw_data(filename:str) -> pd.DataFrame:
             raw_data.append(Iteration(
                 record['iteration'],
                 record['production']['curr_config']['name'],
+                # name(record['production']['curr_config']['data']), # generate name on the fly
                 math.fabs(record['production']['curr_config']['score']),
                 math.fabs(record['production']['curr_config']['stats']['mean']),
                 math.fabs(record['production']['curr_config']['stats']['median']),
                 math.fabs(record['production']['curr_config']['stats']['min']),
                 math.fabs(record['production']['curr_config']['stats']['max']),
                 record['production']['curr_config']['stats']['stddev'],
+                record['production']['metric']['throughput'],
+                record['production']['metric']['memory'] / 2**20,
+                record['production']['metric'].get('memory_limit', record['production']['curr_config']['data']['daytrader-service']['memory'] * 2**20) / 2**20,
+                Param(record['production']['curr_config']['data'], math.fabs(record['production']['curr_config']['score'])),
                 record['training']['curr_config']['name'],
+                # name(record['training']['curr_config']['data']), # generate name on the fly
                 math.fabs(record['training']['curr_config']['score']),
                 math.fabs(record['training']['curr_config']['stats']['mean']),
                 math.fabs(record['training']['curr_config']['stats']['median']),
                 math.fabs(record['training']['curr_config']['stats']['min']),
                 math.fabs(record['training']['curr_config']['stats']['max']),
                 record['training']['curr_config']['stats']['stddev'],
+                record['training']['metric']['throughput'],
+                record['training']['metric']['memory'] / 2**20,
+                record['training']['metric'].get('memory_limit', record['training']['curr_config']['data']['daytrader-service']['memory'] * 2**20) / 2**20,
+                Param(record['training']['curr_config']['data'], math.fabs(record['training']['curr_config']['score'])),
                 {chr(i+97):best['name'][:3] for i, best in enumerate(record['best'])} if 'best' in record else []
             ).__dict__)
     return pd.DataFrame(raw_data).reset_index()
 
+class Param:
+    def __init__(self, params, score):
+        self.params = params
+        self.params['score'] = score
+
 class Iteration:
     def __init__(self, iteration,
-                 pname, pscore, pmean, pmedian, pmin, pmax, pstddev,
-                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev, nbest):
+                 pname, pscore, pmean, pmedian, pmin, pmax, pstddev, ptruput, pmem, pmem_lim, pparams,
+                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev, ttruput, tmem, tmem_lim, tparams, nbest):
         self.pname = pname
         self.pscore = pscore
         self.pmean = pmean
@@ -62,6 +90,10 @@ class Iteration:
         self.pmin = pmax
         self.pmax = pmin
         self.pstddev = pstddev
+        self.ptruput = ptruput
+        self.pmem = pmem
+        self.pmem_lim = pmem_lim
+        self.pparams = pparams
         self.tname = tname
         self.tscore = tscore
         self.tmean = tmean
@@ -69,6 +101,10 @@ class Iteration:
         self.tmin = tmax
         self.tmax = tmin
         self.tstddev = tstddev
+        self.ttruput = ttruput
+        self.tmem = tmem
+        self.tmem_lim = tmem_lim
+        self.tparams = tparams
         self.iteration = iteration
         self.nbest = nbest
 
@@ -97,19 +133,30 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
         if not punique in memoization:
 
             memoization[punique] = abs(hash(punique)) / sys.maxsize
+            memoization[punique[:3]] = memoization[punique]
 
         if punique in memoization:
             new_colors.append(memoization[punique])
 
         if not tunique in memoization:
             memoization[tunique] = abs(hash(tunique)) / sys.maxsize
+            memoization[tunique[:3]] = memoization[tunique]
 
         if tunique in memoization:
             new_colors.append(memoization[tunique])
 
     # reduced_table['index'] = [i + 0.5 for i in range(len(reduced_table))]
     # plotting
-    fig, ax = plt.subplots(figsize=(18, 8))
+    fig: Figure
+    ax: Axes
+    ax_t: Axes
+    fig = plt.figure(figsize=(18, 8))
+    gs = fig.add_gridspec(nrows=3, hspace=0.01, height_ratios=[1, 1, 4])
+    axs = gs.subplots(sharex='col')
+    ax = axs[2]
+    ax_m = axs[1]
+    ax_t = axs[0]
+    # fig, axs = plt.subplots(figsize=(18, 8))
 
     # split chart by configs and paint each region with a unique color
     cmap = matplotlib.cm.get_cmap(colormap)
@@ -138,6 +185,10 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
         newline_yspan([index+0.5, 0], [index+0.5, top+10], ax)
     newline_yspan([-0.5, 0], [-0.5, top+10], ax)
 
+    kind = 'bar'
+    ax_t = reduced_table.plot.bar(ax=ax_t, x='index', y=['ptruput', 'ttruput'], rot=0, color={'ptruput':'red', 'ttruput':'blue'}, width=0.8, alpha=0.7)
+    ax_m = reduced_table.plot.bar(ax=ax_m, x='index', y=['pmem', 'tmem'], rot=0, color={'pmem':'red', 'tmem':'blue'}, width=0.8, alpha=1)
+    ax_m = reduced_table.plot.bar(ax=ax_m, x='index', y=['pmem_lim', 'tmem_lim'], rot=0, color={'pmem_lim':'red', 'tmem_lim':'blue'}, width=0.8, alpha=0.3)
 
     ax = reduced_table.plot(ax=ax, x='index', y='pmedian', color='yellow', marker='^', markersize=3, linewidth=0)
     ax = reduced_table.plot(ax=ax, x='index', y='pmean', color='black', marker='o', markersize=3, yerr='pstddev', linewidth=0, elinewidth=0.7, capsize=3)
@@ -156,14 +207,28 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
         ax.set_xlabel('')
         ax.margins(x=0)
 
+        plt_table: matplotlib.table
         table = pd.DataFrame(reduced_table['nbest'].to_dict())
         table = table.fillna(value='')
+        plt_table:Table
+
         plt_table = ax.table(cellText=table.to_numpy().reshape(3,-1), rowLoc='center',
                  rowLabels=['1st','2nd','3rd'], colLabels=reduced_table['index'],
                  # colWidths=[.5,.5],
                  cellLoc='center',
                  colLoc='center', loc='bottom')
         plt_table.set_fontsize('x-small')
+
+        for pos, cell in plt_table.get_celld().items():
+            cell.fill = True
+            text = cell.get_text().get_text()
+            if len(text) == 3 and text not in '1st2nd3rd':
+                plt_table[pos].set_facecolor(cmap(memoization[text]))
+                cell.set_alpha(0.7)
+
+        old_ax_pos = ax_t.get_position()
+        # new_pos = Bbox([[old_ax_pos.x0, old_ax_pos.y0]], [[plt_table.get_po]])
+        # ax_t.set_position()
     # reduced_table.plot(table=np.array(reduced_table['nbest'].T), ax=ax)
 
     # customize legend
@@ -186,8 +251,26 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
         mlines.Line2D([], [], color='black', marker='', linestyle='--', linewidth=0.7))
     handles.append(matplotlib.patches.Patch(facecolor=cmap(list(memoization.values())[0]), edgecolor='k', alpha=0.7,
                                             label='config. color'))
+    handles.append(matplotlib.patches.Patch(facecolor='red', edgecolor='k', alpha=0.7,
+                                            label='config. color'))
+    handles.append(matplotlib.patches.Patch(facecolor='blue', edgecolor='k', alpha=0.7,
+                                            label='config. color'))
 
-    ax.legend(handles, [
+    ax.get_legend().remove()
+    ax_m.get_legend().remove()
+    # ax.set_title(title, loc='left')
+    ax_t.set_ylabel('requests')
+    # print(ax_m.get_yaxis().get_data_interval())
+    ax_t.set_ylim(0, ax_t.get_yaxis().get_data_interval()[1])
+    ax_t.set_yticks(np.linspace(0, ax_t.get_yaxis().get_data_interval()[1], 4))
+    ax_m.set_ylim(0, ax_t.get_yaxis().get_data_interval()[1])
+    ax_m.set_yticks([0,  1024, 2048, 4096, 8192])
+    ax_m.set_ylabel('memory (MB)')
+    ax_t.set_title(title, loc='left')
+    ax_t.axes.get_xaxis().set_visible(False)
+    ax_t.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
+    ax_m.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
+    ax_t.legend(handles, [
         'avg. of config. \'abc\' in prod',
         'median of config \'abc\' in prod',
         'median of config \'abc\' in train',
@@ -195,13 +278,17 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
         'train. value at n-th iteration',
         'residual (*:prod, X:train), $y_i - \overline{Y_i}$',
         'config. \'abc\' color',
-    ], frameon=False, ncol=len(handles)//2, bbox_to_anchor=(0.5, 1.10), loc='upper center', fontsize='small')
-    ax.set_title(title, loc='left')
+        'production',
+        'training',
+    ], frameon=False, ncol=5, bbox_to_anchor=(0.6, 1.52), loc='upper center', fontsize='small')
+
     ax.set_ylabel('requests/$')
 
-    plt.text(0.08, 0.85, 'train.\nconfig.', fontsize='smaller', transform=plt.gcf().transFigure)
-    plt.text(0.08, 0.12, 'prod.\nconfig.', fontsize='smaller', transform=plt.gcf().transFigure)
+    ax_pos = ax.get_position()
+    ax.text(-2.2, 0, 'train.\ncfg.', fontsize='smaller')
+    ax.text(-2.2, top + 30, 'prod.\ncfg.', fontsize='smaller')
 
+    gs.tight_layout(fig)
     if save:
         fig = plt.gcf()
         fig.set_size_inches((18, 8), forward=False)
@@ -306,7 +393,45 @@ def test():
 
     print(best)
 
+def plot_app_curves(df: pd.DataFrame, title:str=''):
+    # to_plot = df[[]]
+    data = {}
+    for index, row in df.iterrows():
+        tmp = {}
+        # print(row['tparams'].params)
+        tmp = row['tparams'].params['daytrader-config-jvm']
+        tmp['score'] = row['tparams'].params['score']
+        # print(row['tparams'].params)
+        # print(tmp)
+        # try:
+        if len(data) == 0:
+            for k, v in tmp.items():
+                try:
+                    data[k] = [float(v)]
+                except:
+                    continue
+        else:
+            for k, v in tmp.items():
+                try:
+                    data[k].append(float(v))
+                except:
+                    continue
+        # except:
+        #     continue
 
+    print(data.keys())
+    df = pd.DataFrame(data)
+    print(df)
+    # df.plot(y=['HTTP_PERSIST_TIMEOUT'])
+    mat_ax = scatter_matrix(df, alpha=0.5, figsize=(6,6), diagonal='kde')
+    # xlabel = ax.get_xlabel()
+    for row in mat_ax:
+        for cel in row:
+            label = cel.get_xlabel()
+            cel.set_xlabel(label, fontsize='xx-small')
+            label = cel.get_ylabel()
+            cel.set_ylabel(label, fontsize='xx-small')
+    plt.show()
 
 if __name__ == '__main__':
     # test()
@@ -335,7 +460,17 @@ if __name__ == '__main__':
     name = 'acme-trace-2021-01-12T01 39 15'
     name = 'acme-trace-2021-01-12T18 28 15'
     name = 'acme-trace-2021-01-13T02 29 40'
-    title = 'AcmeAir'
+    name = 'trace-2021-01-26T05 28 33'
+    name = 'trace-2021-01-27T03 23 48'
+    name = 'trace-2021-01-07T17 05 39'
+    # name = 'trace-2021-01-28T15 30 14' # 100 extra params
+    name = 'trace-2021-01-29T13 01 23'
+    name = 'trace-2021-02-02T21 06 02'
+    name = 'trace-2021-02-03T14 35 43'
+    name = 'trace-2021-02-04T07 57 50'
+    name = 'trace-2021-02-05T07 46 33'
+    title = 'tDaytrader'
 
     df = load_raw_data('./resources/'+name+'.json')
     plot(df, title=title+': '+name, save=False, show_table=True)
+    # plot_app_curves(df)
