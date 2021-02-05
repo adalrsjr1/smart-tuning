@@ -102,7 +102,7 @@ def configurations(study: optuna.Study, strials: SmartTuningTrials):
 def smarttuning_trials():
     return SmartTuningTrials(space=search_space(study=optuna.create_study(sampler=RandomSampler)))
 
-def get_from_engine(trials: SmartTuningTrials):
+def get_from_engine(trials: SmartTuningTrials, ctx: SearchSpaceModel):
     def anonymous():
         trial = trials.new_trial_entry({c: random.uniform(10, 100) for c in 'abcdefghijklmnopqrstuvwxxyz'}, loss= random.uniform(100,300))
         c = Configuration(trial=trial, trials=trials)
@@ -141,7 +141,7 @@ class TestPlanner(TestCase):
         def get_trials():
             return trials
 
-        ctx.get_current_config = get_current_config(trials)
+        ctx.get_current_config = get_current_config(trials, )
         ctx.get_from_engine = get_from_engine(trials)
         ctx.get_smarttuning_trials = get_trials
 

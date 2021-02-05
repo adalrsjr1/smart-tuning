@@ -131,9 +131,9 @@ class Instance:
             metric = self._cache[('metrics', interval)]
             metric.set_restarts(self.configuration.n_restarts)
             return metric
-        
+
         metric = self._sampler.metric()
-        metric.set_restarts(self.configuration.n_restarts)
+        metric.set_restarts(self.configuration.n_restarts if self.configuration else 0)
         return metric
 
     def workload(self, interval: int = 0) -> Future:

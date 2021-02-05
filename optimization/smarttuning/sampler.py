@@ -204,7 +204,7 @@ class Metric:
         return self._restarts
 
     def set_restarts(self, n):
-        self._restasts = n
+        self._restarts = n
 
     def __operation__(self, other, op):
         if isinstance(other, Metric):
