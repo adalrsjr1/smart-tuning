@@ -465,9 +465,10 @@ if __name__ == '__main__':
     name = 'trace-2021-01-07T17 05 39'
     # name = 'trace-2021-01-28T15 30 14' # 100 extra params
     name = 'trace-2021-01-29T13 01 23'
-    # name = 'trace-2021-02-02T21 06 02'
-    # name = 'trace-2021-02-03T14 35 43'
-    # name = 'trace-2021-02-04T07 57 50'
+    name = 'trace-2021-02-02T21 06 02'
+    name = 'trace-2021-02-03T14 35 43'
+    name = 'trace-2021-02-04T07 57 50'
+    name = 'trace-2021-02-05T07 46 33'
     title = 'tDaytrader'
 
     df = load_raw_data('./resources/'+name+'.json')
