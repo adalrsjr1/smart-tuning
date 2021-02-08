@@ -57,6 +57,7 @@ def load_raw_data(filename:str) -> pd.DataFrame:
                 record['production']['metric']['throughput'],
                 record['production']['metric']['memory'] / 2**20,
                 record['production']['metric'].get('memory_limit', record['production']['curr_config']['data']['daytrader-service']['memory'] * 2**20) / 2**20,
+                record['production']['metric'].get('restarts', 1),
                 Param(record['production']['curr_config']['data'], math.fabs(record['production']['curr_config']['score'])),
                 record['training']['curr_config']['name'],
                 # name(record['training']['curr_config']['data']), # generate name on the fly
@@ -69,6 +70,7 @@ def load_raw_data(filename:str) -> pd.DataFrame:
                 record['training']['metric']['throughput'],
                 record['training']['metric']['memory'] / 2**20,
                 record['training']['metric'].get('memory_limit', record['training']['curr_config']['data']['daytrader-service']['memory'] * 2**20) / 2**20,
+                record['training']['metric'].get('restarts', 1),
                 Param(record['training']['curr_config']['data'], math.fabs(record['training']['curr_config']['score'])),
                 {chr(i+97):best['name'][:3] for i, best in enumerate(record['best'])} if 'best' in record else []
             ).__dict__)
@@ -81,8 +83,8 @@ class Param:
 
 class Iteration:
     def __init__(self, iteration,
-                 pname, pscore, pmean, pmedian, pmin, pmax, pstddev, ptruput, pmem, pmem_lim, pparams,
-                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev, ttruput, tmem, tmem_lim, tparams, nbest):
+                 pname, pscore, pmean, pmedian, pmin, pmax, pstddev, ptruput, pmem, pmem_lim, prestarts, pparams,
+                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev, ttruput, tmem, tmem_lim, trestarts, tparams, nbest):
         self.pname = pname
         self.pscore = pscore
         self.pmean = pmean
@@ -93,6 +95,7 @@ class Iteration:
         self.ptruput = ptruput
         self.pmem = pmem
         self.pmem_lim = pmem_lim
+        self.prestarts = prestarts
         self.pparams = pparams
         self.tname = tname
         self.tscore = tscore
@@ -105,6 +108,7 @@ class Iteration:
         self.tmem = tmem
         self.tmem_lim = tmem_lim
         self.tparams = tparams
+        self.trestarts = trestarts
         self.iteration = iteration
         self.nbest = nbest
 
@@ -174,11 +178,14 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
         _pmax = max(row['pmean'], row['pscore'])
         _pmin = min(row['pmean'], row['pscore'])
 
-        ax.text(index, 0, row['pname'][:3], {'ha': 'center', 'va': 'bottom'}, rotation=45, fontsize='x-small',
+        ax.text(index, 0, f"{row['pname'][:3]}\n{row['prestarts']}", {'ha': 'center', 'va': 'bottom'}, rotation=45, fontsize='x-small',
                 color='red')
-        ax.text(index, top+40, row['tname'][:3], {'ha': 'center', 'va': 'top'}, rotation=45, fontsize='x-small',
+        ax.text(index, top+40, f"{row['tname'][:3]}\n{row['trestarts']}", {'ha': 'center', 'va': 'top'}, rotation=45, fontsize='x-small',
                 color='blue')
+
         ax.axvspan(index - 0.5, index + 0.5, facecolor=cmap(memoization[row['pname']]), alpha=0.5)
+        # ax.axvspan(index - 0.5, index + 0.5, facecolor=cmap(memoization[row['pname']]), alpha=0.5-row['prestarts']/len(reduced_table))
+
         plot_training([index, _tmin], [index, _tmax], [index, row['tscore']], ax, color='blue', marker='x', linestyle='--', linewidth=0.4)
         plot_training([index, _pmin], [index, _pmax], [index, row['pscore']], ax, color='red', marker='None', linestyle='--', linewidth=0.4)
         # add divisions between iterations
@@ -268,6 +275,7 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
     ax_m.set_ylabel('memory (MB)')
     ax_t.set_title(title, loc='left')
     ax_t.axes.get_xaxis().set_visible(False)
+    ax_m.axes.get_xaxis().set_visible(False)
     ax_t.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
     ax_m.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
     ax_t.legend(handles, [
@@ -469,6 +477,7 @@ if __name__ == '__main__':
     name = 'trace-2021-02-03T14 35 43'
     name = 'trace-2021-02-04T07 57 50'
     name = 'trace-2021-02-05T07 46 33'
+    name = 'trace-2021-02-06T00 12 27'
     title = 'tDaytrader'
 
     df = load_raw_data('./resources/'+name+'.json')

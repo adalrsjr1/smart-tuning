@@ -74,13 +74,20 @@ class Planner:
     def iterate(self) -> (Configuration, bool):
         def restart_if_poor_perf(instance: Instance):
             logger.info(
-                f'checking if {instance.name} need restart -- score:{instance.configuration.score} in median:{instance.configuration.median():.2f}')
+                f'checking if {instance.name} need restart -- score:{instance.configuration.score} in mean:{instance.configuration.mean():.2f}:{instance.configuration.stddev():.2f}')
             # !!!! always minimization -- so if objective is too large (if negative close to 0) so restart !!!!
-            if instance.configuration.score == 0 or instance.configuration.score > instance.configuration.median():
+            if instance.configuration.score == 0 or instance.configuration.score > (instance.configuration.median() + instance.configuration.stddev()):
                 logger.warning(
-                    f'[{self.iteration}] poor perf [perf:{instance.configuration.score} > median{instance.configuration.median()}] at {instance.name} -- restarting')
-                # TODO: add restart counting to the configs
+                    f'[{self.iteration}] poor perf [perf:{instance.configuration.score} > mean:{instance.configuration.mean():.2f}:{instance.configuration.stddev():.2f}] at {instance.name} -- restarting')
                 instance.restart()
+
+            # logger.info(
+            #     f'checking if {instance.name} need restart -- score:{instance.configuration.score} in median:{instance.configuration.median():.2f}')
+            # # !!!! always minimization -- so if objective is too large (if negative close to 0) so restart !!!!
+            # if instance.configuration.score == 0 or instance.configuration.score > instance.configuration.median():
+            #     logger.warning(
+            #         f'[{self.iteration}] poor perf [perf:{instance.configuration.score} > median{instance.configuration.median()}] at {instance.name} -- restarting')
+            #     instance.restart()
 
         end_of_tuning: bool = False
         logger.info(f'[{self.iteration}] iteration')
