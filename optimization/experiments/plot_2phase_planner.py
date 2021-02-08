@@ -55,6 +55,7 @@ def load_raw_data(filename:str) -> pd.DataFrame:
                 math.fabs(record['production']['curr_config']['stats']['max']),
                 record['production']['curr_config']['stats']['stddev'],
                 record['production']['metric']['throughput'],
+                record['production']['metric']['process_time'],
                 record['production']['metric']['memory'] / 2**20,
                 record['production']['metric'].get('memory_limit', record['production']['curr_config']['data']['daytrader-service']['memory'] * 2**20) / 2**20,
                 record['production']['metric'].get('restarts', 1),
@@ -68,13 +69,15 @@ def load_raw_data(filename:str) -> pd.DataFrame:
                 math.fabs(record['training']['curr_config']['stats']['max']),
                 record['training']['curr_config']['stats']['stddev'],
                 record['training']['metric']['throughput'],
+                record['training']['metric']['process_time'],
                 record['training']['metric']['memory'] / 2**20,
                 record['training']['metric'].get('memory_limit', record['training']['curr_config']['data']['daytrader-service']['memory'] * 2**20) / 2**20,
                 record['training']['metric'].get('restarts', 1),
                 Param(record['training']['curr_config']['data'], math.fabs(record['training']['curr_config']['score'])),
                 {chr(i+97):best['name'][:3] for i, best in enumerate(record['best'])} if 'best' in record else []
             ).__dict__)
-    return pd.DataFrame(raw_data).reset_index()
+    df = pd.DataFrame(raw_data).reset_index()
+    return df
 
 class Param:
     def __init__(self, params, score):
@@ -83,8 +86,8 @@ class Param:
 
 class Iteration:
     def __init__(self, iteration,
-                 pname, pscore, pmean, pmedian, pmin, pmax, pstddev, ptruput, pmem, pmem_lim, prestarts, pparams,
-                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev, ttruput, tmem, tmem_lim, trestarts, tparams, nbest):
+                 pname, pscore, pmean, pmedian, pmin, pmax, pstddev, ptruput, pproctime, pmem, pmem_lim, prestarts, pparams,
+                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev, ttruput, tproctime, tmem, tmem_lim, trestarts, tparams, nbest):
         self.pname = pname
         self.pscore = pscore
         self.pmean = pmean
@@ -93,6 +96,7 @@ class Iteration:
         self.pmax = pmin
         self.pstddev = pstddev
         self.ptruput = ptruput
+        self.pproctime = pproctime
         self.pmem = pmem
         self.pmem_lim = pmem_lim
         self.prestarts = prestarts
@@ -105,6 +109,7 @@ class Iteration:
         self.tmax = tmin
         self.tstddev = tstddev
         self.ttruput = ttruput
+        self.tproctime = tproctime
         self.tmem = tmem
         self.tmem_lim = tmem_lim
         self.tparams = tparams
@@ -112,7 +117,7 @@ class Iteration:
         self.iteration = iteration
         self.nbest = nbest
 
-def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
+def plot(df: pd.DataFrame, title:str, objective:str='', save:bool=False, show_table:bool=False):
     # use generate a color pallete
     from SecretColors.cmaps import ColorMap, TableauMap
     from SecretColors import Palette
@@ -125,7 +130,6 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
     # colormap = cm.blue_red()
 
     reduced_table = df
-
     memoization = {}
     nrows = len(reduced_table)
     new_colors = []
@@ -155,9 +159,10 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
     ax: Axes
     ax_t: Axes
     fig = plt.figure(figsize=(18, 8))
-    gs = fig.add_gridspec(nrows=3, hspace=0.01, height_ratios=[1, 1, 4])
+    gs = fig.add_gridspec(nrows=4, hspace=0.001, height_ratios=[1, 1, 1, 4])
     axs = gs.subplots(sharex='col')
-    ax = axs[2]
+    ax = axs[3]
+    ax_r = axs[2]
     ax_m = axs[1]
     ax_t = axs[0]
     # fig, axs = plt.subplots(figsize=(18, 8))
@@ -170,7 +175,6 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
     top_t = max(reduced_table['tmean']+reduced_table['tstddev'])
     top = max(max(reduced_table['pmax']), max(reduced_table['tmax']))
     ax.set_ylim(ymax=top+40)
-
     for index, row in reduced_table.iterrows():
         _tmax = max(row['pmean'], row['tscore'])
         _tmin = min(row['pmean'], row['tscore'])
@@ -178,9 +182,9 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
         _pmax = max(row['pmean'], row['pscore'])
         _pmin = min(row['pmean'], row['pscore'])
 
-        ax.text(index, 0, f"{row['pname'][:3]}\n{row['prestarts']}", {'ha': 'center', 'va': 'bottom'}, rotation=45, fontsize='x-small',
+        ax.text(index, 0, f"{row['pname'][:3]}", {'ha': 'center', 'va': 'bottom'}, rotation=45, fontsize='x-small',
                 color='red')
-        ax.text(index, top+40, f"{row['tname'][:3]}\n{row['trestarts']}", {'ha': 'center', 'va': 'top'}, rotation=45, fontsize='x-small',
+        ax.text(index, top+40, f"{row['tname'][:3]}", {'ha': 'center', 'va': 'top'}, rotation=45, fontsize='x-small',
                 color='blue')
 
         ax.axvspan(index - 0.5, index + 0.5, facecolor=cmap(memoization[row['pname']]), alpha=0.5)
@@ -194,6 +198,7 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
 
     kind = 'bar'
     ax_t = reduced_table.plot.bar(ax=ax_t, x='index', y=['ptruput', 'ttruput'], rot=0, color={'ptruput':'red', 'ttruput':'blue'}, width=0.8, alpha=0.7)
+    ax_r = reduced_table.plot.bar(ax=ax_r, x='index', y=['pproctime', 'tproctime'], rot=0, color={'pproctime':'red', 'tproctime':'blue'}, width=0.8, alpha=0.7)
     ax_m = reduced_table.plot.bar(ax=ax_m, x='index', y=['pmem', 'tmem'], rot=0, color={'pmem':'red', 'tmem':'blue'}, width=0.8, alpha=1)
     ax_m = reduced_table.plot.bar(ax=ax_m, x='index', y=['pmem_lim', 'tmem_lim'], rot=0, color={'pmem_lim':'red', 'tmem_lim':'blue'}, width=0.8, alpha=0.3)
 
@@ -216,11 +221,22 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
 
         plt_table: matplotlib.table
         table = pd.DataFrame(reduced_table['nbest'].to_dict())
+        table = table.T
+        table['restarts'] = reduced_table['prestarts']
+        # table.loc['restarts'] = reduced_table['prestarts'].T
+        table = table.T
         table = table.fillna(value='')
         plt_table:Table
 
-        plt_table = ax.table(cellText=table.to_numpy().reshape(3,-1), rowLoc='center',
-                 rowLabels=['1st','2nd','3rd'], colLabels=reduced_table['index'],
+        # change restarts line position
+        tmp = table.iloc[-1]
+        for i in reversed(range(len(table))):
+            print(i, len(table))
+            table.iloc[i] = table.iloc[i-1]
+        table.iloc[0] = tmp
+
+        plt_table = ax.table(cellText=table.to_numpy().reshape(4,-1), rowLoc='center',
+                 rowLabels=['r','1st','2nd','3rd'], colLabels=reduced_table['index'],
                  # colWidths=[.5,.5],
                  cellLoc='center',
                  colLoc='center', loc='bottom')
@@ -265,11 +281,18 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
 
     ax.get_legend().remove()
     ax_m.get_legend().remove()
+    ax_r.get_legend().remove()
     # ax.set_title(title, loc='left')
     ax_t.set_ylabel('requests')
+    ax_r.set_ylabel('resp. time (s)')
     # print(ax_m.get_yaxis().get_data_interval())
     ax_t.set_ylim(0, ax_t.get_yaxis().get_data_interval()[1])
+    ax_r.set_ylim(0, .5)
     ax_t.set_yticks(np.linspace(0, ax_t.get_yaxis().get_data_interval()[1], 4))
+    ax_r.set_yticks(np.linspace(0, .5, 4))
+    rlabels = [f'{item:.2f}' for item in np.linspace(0, .5, 4)]
+    rlabels[-1] += '>'
+    ax_r.set_yticklabels(rlabels)
     ax_m.set_ylim(0, ax_t.get_yaxis().get_data_interval()[1])
     ax_m.set_yticks([0,  1024, 2048, 4096, 8192])
     ax_m.set_ylabel('memory (MB)')
@@ -278,6 +301,7 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
     ax_m.axes.get_xaxis().set_visible(False)
     ax_t.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
     ax_m.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
+    ax_r.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
     ax_t.legend(handles, [
         'avg. of config. \'abc\' in prod',
         'median of config \'abc\' in prod',
@@ -290,11 +314,11 @@ def plot(df: pd.DataFrame, title:str,save:bool=False, show_table:bool=False):
         'training',
     ], frameon=False, ncol=5, bbox_to_anchor=(0.6, 1.52), loc='upper center', fontsize='small')
 
-    ax.set_ylabel('requests/$')
+    ax.set_ylabel(objective)
 
     ax_pos = ax.get_position()
-    ax.text(-2.2, 0, 'train.\ncfg.', fontsize='smaller')
-    ax.text(-2.2, top + 30, 'prod.\ncfg.', fontsize='smaller')
+    ax.text(-4, 0, 'prod.\ncfg.', fontsize='smaller')
+    ax.text(-4, top + 30, 'train.\ncfg.', fontsize='smaller')
 
     gs.tight_layout(fig)
     if save:
@@ -395,11 +419,9 @@ def test():
     best2 = heapq.nsmallest(1, heap2)
     best_concat = best1 + best2
     heapq.heapify(best_concat)
-    print(best_concat)
 
     best = heapq.nsmallest(1, best_concat)
 
-    print(best)
 
 def plot_app_curves(df: pd.DataFrame, title:str=''):
     # to_plot = df[[]]
@@ -427,9 +449,7 @@ def plot_app_curves(df: pd.DataFrame, title:str=''):
         # except:
         #     continue
 
-    print(data.keys())
     df = pd.DataFrame(data)
-    print(df)
     # df.plot(y=['HTTP_PERSIST_TIMEOUT'])
     mat_ax = scatter_matrix(df, alpha=0.5, figsize=(6,6), diagonal='kde')
     # xlabel = ax.get_xlabel()
@@ -478,8 +498,9 @@ if __name__ == '__main__':
     name = 'trace-2021-02-04T07 57 50'
     name = 'trace-2021-02-05T07 46 33'
     name = 'trace-2021-02-06T00 12 27'
+    name = 'trace-2021-02-08T18 38 22'
     title = 'tDaytrader'
 
     df = load_raw_data('./resources/'+name+'.json')
-    plot(df, title=title+': '+name, save=False, show_table=True)
+    plot(df, title=title+': '+name, objective=r'$\frac{1}{resp. time} \times \frac{requests}{\$}$', save=False, show_table=True)
     # plot_app_curves(df)
