@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: jmeter-cm
+data:
+  JUSERS: "200"
+  JDURATION: "172800"
+  JRAMPUP: "1"
+  JPORT: "9080"
+  JMAX_THINK_TIME: "0"
+  JMIN_THINK_TIME: "100"

@@ -1,0 +1,59 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: quarkus-service
+  annotations:
+    injection.smarttuning.ibm.com: "true"
+  name: quarkus-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quarkus-service
+      smarttuning: "false"
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: quarkus-service
+        smarttuning: "false"
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9080'
+    spec:
+      containers:
+      - image: smarttuning/rest-crud-quarkus-native
+        imagePullPolicy: IfNotPresent
+        name: rest-crud-quarkus-native
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 9080
+          initialDelaySeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 9080
+          initialDelaySeconds: 10
+        ports:
+          - containerPort: 9080
+        env:
+          - name: "quarkus.http.port"
+            value: "9080"
+          - name: "quarkus.datasource.jdbc.url"
+            value: "jdbc:postgresql://postgres-quarkus-rest-http-crud-svc.default.svc.cluster.local/rest-crud"
+        resources:
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+        envFrom:
+          - configMapRef:
+              name: quarkus-cm-app
+          - configMapRef:
+              name: quarkus-cm-jvm
+status: {}
+---
