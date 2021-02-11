@@ -7,7 +7,7 @@ fi
 echo -e "deploying reloader\n"
 kubectl apply --kubeconfig=$1 -f  https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
 sleep 1
-echo -e "\deploying metrics-server"
+echo -e "\deploying metrics-server\n"
 kubectl apply --kubeconfig=$1 -f ../metrics-server
 sleep 1
 echo -e "\ndeploying prometheus\n"
@@ -25,3 +25,5 @@ sleep 1
 echo -e "\ndeploying mongo\n"
 kubectl apply --kubeconfig=$1 -f  mongo-deployment.yaml
 sleep 1
+echo -e "\ndeploying netutil pod\n"
+kubectl --kubeconfig=$1 run netutil --image=amouat/network-utils --command -- "/bin/sh" "-c" "while true; do sleep 10; done;"

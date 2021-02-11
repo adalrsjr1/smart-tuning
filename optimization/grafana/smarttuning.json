@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1612299187358,
+  "iteration": 1612985161952,
   "links": [],
   "panels": [
     {
@@ -1455,9 +1455,10 @@
       {
         "allValue": null,
         "current": {
+          "isNone": true,
           "selected": false,
-          "text": "daytrader-service",
-          "value": "daytrader-service"
+          "text": "None",
+          "value": ""
         },
         "datasource": "prometheus",
         "definition": "container_cpu_usage_seconds_total",
@@ -1469,7 +1470,7 @@
         "options": [],
         "query": "container_cpu_usage_seconds_total",
         "refresh": 2,
-        "regex": "/.*pod=\"(acmeair-nginx|(acmeair|daytrader)-[\\w]*service*)-.*/",
+        "regex": "/.*pod=\"(acmeair-nginx|(acmeair|daytrader|quarkus)-[\\w]*service*)-.*/",
         "skipUrlSync": false,
         "sort": 1,
         "tagValuesQuery": "",
@@ -1481,9 +1482,10 @@
       {
         "allValue": null,
         "current": {
+          "isNone": true,
           "selected": false,
-          "text": "daytrader-servicesmarttuning",
-          "value": "daytrader-servicesmarttuning"
+          "text": "None",
+          "value": ""
         },
         "datasource": "prometheus",
         "definition": "container_cpu_usage_seconds_total",
@@ -1495,7 +1497,7 @@
         "options": [],
         "query": "container_cpu_usage_seconds_total",
         "refresh": 2,
-        "regex": "/.*pod=\"(acmeair-nginx-smarttuning|(acmeair|daytrader)-[\\w]*smarttuning*)-.*/",
+        "regex": "/.*pod=\"(acmeair-nginx-smarttuning|(acmeair|daytrader|quarkus)-[\\w]*smarttuning*)-.*/",
         "skipUrlSync": false,
         "sort": 1,
         "tagValuesQuery": "",
@@ -1507,7 +1509,7 @@
     ]
   },
   "time": {
-    "from": "2021-02-02T21:06:59.000Z",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -1528,5 +1530,5 @@
   "timezone": "",
   "title": "smarttuning",
   "uid": "8RkJTIzGz",
-  "version": 2
+  "version": 4
 }
