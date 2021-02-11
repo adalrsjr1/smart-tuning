@@ -98,7 +98,7 @@ URL_SIMILARITY_THRESHOLD = float(os.environ.get('URL_SIMILARITY_THRESHOLD', defa
 # optimization config
 BAYESIAN = eval(os.environ.get('OPTIMIZATION_METHOD', default='True'))
 # n_startup_jobs: # of jobs doing random search at begining of optimization
-N_STARTUP_JOBS = int(os.environ.get('N_STARTUP_JOBS', default=2))
+N_STARTUP_JOBS = int(os.environ.get('N_STARTUP_JOBS', default=10))
 # n_EI_candidades: number of config samples draw before select the best. lower number encourages exploration
 N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
 # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
@@ -106,6 +106,7 @@ GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(float(
     os.environ.get('NUMBER_ITERATIONS', default='55')))  # check if hyperopt version is updated to use stop iterations
 ITERATIONS_BEFORE_REINFORCE = int(os.environ.get('ITERATIONS_BEFORE_REINFORCE', default='3'))
+RESTART_TRIGGER = float(os.environ.get('RESTART_TRIGGER', default='1'))
 TRY_BEST_AT_EVERY = int(os.environ.get('TRY_BEST_AT_EVERY', default=ITERATIONS_BEFORE_REINFORCE))
 REINFORCEMENT_RATIO = float(os.environ.get('REINFORCEMENT_RATIO', default='1.0'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))

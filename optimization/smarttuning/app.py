@@ -127,7 +127,9 @@ def create_context(production_microservice, training_microservice):
             if search_space_ctx:
                 production = Instance(name=production_sanitized, namespace=config.NAMESPACE, is_production=True,sample_interval_in_secs=config.WAITING_TIME * config.SAMPLE_SIZE, ctx=search_space_ctx)
                 training = Instance(name=training_sanitized, namespace=config.NAMESPACE, is_production=False,sample_interval_in_secs=config.WAITING_TIME * config.SAMPLE_SIZE, ctx=search_space_ctx)
-                p = Planner(production=production, training=training, ctx=search_space_ctx, k=config.ITERATIONS_BEFORE_REINFORCE, ratio=config.REINFORCEMENT_RATIO, when_try=config.TRY_BEST_AT_EVERY)
+                p = Planner(production=production, training=training, ctx=search_space_ctx,
+                            k=config.ITERATIONS_BEFORE_REINFORCE, ratio=config.REINFORCEMENT_RATIO,
+                            when_try=config.TRY_BEST_AT_EVERY, restart_trigger=config.RESTART_TRIGGER)
 
                 configuration: Configuration
                 for i in range(config.NUMBER_ITERATIONS):

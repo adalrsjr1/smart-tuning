@@ -22,7 +22,8 @@ logger.setLevel(config.LOGGING_LEVEL)
 
 
 class Planner:
-    def __init__(self, production: Instance, training: Instance, ctx: SearchSpaceContext, k: int, ratio: float = 1, when_try=1):
+    def __init__(self, production: Instance, training: Instance, ctx: SearchSpaceContext, k: int, ratio: float = 1,
+                 when_try: int =1, restart_trigger: float = 1):
         self._date = datetime.datetime.now(datetime.timezone.utc).isoformat()
         self.training = training
         self.production = production
@@ -30,6 +31,7 @@ class Planner:
         self.k = k
         self.ratio = ratio
         self.when_try = when_try
+        self.restart_trigger = restart_trigger
 
         self.heap1: list[Configuration] = []
         self.heap2: list[Configuration] = []
@@ -55,18 +57,39 @@ class Planner:
         db = config.mongo()[config.MONGO_DB]
         collection = db[f'trace-{self._date}']
 
+        document = self.sanitize_document({
+            'iteration': self.iteration,
+            'best': best,
+            # 'params_importance': {k:v for k,v in optuna.importance.get_param_importances(self.ctx.model.study, evaluator=optuna.importance.MeanDecreaseImpurityImportanceEvaluator()).items()},
+            'reinforcement': reinforcement,
+            'production': self.production.serialize(),
+            'training': self.training.serialize(),
+        })
+
+        from pprint import pprint
+        pprint(document)
+
         try:
-            collection.insert_one({
-                'iteration': self.iteration,
-                'best': best,
-                'params_importance': {k:v for k,v in optuna.importance.get_param_importances(self.ctx.model.study, evaluator=optuna.importance.MeanDecreaseImpurityImportanceEvaluator()).items()},
-                'reinforcement': reinforcement,
-                'production': self.production.serialize(),
-                'training': self.training.serialize(),
-            })
+            collection.insert_one(document, bypass_document_validation=True)
         except Exception:
-            logger.exception('error when saving data')
-        pass
+            logger.exception(f'error when saving data {document}')
+
+    def sanitize_document(self, document):
+        if isinstance(document, dict):
+            memo = {}
+            for k, v in document.items():
+                if '.' in k:
+                    new_key = k.replace('.', '_')
+                    memo.update({new_key: self.sanitize_document(v)})
+                else:
+                    memo.update({k: self.sanitize_document(v)})
+            return memo
+        elif isinstance(document, list) or isinstance(document, set):
+            return [self.sanitize_document(item) for item in document]
+        elif isinstance(document, str):
+            return document.replace('.', '_')
+        else:
+            return document
 
     def __next__(self) -> (Configuration, bool):
         return self.iterate()
@@ -76,7 +99,8 @@ class Planner:
             logger.info(
                 f'checking if {instance.name} need restart -- score:{instance.configuration.score} in mean:{instance.configuration.mean():.2f}:{instance.configuration.stddev():.2f}')
             # !!!! always minimization -- so if objective is too large (if negative close to 0) so restart !!!!
-            if instance.configuration.score == 0 or instance.configuration.score > (instance.configuration.median() + instance.configuration.stddev()):
+            if instance.configuration.score == 0 or \
+                    instance.configuration.score > (instance.configuration.median() + self.restart_trigger * instance.configuration.stddev()):
                 logger.warning(
                     f'[{self.iteration}] poor perf [perf:{instance.configuration.score} > mean:{instance.configuration.mean():.2f}:{instance.configuration.stddev():.2f}] at {instance.name} -- restarting')
                 instance.restart()
@@ -190,6 +214,7 @@ class Planner:
                 logger.info(f'[p]: {self.production.configuration.name}')
                 logger.info(f'[t]: {self.production.configuration.name}')
 
+                # probation period
                 for i in range(self.reinforcement_iterations()):
                     logger.info(f' *** {i}th reinforcing iteration ***')
                     # reinforcing best config
