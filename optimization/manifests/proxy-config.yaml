@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: smarttuning-proxy-config
 data:
+  PATH_SEPARATOR: "/"
+  PATH_SEPARATOR_INDEX: "0"
   MAX_CONNECTIONS: "200"
   READ_BUFFER_SIZE: "65536"
   WRITE_BUFFER_SIZE: "65536"
@@ -15,7 +17,7 @@ data:
   MEASURING_TRAFFIC: "true"
   COUNT_REQUESTS: "true"
   COUNT_PROC_TIME: "true"
-  COUNT_REQ_SIZE: "true"
-  COUNT_IN_REQ: "true"
-  COUNT_OUT_REQ: "true"
+  COUNT_REQ_SIZE: "false"
+  COUNT_IN_REQ: "false"
+  COUNT_OUT_REQ: "false"
   INSTRUMENTING: "false"
