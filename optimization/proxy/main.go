@@ -19,11 +19,11 @@ import (
 
 var (
 	// create helper function to get env var or fallback
-	metricID            = getEnvOrDefault("METRIC_ID", "smarttuning")
+	metricID = getEnvOrDefault("METRIC_ID", "smarttuning")
 
-	proxyPort, _    = strconv.Atoi(getEnvOrDefault("PROXY_PORT", "80"))
-	metricsPort, _  = strconv.Atoi(getEnvOrDefault("METRICS_PORT", "9090"))
-	upstreamAddr    = "127.0.0.1:" + getEnvOrDefault("SERVICE_PORT", "8080")
+	proxyPort, _   = strconv.Atoi(getEnvOrDefault("PROXY_PORT", "80"))
+	metricsPort, _ = strconv.Atoi(getEnvOrDefault("METRICS_PORT", "9090"))
+	upstreamAddr   = "127.0.0.1:" + getEnvOrDefault("SERVICE_PORT", "8080")
 
 	// https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/
 	podName           = getEnvOrDefault("POD_NAME", "")
@@ -41,7 +41,6 @@ var (
 	connDuration, _ = strconv.Atoi(getEnvOrDefault("MAX_IDLE_CONNECTION_DURATION", "60"))
 	connTimeout, _  = strconv.Atoi(getEnvOrDefault("MAX_CONNECTION_TIMEOUT", "30"))
 
-
 	proxyClient = &fasthttp.HostClient{
 		Addr:                          upstreamAddr,
 		NoDefaultUserAgentHeader:      true, // Don't send: User-Agent: fasthttp
@@ -55,18 +54,20 @@ var (
 		DisableHeaderNamesNormalizing: true, // If you set the case on your headers correctly you can enable this.
 	}
 
-	countingRequests, _     = strconv.ParseBool(getEnvOrDefault("COUNT_REQUESTS", "true"))
-	countingProcessTime, _  = strconv.ParseBool(getEnvOrDefault("COUNT_PROC_TIME", "true"))
-	countingReqSize, _		= strconv.ParseBool(getEnvOrDefault("COUNT_REQ_SIZE", "true"))
-	countingInRequests, _	= strconv.ParseBool(getEnvOrDefault("COUNT_IN_REQ", "true"))
-	countingOutRequests, _	= strconv.ParseBool(getEnvOrDefault("COUNT_OUT_REQ", "true"))
-	instrumenting, _ 		= strconv.ParseBool(getEnvOrDefault("INSTRUMENTING", "false"))
+	countingRequests, _    = strconv.ParseBool(getEnvOrDefault("COUNT_REQUESTS", "true"))
+	countingProcessTime, _ = strconv.ParseBool(getEnvOrDefault("COUNT_PROC_TIME", "true"))
+	countingReqSize, _     = strconv.ParseBool(getEnvOrDefault("COUNT_REQ_SIZE", "true"))
+	countingInRequests, _  = strconv.ParseBool(getEnvOrDefault("COUNT_IN_REQ", "true"))
+	countingOutRequests, _ = strconv.ParseBool(getEnvOrDefault("COUNT_OUT_REQ", "true"))
+	instrumenting, _       = strconv.ParseBool(getEnvOrDefault("INSTRUMENTING", "false"))
+	pathSeparator          = getEnvOrDefault("PATH_SEPARATOR", "&")
+	pathSeparatorIndex, _  = strconv.Atoi(getEnvOrDefault("PATH_SEPARATOR_INDEX", "0"))
 
-	httpRequestsTotal 		*prometheus.CounterVec
-	httpProcessTimeHist 	*prometheus.SummaryVec
-	httpSize 				*prometheus.CounterVec
-	inTotal 				*prometheus.CounterVec
-	outTotal 				*prometheus.CounterVec
+	httpRequestsTotal   *prometheus.CounterVec
+	httpProcessTimeHist *prometheus.SummaryVec
+	httpSize            *prometheus.CounterVec
+	inTotal             *prometheus.CounterVec
+	outTotal            *prometheus.CounterVec
 
 	promChan = make(chan PromMetric, maxConn)
 )
@@ -130,7 +131,7 @@ type PromMetric struct {
 	path         []byte
 	statusCode   int
 	startTime    time.Time
-	endTime		 time.Time
+	endTime      time.Time
 	requestsSize int
 	responseSize int
 	client       net.IP
@@ -177,7 +178,7 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 		}
 
 		strPath := string(metric.path)
-		strPath = strings.Split(strPath, "&")[0]
+		strPath = strings.Split(strPath, pathSeparator)[pathSeparatorIndex]
 
 		code := strconv.Itoa(metric.statusCode)
 		if httpRequestsTotal != nil {
@@ -225,7 +226,7 @@ func ReverseProxyHandler(ctx *fasthttp.RequestCtx) {
 				"pod":       podName,
 				"namespace": podNamespace,
 				"code":      code,
-				"path":		 strPath,
+				"path":      strPath,
 				//"size":      strconv.Itoa(metric.responseSize),
 				"src": metric.podIP,
 				"dst": metric.client.String(),
@@ -246,10 +247,13 @@ func prepareRequest(req *fasthttp.Request, ctx *fasthttp.RequestCtx) {
 	if len(xff) <= 0 {
 		req.Header.Set("X-Forwarded-For", clientIp)
 	} else {
-		req.Header.Set("X-Forwarded-For", xff + ", " + clientIp)
+		req.Header.Set("X-Forwarded-For", xff+", "+clientIp)
 	}
 
 	req.Header.Set("X-Forwarded-Host", proxyClient.Addr)
+
+	strPath := string(ctxReq.RequestURI())
+	strPath = strings.Split(strPath, pathSeparator)[pathSeparatorIndex]
 
 	if inTotal != nil {
 		inTotal.With(prometheus.Labels{
@@ -257,7 +261,7 @@ func prepareRequest(req *fasthttp.Request, ctx *fasthttp.RequestCtx) {
 			"pod":       podName,
 			"namespace": podNamespace,
 			"code":      "0",
-			"path":      string(ctxReq.RequestURI()), //+ p.sanitizeURLQuery(req.URL.RawQuery)
+			"path":      strPath, //+ p.sanitizeURLQuery(req.URL.RawQuery)
 			"src":       clientIp,
 			"dst":       podIP,
 		}).Inc()
@@ -277,18 +281,19 @@ func postprocessResponse(resp *fasthttp.Response, ctx *fasthttp.RequestCtx) {
 	if len(lastPod) <= 0 {
 		resp.Header.Set("Pod", podName)
 	} else {
-		resp.Header.Set("Pod", lastPod + ", " + podName)
+		resp.Header.Set("Pod", lastPod+", "+podName)
 	}
 
-
 	ctxReq := &ctx.Request
+	strPath := string(ctxReq.RequestURI())
+	strPath = strings.Split(strPath, pathSeparator)[pathSeparatorIndex]
 	if outTotal != nil {
 		outTotal.With(prometheus.Labels{
 			"node":      nodeName,
 			"pod":       podName,
 			"namespace": podNamespace,
 			"code":      strconv.Itoa(resp.StatusCode()),
-			"path":       string(ctxReq.RequestURI()), //+ p.sanitizeURLQuery(req.URL.RawQuery)
+			"path":      strPath, //+ p.sanitizeURLQuery(req.URL.RawQuery)
 			"src":       ctx.RemoteIP().String(),
 			"dst":       podIP,
 		}).Inc()

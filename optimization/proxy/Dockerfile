@@ -14,7 +14,7 @@ COPY main.go main.go
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /go/bin/proxy
 
 
-FROM alpine:latest
+FROM busybox
 WORKDIR /proxy
 COPY --from=0 /go/bin/proxy .
 ENTRYPOINT ["/proxy/proxy"]
