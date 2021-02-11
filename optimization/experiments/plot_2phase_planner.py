@@ -41,25 +41,26 @@ def load_raw_data(filename:str) -> pd.DataFrame:
         return hashlib.md5(bytes(str(data.items()), 'ascii')).hexdigest()
 
     with open(filename) as jsonfile:
-        for row in jsonfile:
+        for i, row in enumerate(jsonfile):
             row = re.sub(r'\{"_id":\{"\$oid":"[a-z0-9]+"\},', '{', row)
             record = json.loads(row)
+            print(i, record['production']['curr_config']['score'])
             raw_data.append(Iteration(
                 record['iteration'],
                 record['production']['curr_config']['name'],
                 # name(record['production']['curr_config']['data']), # generate name on the fly
-                math.fabs(record['production']['curr_config']['score']),
-                math.fabs(record['production']['curr_config']['stats']['mean']),
-                math.fabs(record['production']['curr_config']['stats']['median']),
-                math.fabs(record['production']['curr_config']['stats']['min']),
-                math.fabs(record['production']['curr_config']['stats']['max']),
-                record['production']['curr_config']['stats']['stddev'],
+                math.fabs(record['production']['curr_config']['score'] or 0),
+                math.fabs(record['production']['curr_config']['stats']['mean']or 0),
+                math.fabs(record['production']['curr_config']['stats']['median']or 0),
+                math.fabs(record['production']['curr_config']['stats']['min']or 0),
+                math.fabs(record['production']['curr_config']['stats']['max']or 0),
+                record['production']['curr_config']['stats']['stddev'] or 0,
                 record['production']['metric']['throughput'],
                 record['production']['metric']['process_time'],
                 record['production']['metric']['memory'] / 2**20,
                 record['production']['metric'].get('memory_limit', record['production']['curr_config']['data']['daytrader-service']['memory'] * 2**20) / 2**20,
                 record['production']['metric'].get('restarts', 1),
-                Param(record['production']['curr_config']['data'], math.fabs(record['production']['curr_config']['score'])),
+                Param(record['production']['curr_config']['data'] or {}, math.fabs(record['production']['curr_config']['score'] or 0)),
                 record['training']['curr_config']['name'],
                 # name(record['training']['curr_config']['data']), # generate name on the fly
                 math.fabs(record['training']['curr_config']['score']),
@@ -159,7 +160,7 @@ def plot(df: pd.DataFrame, title:str, objective:str='', save:bool=False, show_ta
     ax: Axes
     ax_t: Axes
     fig = plt.figure(figsize=(18, 8))
-    gs = fig.add_gridspec(nrows=4, hspace=0.001, height_ratios=[1, 1, 1, 4])
+    gs = fig.add_gridspec(nrows=4, hspace=0.000, height_ratios=[1, 1, 1, 3])
     axs = gs.subplots(sharex='col')
     ax = axs[3]
     ax_r = axs[2]
@@ -499,6 +500,7 @@ if __name__ == '__main__':
     name = 'trace-2021-02-05T07 46 33'
     name = 'trace-2021-02-06T00 12 27'
     name = 'trace-2021-02-08T18 38 22'
+    name = 'trace-2021-02-09T15 45 19'
     title = 'tDaytrader'
 
     df = load_raw_data('./resources/'+name+'.json')
