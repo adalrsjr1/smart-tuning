@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   name: jmeter-cm
 data:
-  JUSERS: "200"
+  JUSERS: "1000"
   JDURATION: "172800"
-  JRAMPUP: "1"
+  JRAMPUP: "60"
   JPORT: "9080"
   JMAX_THINK_TIME: "0"
   JMIN_THINK_TIME: "100"

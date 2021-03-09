@@ -7,7 +7,7 @@
          <feature>managedBeans-1.0</feature>
          <feature>cdi-1.2</feature>
          <feature>websocket-1.1</feature>
-         <feature>mpMetrics-2.0</feature>
+         <feature>mpMetrics-2.3</feature>
          <feature>mpHealth-2.0</feature>
          <feature>monitor-1.0</feature>
        </featureManager>

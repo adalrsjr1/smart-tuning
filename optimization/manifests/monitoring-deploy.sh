@@ -7,7 +7,7 @@ fi
 echo -e "deploying reloader\n"
 kubectl apply --kubeconfig=$1 -f  https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
 sleep 1
-echo -e "\deploying metrics-server\n"
+echo -e "deploying metrics-server\n"
 kubectl apply --kubeconfig=$1 -f ../metrics-server
 sleep 1
 echo -e "\ndeploying prometheus\n"

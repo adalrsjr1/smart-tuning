@@ -27,9 +27,14 @@ spec:
 #          image: smarttuning/daytrader8-derby # update port to 1527
 #          image: smarttuning/daytrader8-embd
           imagePullPolicy: IfNotPresent
-#          lifecycle:
-#            postStart:
-#              exec:
+          #lifecycle:
+          #  preStop:
+          #    exec:
+          #      command: ["/bin/bash", "-c", "rm -rf /home/$POD_NAME/ffdc /home/$POD_NAME/messages*.*"]
+          #  postStart:
+          #   exec:
+          #     command: ["/bin/bash", "-c", "export LOG_DIR=/home/$(date +'%Y%m%d.%H%M')/$POD_NAME"]
+               #     command: [ "/bin/bash", "-c", "chown -R 1001:0 /home"]
 #                command: [ "/bin/bash", "-c", "mkdir -p /home/daytrader && touch /home/daytrader/verbosegc.$(date +'%Y%m%d.%H%M%S').$HOSTNAME"]
           resources:
             limits:
@@ -38,22 +43,22 @@ spec:
           ports:
             - containerPort: 9080
           env:
-            - name: "CONMGR4_TIMEOUT"
-              value: $(CONMGR1_TIMEOUT)
-            - name: "CONMGR4_AGED_TIMEOUT"
-              value: $(CONMGR1_AGED_TIMEOUT)
-            - name: "CONMGR4_MAX_IDLE_TIMEOUT"
-              value: $(CONMGR1_MAX_IDLE_TIMEOUT)
-            - name: "CONMGR4_REAP_TIME"
-              value: $(CONMGR1_REAP_TIME)
-            - name: "CONMGR4_MAX_POOL_SIZE"
-              value: $(CONMGR1_MAX_POOL_SIZE)
-            - name: "CONMGR4_MIN_POOL_SIZE"
-              value: $(CONMGR1_MIN_POOL_SIZE)
-            - name: "CONMGR4_PURGE_POLICY"
-              value: $(CONMGR1_PURGE_POLICY)
-            - name: "CONMGR4_CONN_PER_THREAD"
-              value: $(CONMGR1_CONN_PER_THREAD)
+            #- name: "CONMGR4_TIMEOUT"
+            #  value: $(CONMGR1_TIMEOUT)
+            #- name: "CONMGR4_AGED_TIMEOUT"
+            #  value: $(CONMGR1_AGED_TIMEOUT)
+            #- name: "CONMGR4_MAX_IDLE_TIMEOUT"
+            #  value: $(CONMGR1_MAX_IDLE_TIMEOUT)
+            #- name: "CONMGR4_REAP_TIME"
+            #  value: $(CONMGR1_REAP_TIME)
+            #- name: "CONMGR4_MAX_POOL_SIZE"
+            #  value: $(CONMGR1_MAX_POOL_SIZE)
+            #- name: "CONMGR4_MIN_POOL_SIZE"
+            #  value: $(CONMGR1_MIN_POOL_SIZE)
+            #- name: "CONMGR4_PURGE_POLICY"
+            #  value: $(CONMGR1_PURGE_POLICY)
+            #- name: "CONMGR4_CONN_PER_THREAD"
+            #  value: $(CONMGR1_CONN_PER_THREAD)
             - name: DB_ADDRESS
               value: daytrader-db.default.svc.cluster.local
             - name: DB_PORT
@@ -73,6 +78,12 @@ spec:
               value: "1s"
             - name: TRACE_HUNG_REQUEST_THRESHOLD
               value: "2s"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: LOG_DIR
+              value: /home/$(POD_NAME)
           # avoid to send requests if it already restarted
 #          readinessProbe:
 #            exec:
@@ -113,8 +124,12 @@ spec:
             - mountPath: /config/jvm.options
               subPath: jvm.options
               name: daytrader-config-jvm
-#            - mountPath: /home
-#              name: openj9-gc-dump
+              #  - mountPath: /home
+              #name: threadpooldump
+          securityContext:
+            # rum as root
+            runAsUser: 0
+            privileged: true
       volumes:
         - name: daytrader-config-app
           configMap:
@@ -125,6 +140,7 @@ spec:
         - name: daytrader-config-jvm
           configMap:
             name: daytrader-config-jvm
-#        - name: openj9-gc-dump
-#          hostPath:
-#            path: /smarttuning/daytrader/
+            #- name: threadpooldump
+            #hostPath:
+            #path: /smarttuning/threadpooldump
+            #type: DirectoryOrCreate

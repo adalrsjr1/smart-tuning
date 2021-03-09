@@ -41,8 +41,8 @@ data:
   # prometheus config
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
-  SAMPLING_METRICS_TIMEOUT: '600'
-  WAITING_TIME: '600'
+  SAMPLING_METRICS_TIMEOUT: '300'
+  WAITING_TIME: '300'
   SAMPLE_SIZE: '0.3334'
   # classification config
   K: '1'
@@ -68,7 +68,7 @@ data:
   ## 2 ** 20 transforms bytes to megabytes
   ## AWS Cost, CPU: 0.0535/vCore Memory: 0.013375/GB --> (total_cost / CPU  + total_cost / GB) / 2
   ## M5 Instance https://aws.amazon.com/ec2/pricing/on-demand/
-  OBJECTIVE: '-(1.0/process_time)*(throughput / ((((memory_limit / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))'
+  OBJECTIVE: '-(1.0/(1+process_time))*(throughput / ((((memory_limit / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))'
   THROUGHPUT_THRESHOLD: '10'
   QUANTILE: '1.0'
   NAMESPACE: 'default'

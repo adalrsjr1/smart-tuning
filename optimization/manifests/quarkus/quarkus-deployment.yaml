@@ -29,16 +29,16 @@ spec:
       - image: smarttuning/rest-crud-quarkus-native
         imagePullPolicy: IfNotPresent
         name: rest-crud-quarkus-native
-        readinessProbe:
-          httpGet:
-            path: /health/ready
-            port: 9080
-          initialDelaySeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /health/live
-            port: 9080
-          initialDelaySeconds: 10
+#        readinessProbe:
+#          httpGet:
+#            path: /health/ready
+#            port: 9080
+#          initialDelaySeconds: 10
+#        livenessProbe:
+#          httpGet:
+#            path: /health/live
+#            port: 9080
+#          initialDelaySeconds: 10
         ports:
           - containerPort: 9080
         env:

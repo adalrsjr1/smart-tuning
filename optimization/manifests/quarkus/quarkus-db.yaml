@@ -20,7 +20,8 @@ spec:
       containers:
       - image: postgres:10.5
         name: postgres
-        imagePullPolicy: Never
+        args: ["-N", "1000", "-B", "8192MB"]
+        imagePullPolicy: IfNotPresent
         resources: {}
         env:
           - name: POSTGRES_USER

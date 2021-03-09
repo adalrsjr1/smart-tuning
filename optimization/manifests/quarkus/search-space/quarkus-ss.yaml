@@ -28,7 +28,6 @@ data:
         - name: "memory"
           type: "integer"
           values:
-            - "512"
             - "1024"
             - "2048"
             - "4096"
@@ -38,50 +37,66 @@ data:
       #boolean:
       #  - name: "quarkus.http.so-reuse-port"
       number:
-        - name: "quarkus.http.io-threads"
+#        - name: "quarkus.vertx.event-loops-pool-size"
+#          lower:
+#            value: 2
+#            dependsOn: "cpu 2 *"
+#          upper:
+#            value: 24
+#          step: 2
+#          real: False
+        - name: "quarkus.vertx.worker-pool-size"
           lower:
-            value: 4
+            value: 10
           upper:
             value: 200
           step: 10
           real: False
+#        - name: "quarkus.http.io-threads"
+#          lower:
+#            value: 4
+#          upper:
+#            value: 30
+#            dependsOn: "quarkus.vertx.event-loops-pool-size"
+#          step: 10
+#          real: False
         - name: "quarkus.datasource.jdbc.max-size"
           lower:
-            value: 4
-            dependsOn: "quarkus.http.io-threads"
+            value: 16
+            dependsOn: "quarkus.vertx.worker-pool-size"
           upper:
-            value: 100
+            value: 200
           step: 10
           real: False
         - name: "quarkus.datasource.jdbc.min-size"
           lower:
-            value: 4
+            value: 16
           upper:
-            value: 100
+            value: 200
             dependsOn: "quarkus.datasource.jdbc.max-size"
           step: 10
           real: False
-        - name: "quarkus.datasource.jdbc.max-lifetime"
-          lower:
-            value: 1
-          upper:
-            value: 1800
-          step: 100
-          real: False
-        - name: "quarkus.datasource.jdbc.idle-removal-interval"
-          lower:
-            value: 1
-          upper:
-            value: 300
-          step: 10
-          real: False
-        - name: "quarkus.http.idle-timeout"
-          lower:
-            value: 1
-          upper:
-            value: 1800
-          step: 100
-          real: False
+#        - name: "quarkus.datasource.jdbc.max-lifetime"
+#          lower:
+#            value: 1
+#          upper:
+#            value: 1800
+#          step: 100
+#          real: False
+#        - name: "quarkus.datasource.jdbc.idle-removal-interval"
+#          lower:
+#            value: 1
+#          upper:
+#            value: 300
+#          step: 10
+#          real: False
+#        - name: "quarkus.http.idle-timeout"
+#          lower:
+#            value: 1
+#          upper:
+#            value: 1800
+#          step: 100
+#          real: False
   - name: quarkus-cm-jvm
     tunables:
       number:
