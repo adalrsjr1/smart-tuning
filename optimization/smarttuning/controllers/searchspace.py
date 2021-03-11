@@ -31,22 +31,24 @@ def searchspace_controller(event):
     if 'ADDED' == t:
         try:
             name = event['object']['metadata']['name']
-            sampler = RandomSampler(seed=config.RANDOM_SEED)
-            if config.BAYESIAN:
-                sampler = TPESampler(
-                    n_startup_trials=config.N_STARTUP_JOBS,
-                    n_ei_candidates=config.N_EI_CANDIDATES,
-                    # gamma=config.GAMMA,
-                    seed=config.RANDOM_SEED
-                )
-            study = optuna.create_study(sampler=sampler)
-            ctx = SearchSpaceContext(name, SearchSpaceModel(event['object'], study))
+            raw_search_space_model = event['object']
+            ctx = new_search_space_ctx(name, raw_search_space_model)
+            # sampler = RandomSampler(seed=config.RANDOM_SEED)
+            # if config.BAYESIAN:
+            #     sampler = TPESampler(
+            #         n_startup_trials=config.N_STARTUP_JOBS,
+            #         n_ei_candidates=config.N_EI_CANDIDATES,
+            #         gamma=config.GAMMA,
+            #         seed=config.RANDOM_SEED
+            #     )
+            # study = optuna.create_study(sampler=sampler)
+            # ctx = SearchSpaceContext(name, SearchSpaceModel(event['object'], study))
 
             deployment = get_deployment(ctx.model.deployment, ctx.model.namespace)
             duplicate_deployment_for_training(deployment)
             update_n_replicas(ctx.model.deployment, ctx.model.namespace, deployment.spec.replicas - 1)
 
-            ctx.create_bayesian_searchspace(study, max_evals=config.NUMBER_ITERATIONS)
+            # ctx.create_bayesian_searchspace(study, max_evals=config.NUMBER_ITERATIONS)
             search_spaces[ctx.model.deployment] = ctx
         except ApiException as e:
             if 422 == e.status:
@@ -56,6 +58,22 @@ def searchspace_controller(event):
         if name in search_spaces:
             ctx = search_spaces[name]
             stop_tuning(ctx)
+
+
+def new_search_space_ctx(search_space_name: str, raw_search_space_model: dict) -> SearchSpaceContext:
+    sampler = RandomSampler(seed=config.RANDOM_SEED)
+    if config.BAYESIAN:
+        sampler = TPESampler(
+            n_startup_trials=config.N_STARTUP_JOBS,
+            n_ei_candidates=config.N_EI_CANDIDATES,
+            # gamma=config.GAMMA,
+            seed=config.RANDOM_SEED
+        )
+    study = optuna.create_study(sampler=sampler)
+    ctx = SearchSpaceContext(search_space_name, SearchSpaceModel(raw_search_space_model, study))
+
+    ctx.create_bayesian_searchspace(study, max_evals=config.NUMBER_ITERATIONS)
+    return ctx
 
 def stop_tuning(ctx):
     ctx.delete_bayesian_searchspace()
