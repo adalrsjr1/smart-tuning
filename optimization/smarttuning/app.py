@@ -119,6 +119,7 @@ def create_context(production_microservice, training_microservice):
 
 
     while production_name and training_name:
+        # get workloads
         try:
             search_space_ctx: SearchSpaceContext = sample_config(production_name)
             if not search_space_ctx:

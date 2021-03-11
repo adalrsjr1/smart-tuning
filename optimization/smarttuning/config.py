@@ -20,11 +20,11 @@ def print_config(toPrint=False):
 # K8S_HOST = 'trxrhel7perf-1'
 # LOCALHOST = '9.26.100.254'
 
-K8S_HOST = 'trinity01'
-LOCALHOST = '127.0.0.1'
+# K8S_HOST = 'trinity01'
+# LOCALHOST = '127.0.0.1'
 
-# K8S_HOST = 'localhost'
-# LOCALHOST = 'localhost'
+K8S_HOST = 'localhost'
+LOCALHOST = 'localhost'
 
 # K8S_CONF = f'{os.environ.get("HOME")}/.kube/trxrhel7perf-1/config'
 K8S_CONF = f'{os.environ.get("HOME")}/.kube/trinity01/config'

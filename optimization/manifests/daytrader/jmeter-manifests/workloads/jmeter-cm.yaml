@@ -16,6 +16,6 @@ data:
   JSELLS: "4"
   JBUYS: "4"
   JQUOTES: "44"
-  #TEST_GROUP: "jsf"
-  TEST_GROUP: "browsing-jsp"
+  TEST_GROUP: "jsp"
+  #TEST_GROUP: "browsing-jsp"
   TEST_PLAN: "dynamic_daytrader8.jmx"

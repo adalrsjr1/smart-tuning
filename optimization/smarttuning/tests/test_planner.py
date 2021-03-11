@@ -5,7 +5,7 @@ import sys
 import time
 import unittest
 from unittest import TestCase
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import optuna
 from hyperopt import Trials, STATUS_OK
@@ -14,6 +14,7 @@ from optuna.samplers import RandomSampler
 
 from controllers.planner import Configuration
 from controllers.planner import Planner
+from controllers.searchspace import SearchSpaceContext
 from controllers.searchspacemodel import SearchSpaceModel
 from models.instance import Instance
 from models.smartttuningtrials import SmartTuningTrials
@@ -72,7 +73,7 @@ def search_space(study):
                             },
                             "upper": {
                                 "dependsOn": "",
-                                "value": 101
+                                "value": 200
                             }
                         } for c in 'abcdefghijklmnopqrstuvwxxyz'
                     ]
@@ -84,11 +85,13 @@ def search_space(study):
 
 
 def fake_trial(x: int) -> optuna.trial.FrozenTrial:
-    return optuna.trial.create_trial(
-        params={c: ord(c) + x for c in 'abcdefghijklmnopqrstuvwxxyz'},
-        distributions={'x': UniformDistribution(low=0, high=x + 1)},
+    t = optuna.trial.create_trial(
+        params={c: ord(c) + x - 1 for c in 'abcdefghijklmnopqrstuvwxxyz'},
+        distributions={c: UniformDistribution(low=0, high=ord(c) + x+1) for c in 'abcdefghijklmnopqrstuvwxxyz'},
         value=[(ord(c) + x) ** (26 - i) for i, c in enumerate('abcdefghijklmnopqrstuvwxxyz')]
     )
+    print(t)
+    return t
 
 
 def configurations(study: optuna.Study, strials: SmartTuningTrials):
@@ -107,16 +110,16 @@ def get_from_engine(trials: SmartTuningTrials, ctx: SearchSpaceModel):
     def anonymous():
         trial = trials.new_trial_entry({c: random.uniform(10, 100) for c in 'abcdefghijklmnopqrstuvwxxyz'},
                                        loss=random.uniform(100, 300))
-        c = Configuration(trial=trial, trials=trials)
+        c = Configuration(trial=trial, ctx=ctx, trials=trials)
         trials.add_new_configuration(c)
         return c
 
     return anonymous
 
 
-def get_current_config(trials: SmartTuningTrials):
+def get_current_config():
     def anonymous():
-        return {c: random.uniform(10, 100) for c in 'abcdefghijklmnopqrstuvwxxyz'}
+        return {'manifest-name': {c: random.uniform(10, 100) for c in 'abcdefghijklmnopqrstuvwxxyz'}}
 
     return anonymous
 
@@ -135,19 +138,22 @@ def wait_for_metrics(planner: Planner):
 
 
 class TestPlanner(TestCase):
+
     def test_planner(self):
         random.seed(123)
-        ctx = MagicMock()
 
         study = optuna.create_study(sampler=RandomSampler())
         trials = SmartTuningTrials(space=search_space(study=study))
 
-        def get_trials():
-            return trials
+        # for _ in range(10):
+        #     trials.new_trial_entry(get_current_config()(), random.uniform(10, 100), '')
 
-        ctx.get_current_config = get_current_config(trials, )
-        ctx.get_from_engine = get_from_engine(trials)
-        ctx.get_smarttuning_trials = get_trials
+        # trials.last_trial = fake_trial(0)
+
+        ctx = SearchSpaceContext(name='', search_space=search_space(study))
+        ctx.create_bayesian_searchspace(study, 10)
+        ctx.get_current_config = get_current_config()
+        # ctx.get_from_engine = get_from_engine(trials, search_space(study))
 
         tsampler = MagicMock()
         tsampler.metric = metric(production=False)
@@ -163,6 +169,7 @@ class TestPlanner(TestCase):
             sampler=tsampler
         )
         t.restart = MagicMock(return_value=None)
+        t._do_patch = Mock(side_effect=print('patching training'))
         p = Instance(
             name='daytrader-services',
             namespace='default',
@@ -172,6 +179,7 @@ class TestPlanner(TestCase):
             sampler=psampler
         )
         p.restart = MagicMock(return_value=None)
+        p._do_patch = Mock(side_effect=print('patching production'))
 
         planner = Planner(p, t, ctx, k=10, ratio=0.3334)
 
@@ -185,9 +193,10 @@ class TestPlanner(TestCase):
         try:
             for _ in range(10):
                 c: tuple[Configuration, bool] = copy.deepcopy(next(planner))
-                results.append(f'{c[0].name}, {c[0].score:.2f}, {c[0].median():.2f}')
-                print({k: v for k, v in optuna.importance.get_param_importances(study,
-                                                                                evaluator=optuna.importance.MeanDecreaseImpurityImportanceEvaluator()).items()})
+                print(c)
+                # results.append(f'{c[0].name}, {c[0].score:.2f}, {c[0].median():.2f}')
+                # print({k: v for k, v in optuna.importance.get_param_importances(study,
+                #                                                                 evaluator=optuna.importance.MeanDecreaseImpurityImportanceEvaluator()).items()})
         finally:
             from pprint import pprint
             pprint(results)
@@ -199,11 +208,20 @@ class TestPlanner(TestCase):
                                                       evaluator=optuna.importance.MeanDecreaseImpurityImportanceEvaluator()))
 
     def test_update_heap(self):
-        c1 = Configuration(data={'name': 1}, trials=MagicMock())
-        c2 = Configuration(data={'name': 2}, trials=MagicMock())
-        a = Configuration(data={'name': 1}, trials=MagicMock())
-        b = Configuration(data={'name': 2}, trials=MagicMock())
-        c = Configuration(data={'name': 3}, trials=MagicMock())
+        study = optuna.create_study(sampler=RandomSampler())
+        c1 = Configuration(trial=fake_trial(1), ctx=search_space(study), trials=MagicMock())
+        c1.stats.median = MagicMock(return_value=0)
+        # c1._name = ''
+        c2 = Configuration(trial=fake_trial(1), ctx=search_space(study),trials=MagicMock())
+        c1.stats.median = MagicMock(return_value=-1)
+        # c2._name = ''
+        a = Configuration(trial=fake_trial(1), ctx=search_space(study),trials=MagicMock())
+        a.stats.median = MagicMock(return_value=-2)
+        # a._name = ''
+        b = Configuration(trial=fake_trial(1), ctx=search_space(study),trials=MagicMock())
+        # b._name = ''
+        c1.stats.median = MagicMock(return_value=-3)
+        c = Configuration(trial=fake_trial(1), ctx=search_space(study),trials=MagicMock())
 
         planner = Planner(MagicMock(), MagicMock(), MagicMock(), k=0, ratio=0)
         planner.heap1 = [c1]

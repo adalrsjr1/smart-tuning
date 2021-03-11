@@ -480,6 +480,7 @@ if __name__ == '__main__':
     name = 'browsing-trading-trx-trace-2021-03-04T17 12 43' # browsing-trading
     # name = 'trading-browsing-trx-trace-2021-03-04T17 12 43'
     name = 'trace-trading-2021-03-08T16 54 14'
+    name = 'trace-jsf-2021-03-10T14 01 00'
     title = 'Daytrader'
     # title = 'Fruits'
     service_name = "daytrader-service"

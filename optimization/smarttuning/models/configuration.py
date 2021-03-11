@@ -130,6 +130,12 @@ class EmptyConfiguration(Configuration):
     def __init__(self):
         pass
 
+    def __str__(self):
+        return 'EmptyConfig'
+
+    def serialize(self) -> dict:
+        return {}
+
 
 class LastConfig(Configuration):
     def __init__(self, trial: optuna.trial.Trial, ctx: SearchSpaceModel, trials: SmartTuningTrials):

@@ -70,9 +70,9 @@ class TestConfiguration(TestCase):
         study = study_filled(n=10)
         trials = SmartTuningTrials(space=search_space(study))
         trial = trials.last_trial()
-        c = Configuration(trial=trial, trials=trials)
+        c = Configuration(trial=trial, ctx=search_space(study), trials=trials)
 
-        self.assertDictEqual(c.data, trial.params)
+        self.assertDictEqual(list(c.data.values())[0], trial.params)
         self.assertEqual(c.uid, trial.number)
         self.assertIs(c.trial, trial)
 
@@ -80,7 +80,7 @@ class TestConfiguration(TestCase):
         study = study_filled(n=10)
         trials = SmartTuningTrials(space=search_space(study))
         trial = trials.last_trial()
-        c = Configuration(trial=trial, trials=trials)
+        c = Configuration(trial=trial, ctx=search_space(study), trials=trials)
 
         metric = Metric(to_eval='100')
         c.update_score(value=metric)

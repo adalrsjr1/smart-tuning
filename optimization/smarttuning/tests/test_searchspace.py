@@ -23,18 +23,21 @@ class TestSearchSpace(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        config.init_k8s(hostname='trxrhel7perf-1')
+        cls.deployment_name = 'daytrader-service'
+        cls.namespace = 'default'
+        cls.search_space_name = 'daytrader-ss'
+        config.init_k8s(hostname=config.LOCALHOST)
 
     def test_get_service(self):
-        self.assertTrue(isinstance(searchspace.get_service('acmeair-booking-service', 'default'), V1Service))
+        self.assertTrue(isinstance(searchspace.get_service(self.deployment_name, self.namespace), V1Service))
 
     def test_get_deployment(self):
-        self.assertTrue(isinstance(searchspace.get_deployment('acmeair-bookingservice', 'default'), V1Deployment))
+        self.assertTrue(isinstance(searchspace.get_deployment(self.deployment_name, self.namespace), V1Deployment))
 
     def test_instantiate_event_loop(self):
         loop = EventLoop(ThreadPoolExecutor())
         ss = MagicMock()
-        ss.namespace = 'default'
+        ss.namespace = self.namespace
         ss.parse_manifests = MagicMock(return_value={'deployment':'', 'name':'', 'service':'', 'namespace': 'default'})
         ctx = SearchSpaceContext(name='test_instantiate_event_loop', search_space=ss)
 
@@ -71,7 +74,7 @@ class TestSearchSpace(unittest.TestCase):
 
         time.sleep(1)
         self.assertGreater(len(searchspace.search_spaces), 0)
-        ctx: SearchSpaceContext = searchspace.context('acmeair-booking-ss')
+        ctx: SearchSpaceContext = searchspace.context(self.search_space_name)
 
         metric = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1, to_eval='cpu')
 
@@ -131,7 +134,7 @@ class TestSearchSpace(unittest.TestCase):
 
         time.sleep(1)
         self.assertGreater(len(searchspace.search_spaces), 0)
-        ctx: SearchSpaceContext = searchspace.context('acmeair-customer-ss')
+        ctx: SearchSpaceContext = searchspace.context(self.search_space_name)
 
         metric = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1, to_eval='cpu')
 
@@ -165,8 +168,8 @@ class TestSearchSpace(unittest.TestCase):
         searchspace.init(loop)
 
         time.sleep(10)
-        self.assertTrue(searchspace.context('acmeair-customer-ss'))
-        ctx: SearchSpaceContext = searchspace.context('acmeair-customer-ss')
+        self.assertTrue(searchspace.context(self.search_space_name))
+        ctx: SearchSpaceContext = searchspace.context(self.search_space_name)
 
         metric = Metric(cpu=1, memory=1, throughput=1, process_time=1, errors=1, to_eval='cpu')
 

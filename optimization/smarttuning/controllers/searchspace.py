@@ -57,7 +57,6 @@ def searchspace_controller(event):
             ctx = search_spaces[name]
             stop_tuning(ctx)
 
-
 def stop_tuning(ctx):
     ctx.delete_bayesian_searchspace()
     deployment = get_deployment(ctx.model.deployment, ctx.model.namespace)
