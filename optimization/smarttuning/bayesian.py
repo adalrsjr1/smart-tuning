@@ -131,9 +131,14 @@ class BayesianEngine:
                 logger.info(f'final best config: {best_trial.params}:{best_trial.value}')
                 best.update({'is_best_config': True})
 
-                best_config = self.smarttuning_trials.get_config_by_id(best_trial.number)
+                best_config = self.smarttuning_trials.get_config_by_trial(best_trial)
+                # best_config = self.smarttuning_trials.get_config_by_trial(best_trial)
                 logger.info(f'found best config after {max_evals} iterations: {best_config}')
-                BayesianChannel.put_out(self.id(), LastConfig(trial=best_trial, ctx=self._space, trials=self.smarttuning_trials))
+
+                best = LastConfig(best_config)
+                BayesianChannel.put_out(self.id(), best)
+
+                # BayesianChannel.put_out(self.id(), LastConfig(trial=best_trial, ctx=self._space, trials=self.smarttuning_trials))
                 # BayesianChannel.put_out(self.id(), best)
             except:
                 logger.exception('error while evaluating fmin')

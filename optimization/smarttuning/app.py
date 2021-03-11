@@ -1,5 +1,6 @@
 import logging
 import time
+from threading import Condition
 
 import config
 from controllers import injector, searchspace
@@ -28,6 +29,9 @@ def create_contexts(microservices):
     for production, training in microservices.items():
         if production not in contexts:
             logger.debug(f'creating contexts for {microservices} in {contexts}')
+            # create a context for every microservice annoted to be tuned
+            #   injection.smarttuning.ibm.com: "true"
+            # and with search space deployed accordingly
             contexts[production] = config.executor().submit(create_context, production, training)
 
     # TODO: need further improvements
@@ -46,6 +50,52 @@ def create_contexts(microservices):
     #     for future in contexts.values():
     #         future.cancel()
 
+
+class SmartTuningContext:
+    def __init__(self,
+                 search_space_ctx: SearchSpaceContext,
+                 production: Instance,
+                 training: Instance,
+                 planner: Planner,
+                 workload: str = ''):
+        self._search_space_ctx: SearchSpaceContext = search_space_ctx
+        self._production: Instance = production
+        self._training: Instance = training
+        self._planner: Planner = planner
+        self._workload: str = workload
+
+    @property
+    def search_space_ctx(self):
+        return self.search_space_ctx
+
+    @property
+    def production(self):
+        return self._production
+
+    @property
+    def training(self):
+        return self._training
+
+    @property
+    def planner(self):
+        return self._planner
+
+    @property
+    def workload(self):
+        return self._workload
+
+    def progress(self) -> (Configuration, bool):
+        configuration, is_last_iteration = next(self.planner)
+        return configuration, is_last_iteration
+
+    def stop(self):
+        pass
+
+
+def curr_workload() -> str:
+    return ''
+
+
 def create_context(production_microservice, training_microservice):
     logger.info(f'creating context for ({production_microservice},{training_microservice})')
     production_name = production_microservice
@@ -55,14 +105,33 @@ def create_context(production_microservice, training_microservice):
     training_sanitized = training_microservice.replace('.', '\\.')
     logger.info(f'pod_names --  prod:{production_sanitized} train:{training_sanitized}')
 
-    while production_name and training_name:
-        # get workloads
-        try:
-            search_space_ctx: SearchSpaceContext = searchspace.search_spaces.get(f'{production_name}', None)
-            if not search_space_ctx:
-                return
+    context_by_workload: list[SmartTuningContext] = []
 
-            if search_space_ctx:
+    workload = None
+    counter = 0
+    while counter < config.NUMBER_ITERATIONS:
+        try:
+            # get event from search space deployment
+            with searchspace.search_space_lock:
+                event = searchspace.search_spaces.get(production_name)
+
+            # busy waiting if search space wasn't deployed yet
+            if not event:
+                logger.info(f'{production_name} waiting for search space')
+                time.sleep(0.1)
+                continue
+
+            # check if there is a context for the current workload, if not, create a new context
+            if len(context_by_workload) > 0 and workload == curr_workload():
+                smarttuning_context = [ctx for ctx in context_by_workload if ctx.workload == workload][0]
+            else:
+                workload = curr_workload()
+                search_space_ctx: SearchSpaceContext = searchspace.new_search_space_ctx(
+                    # this name will be used as uid for the bayesian engine too
+                    search_space_ctx_name=f'{event["object"]["metadata"]["name"]}_{workload}',
+                    raw_search_space_model=event['object']
+                )
+
                 production = Instance(name=production_sanitized, namespace=config.NAMESPACE, is_production=True,
                                       sample_interval_in_secs=config.WAITING_TIME * config.SAMPLE_SIZE,
                                       ctx=search_space_ctx)
@@ -73,21 +142,30 @@ def create_context(production_microservice, training_microservice):
                             k=config.ITERATIONS_BEFORE_REINFORCE, ratio=config.REINFORCEMENT_RATIO,
                             when_try=config.TRY_BEST_AT_EVERY, restart_trigger=config.RESTART_TRIGGER)
 
-                configuration: Configuration
-                for i in range(config.NUMBER_ITERATIONS):
-                    configuration, last_iteration = next(p)
-                    logger.info(f'[{i}, last:{last_iteration}] {configuration}')
+                smarttuning_context = SmartTuningContext(
+                    search_space_ctx=search_space_ctx,
+                    production=production,
+                    training=training,
+                    planner=p,
+                    workload=workload
+                )
+                context_by_workload.append(smarttuning_context)
+                print('XXXXX ', context_by_workload, len(context_by_workload))
 
-                # if last_iteration or isinstance(configuration, EmptyConfiguration):
-                logger.warning(f'stoping bayesian core for {production.name}')
-
-                searchspace.stop_tuning(search_space_ctx)
-                del training
+            # iterate trying a new config
+            configuration, last_iteration = smarttuning_context.progress()
+            logger.info(f'[{counter}, last:{last_iteration}] {configuration}')
+            counter += 1
 
         except:
             logger.exception('error during tuning iteration')
-        finally:
-            exit(0)
+
+    del training
+    # logger.info(f'stopping tuning for {production_name}:: {context_by_workload}')
+    for ctx in context_by_workload:
+        searchspace.stop_tuning(ctx.search_space_ctx)
+
+
 
 
 ##
@@ -107,7 +185,7 @@ def main():
             create_contexts(microservices)
             time.sleep(1)
         except:
-            logger.exception(f'error on main loop')
+            logger.exception(f'error in main loop')
             break
 
 

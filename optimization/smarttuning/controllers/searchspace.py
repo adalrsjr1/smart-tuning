@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import datetime
+from threading import Lock, Condition
+
 import optuna
 from kubernetes.client.rest import ApiException
 from optuna.samplers import TPESampler, RandomSampler
@@ -23,7 +26,8 @@ def init(loop):
                               plural='searchspaces'), searchspace_controller)
 
 
-search_spaces = {}
+search_spaces: dict[str, Condition] = {}
+search_space_lock = Lock()
 
 
 def searchspace_controller(event):
@@ -31,25 +35,19 @@ def searchspace_controller(event):
     if 'ADDED' == t:
         try:
             name = event['object']['metadata']['name']
-            raw_search_space_model = event['object']
-            ctx = new_search_space_ctx(name, raw_search_space_model)
-            # sampler = RandomSampler(seed=config.RANDOM_SEED)
-            # if config.BAYESIAN:
-            #     sampler = TPESampler(
-            #         n_startup_trials=config.N_STARTUP_JOBS,
-            #         n_ei_candidates=config.N_EI_CANDIDATES,
-            #         gamma=config.GAMMA,
-            #         seed=config.RANDOM_SEED
-            #     )
-            # study = optuna.create_study(sampler=sampler)
-            # ctx = SearchSpaceContext(name, SearchSpaceModel(event['object'], study))
+            namespace = event['object']['metadata']['namespace']
+            deployment_name = event['object']['spec']['deployment']
 
-            deployment = get_deployment(ctx.model.deployment, ctx.model.namespace)
+            # raw_search_space_model = event['object']
+            # ctx = new_search_space_ctx(name, raw_search_space_model)
+
+            deployment = get_deployment(deployment_name, namespace)
             duplicate_deployment_for_training(deployment)
-            update_n_replicas(ctx.model.deployment, ctx.model.namespace, deployment.spec.replicas - 1)
+            update_n_replicas(deployment_name, namespace, deployment.spec.replicas - 1)
 
-            # ctx.create_bayesian_searchspace(study, max_evals=config.NUMBER_ITERATIONS)
-            search_spaces[ctx.model.deployment] = ctx
+            with search_space_lock:
+                search_spaces[deployment_name] = event
+
         except ApiException as e:
             if 422 == e.status:
                 logger.warning(f'failed to duplicate deployment {name}')
@@ -60,7 +58,7 @@ def searchspace_controller(event):
             stop_tuning(ctx)
 
 
-def new_search_space_ctx(search_space_name: str, raw_search_space_model: dict) -> SearchSpaceContext:
+def new_search_space_ctx(search_space_ctx_name: str, raw_search_space_model: dict) -> SearchSpaceContext:
     sampler = RandomSampler(seed=config.RANDOM_SEED)
     if config.BAYESIAN:
         sampler = TPESampler(
@@ -70,10 +68,12 @@ def new_search_space_ctx(search_space_name: str, raw_search_space_model: dict) -
             seed=config.RANDOM_SEED
         )
     study = optuna.create_study(sampler=sampler)
-    ctx = SearchSpaceContext(search_space_name, SearchSpaceModel(raw_search_space_model, study))
+    ctx = SearchSpaceContext(search_space_ctx_name,
+                             SearchSpaceModel(raw_search_space_model, study))
 
     ctx.create_bayesian_searchspace(study, max_evals=config.NUMBER_ITERATIONS)
     return ctx
+
 
 def stop_tuning(ctx):
     ctx.delete_bayesian_searchspace()

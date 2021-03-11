@@ -138,6 +138,13 @@ class EmptyConfiguration(Configuration):
 
 
 class LastConfig(Configuration):
-    def __init__(self, trial: optuna.trial.Trial, ctx: SearchSpaceModel, trials: SmartTuningTrials):
-        super(LastConfig, self).__init__(trial, ctx, trials)
+    def __init__(self, last_config: Configuration):
+        self._uid = last_config.uid
+        self._trial = last_config.trial
+        self._trials = last_config._trials
+        self._ctx = last_config.ctx
+        self._data = last_config.data
+        self._name = last_config.name
+        self.stats = last_config.stats
+        self._n_restarts = last_config.n_restarts
 
