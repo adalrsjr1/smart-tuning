@@ -43,7 +43,6 @@ def load_raw_data(filename: str, service_name: str) -> pd.DataFrame:
             row = re.sub(r'{"_id":{"\$oid":"[a-z0-9]+"},', '{', row)
 
             record = json.loads(row)
-
             raw_data.append(Iteration(
                 record['iteration'],
                 record['production']['curr_config']['name'],
@@ -392,14 +391,52 @@ def plot_training(p1, p2, train, ax, marker=None, **kwargs):
 
 
 def plot_app_curves(df: pd.DataFrame, title: str = ''):
+    # data = {}
+    # for index, row in df.iterrows():
+    #     # extract config only
+    #     tmp = {}
+    #     tmp = row['tparams'].params['daytrader-config-jvm']
+    #     tmp.update(row['tparams'].params['daytrader-config-app'])
+    #     tmp.update(row['tparams'].params['daytrader-service'])
+    #     tmp['score'] = row['tparams'].params['score']
+    #     # workaround to avoid str values like NaN and Inf
+    #     if len(data) == 0:
+    #         for k, v in tmp.items():
+    #             try:
+    #                 data[k] = [float(v)]
+    #             except:
+    #                 continue
+    #     else:
+    #         for k, v in tmp.items():
+    #             try:
+    #                 data[k].append(float(v))
+    #             except:
+    #                 continue
+    #
+    # # recreate data frame
+    # df = pd.DataFrame(data)
+    df = features_table(df)
+    # create correlation matrix
+    mat_ax = scatter_matrix(df, alpha=0.5, figsize=(6, 6), diagonal='kde')
+    # resize all labels to smallest size
+    for row in mat_ax:
+        for cel in row:
+            label = cel.get_xlabel()
+            cel.set_xlabel(label, fontsize='xx-small')
+            label = cel.get_ylabel()
+            cel.set_ylabel(label, fontsize='xx-small')
+    plt.show()
+
+def features_table(df: pd.DataFrame, service_name, config_name, params) -> pd.DataFrame:
     data = {}
     for index, row in df.iterrows():
         # extract config only
         tmp = {}
-        tmp = row['tparams'].params['daytrader-config-jvm']
-        tmp.update(row['tparams'].params['daytrader-config-app'])
-        tmp.update(row['tparams'].params['daytrader-service'])
-        tmp['score'] = row['tparams'].params['score']
+        # print(row)
+        tmp = row[params].params[f'{service_name}-{config_name}-jvm']
+        tmp.update(row[params].params[f'{service_name}-{config_name}-app'])
+        tmp.update(row[params].params[f'{service_name}-service'])
+        tmp['score'] = row[params].params['score']
         # workaround to avoid str values like NaN and Inf
         if len(data) == 0:
             for k, v in tmp.items():
@@ -415,16 +452,62 @@ def plot_app_curves(df: pd.DataFrame, title: str = ''):
                     continue
 
     # recreate data frame
-    df = pd.DataFrame(data)
-    # create correlation matrix
-    mat_ax = scatter_matrix(df, alpha=0.5, figsize=(6, 6), diagonal='kde')
-    # resize all labels to smallest size
-    for row in mat_ax:
-        for cel in row:
-            label = cel.get_xlabel()
-            cel.set_xlabel(label, fontsize='xx-small')
-            label = cel.get_ylabel()
-            cel.set_ylabel(label, fontsize='xx-small')
+    df = pd.DataFrame.from_dict(data, orient='index')
+
+
+    return df
+
+def importance(df: pd.DataFrame, service_name='', config_name='', params='tparams', name='') -> list:
+    # df is table of all parameters, one parameter per column, one iteration per row
+    df = features_table(df, service_name=service_name, config_name=config_name, params=params)
+
+    X = df.iloc[:, :-1]
+    y = df.iloc[:, -1]
+
+    # print(df.info())
+    # print(df.head())
+    # print(df.describe())
+
+    import xgboost as xgb
+    from sklearn.model_selection import train_test_split
+    from sklearn.model_selection import cross_val_score
+    from sklearn.metrics import mean_squared_error
+    # https://www.datacamp.com/community/tutorials/xgboost-in-python
+
+    # data_dmatrix = xgb.DMatrix(data=X, label=y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=123)
+    xg_reg = xgb.XGBRegressor(objective ='reg:linear', colsample_bytree = 0.3, learning_rate = 0.1,
+                              max_depth = 5, alpha = 10, n_estimators = 10)
+    xg_reg.fit(X_train,y_train)
+
+    preds = xg_reg.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, preds))
+    print("RMSE: %f" % (rmse))
+
+    return {col: score for col,score in zip(X_train.columns,xg_reg.feature_importances_)}
+
+def plot_importance(raw_data:dict):
+    # fig = plt.figure()
+    # gs = fig.add_gridspec(nrows=len(raw_data), hspace=0.000, height_ratios=[1 for _ in range(len(raw_data))])
+    # axs = gs.subplots(sharex='row')
+
+    # from SecretColors.cmaps import TableauMap
+    # cm = TableauMap(matplotlib)
+    # colormap = cm.colorblind()
+    #
+    # plt.set_cmap(colormap)
+
+    df = pd.DataFrame(raw_data).T
+
+    print(df.to_csv())
+
+    ax = df.plot.bar()
+
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, labels, frameon=False, ncol=5, bbox_to_anchor=(0.5, 1.15), loc='upper center', fontsize='small')
+
+
+
     plt.show()
 
 
@@ -449,45 +532,69 @@ if __name__ == '__main__':
     # df = load_raw_data('./resources/trace-2021-01-05T19 06 26.json')
     # df = load_raw_data('./resources/trace-2021-01-06T00 41 25.json')
     # df = load_raw_data('./resources/trace-2021-01-06T00 41 25.json')
+    title = 'Daytrader'
+    # title = 'Fruits'
+    service_name = "acmeair-service"
+    # service_name = "daytrader-service"
+    # service_name = 'quarkus-service'
 
     name = 'trace-2021-01-07T17 05 39'
     name = 'acme-trace-2021-01-09T00 03 17'
     name = 'acme-trace-2021-01-12T01 39 15'
     name = 'acme-trace-2021-01-12T18 28 15'
     name = 'acme-trace-2021-01-13T02 29 40'
-    name = 'trace-2021-01-26T05 28 33'
-    name = 'trace-2021-01-27T03 23 48'
-    name = 'trace-2021-01-07T17 05 39'
-    # name = 'trace-2021-01-28T15 30 14' # 100 extra params
-    name = 'trace-2021-01-29T13 01 23'
-    name = 'trace-2021-02-02T21 06 02'
-    name = 'trace-2021-02-03T14 35 43'
-    name = 'trace-2021-02-04T07 57 50'
-    name = 'trace-2021-02-05T07 46 33'
-    name = 'trace-2021-02-06T00 12 27'
-    name = 'trace-2021-02-08T18 38 22'
-    name = 'trace-2021-02-09T15 45 19'
-    name = 'fruits-trace-2021-02-11T23 13 40'
-    name = 'trace-2021-02-11T22 57 03'
-    # name = 'fruits-trace-2021-02-12T17 42 03'
-    # name = 'fruits-trace-2021-02-12T19 20 26'
-    name = 'dtrace-2021-02-17T18 49 43'
-    name = 'dtrace-2021-02-24T15 18 34'
-    name = 'tdtrace-2021-02-24T22 22 36'
-    name = 'tdtrace-2021-02-26T15 32 37'
-    name = 'tdtrace-2021-02-28T17 17 26'
-    name = 'browsing-trading-trace-2021-03-04T17 12 43'
-    name = 'browsing-trading-trx-trace-2021-03-04T17 12 43' # browsing-trading
+    # name = 'trace-2021-01-26T05 28 33'
+    # name = 'trace-2021-01-27T03 23 48'
+    # name = 'trace-2021-01-07T17 05 39'
+    # # name = 'trace-2021-01-28T15 30 14' # 100 extra params
+    # name = 'trace-2021-01-29T13 01 23'
+    # name = 'trace-2021-02-02T21 06 02'
+    # name = 'trace-2021-02-03T14 35 43'
+    # name = 'trace-2021-02-04T07 57 50'
+    # name = 'trace-2021-02-05T07 46 33'
+    # name = 'trace-2021-02-06T00 12 27'
+    # name = 'trace-2021-02-08T18 38 22'
+    # name = 'trace-2021-02-09T15 45 19'
+    # name = 'fruits-trace-2021-02-11T23 13 40'
+    # name = 'trace-2021-02-11T22 57 03'
+    # # name = 'fruits-trace-2021-02-12T17 42 03'
+    # # name = 'fruits-trace-2021-02-12T19 20 26'
+    # name = 'dtrace-2021-02-17T18 49 43'
+    # name = 'dtrace-2021-02-24T15 18 34'
+    # name = 'tdtrace-2021-02-24T22 22 36'
+    # name = 'tdtrace-2021-02-26T15 32 37'
+    # name = 'tdtrace-2021-02-28T17 17 26'
+    # name = 'browsing-trading-trace-2021-03-04T17 12 43'
+    # name = 'browsing-trading-trx-trace-2021-03-04T17 12 43' # browsing-trading
+    ##
+    # browsing
     # name = 'trading-browsing-trx-trace-2021-03-04T17 12 43'
-    name = 'trace-trading-2021-03-08T16 54 14'
-    name = 'trace-jsf-2021-03-10T14 01 00'
-    title = 'Daytrader'
-    # title = 'Fruits'
-    service_name = "daytrader-service"
-    # service_name = 'quarkus-service'
+
+    data = {}
     df = load_raw_data('./resources/' + name + '.json', service_name)
+    # print(features_table(df, 'daytrader', 'config'))
+    print(features_table(df, 'acmeair', 'config', 'tparams').T.to_csv())
+    # data['browsing'] = importance(df)
+    # # trading
+    # name = 'trace-trading-2021-03-08T16 54 14'
+    # df = load_raw_data('./resources/' + name + '.json', service_name)
+    # data['trading'] = importance(df)
+    # # full jsf
+    # name = 'trace-jsf-2021-03-10T14 01 00'
+    # df = load_raw_data('./resources/' + name + '.json', service_name)
+    # data['full-jsf'] = importance(df)
+    # # full jsp
+    # name = 'trace-jsp-2021-03-11T13 41 07'
+    # df = load_raw_data('./resources/' + name + '.json', service_name)
+    # data['full-jsp'] = importance(df)
+
+    # plot_importance(data)
+
+
+    # df = load_raw_data('./resources/' + name + '.json', service_name)
     # plot(df, title=title+': '+name, objective=r'$\frac{1}{1+resp. time} \times \frac{requests}{\$}$', save=title+name, show_table=True)
-    plot(df, title=title + ': ' + name, objective_label=r'$\frac{1}{(1+resp. time)} \times \frac{requests}{\$}$',
-         save=False,
-         show_table=True)
+    # plot(df, title=title + ': ' + name, objective_label=r'$\frac{1}{(1+resp. time)} \times \frac{requests}{\$}$',
+    #      save=False,
+    #      show_table=True)
     # plot_app_curves(df)
+    # importance(df)

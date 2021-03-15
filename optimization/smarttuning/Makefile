@@ -13,6 +13,7 @@ build:
 
 push:
 	#docker push quay.io/smarttuning/smarttuning
+	docker push quay.io/smarttuning/smarttuning:$(TAG)
 	docker push quay.io/smarttuning/smarttuning:dev
 
 deploy:
