@@ -1,0 +1,92 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: jmeter-driver
+rules:
+  - apiGroups: ["*"]
+    resources:
+      - configmaps
+      - services
+      - deployments
+      - searchspaces
+      - pods
+    verbs: ["get","list","watch","create","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jmeter-driver
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: jmeter-driver
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+---
+# driver to try different workloads on Jmeter
+# Jmeter must have support to change the worklaod through env_var
+# Jmeter must be restarted when an env_var is updated
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  name: jmeter-driver
+spec:
+  template:
+    metadata:
+      creationTimestamp: null
+    spec:
+      containers:
+      - image: amouat/network-utils
+        name: jmeter-driver
+        command: ["bash", "-c"]
+        args:
+          - |
+            function update_cm() {
+              # patch config map
+              KUBE_TOKEN=$(</var/run/secrets/kubernetes.io/serviceaccount/token)
+              NAME=$1
+              curl -sSk \
+                -X PATCH \
+                -d "{\"kind\":\"ConfigMap\",\"apiVersion\":\"v1\",\"data\":{\"TEST_GROUP\":\"$NAME\"}}" \
+                -H "Authorization: Bearer $KUBE_TOKEN" \
+                -H 'Accept: application/json' \
+                -H 'Content-Type: application/strategic-merge-patch+json' \
+                https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/api/v1/namespaces/$NAMESPACE/configmaps/$CONFIGMAP_TARGET
+            }
+
+            # split string at IFS and assign to array
+            IFS=',' read -r -a array <<< $WORKLOADS_LIST
+            # array length
+            array_len=${#array[@]}
+            # workaround to correctly loop[0,n-1]
+            N_ITERATIONS=$((N_ITERATIONS - 1))
+            for i in $(seq 0 $N_ITERATIONS); do
+              # circular list
+              item="${array[$((i % array_len))]}"
+              echo ""
+              echo "iteration: $i, workload: $item"
+              echo ""
+              # log only the updated parameter
+              #update_cm $item
+              update_cm $item | grep \"TEST_GROUP\":
+              sleep $ITERATION_DURATION
+            done;
+        resources: {}
+        env:
+          - name: NAMESPACE
+            value: "default"
+          - name: CONFIGMAP_TARGET
+            value: "jmeter-config"
+          - name: N_ITERATIONS
+            value: "24"
+          - name: ITERATION_DURATION
+            value: "3600"
+          - name: WORKLOADS_LIST
+            value: "jsf,jsp,browsing,trading"
+      restartPolicy: Never
+status: {}
