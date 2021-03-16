@@ -93,6 +93,10 @@ class SmartTuningContext:
 
 
 def curr_workload() -> str:
+    # fetch data from a work-queue
+    # https://kubernetes.io/docs/tasks/job/coarse-parallel-processing-work-queue/
+    #
+    # enhance how save trace of all workloads into Mongo
     return ''
 
 
