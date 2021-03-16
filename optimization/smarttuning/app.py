@@ -7,7 +7,7 @@ from controllers import injector, searchspace
 from controllers.k8seventloop import EventLoop
 from controllers.planner import Planner
 from controllers.searchspace import SearchSpaceContext
-from models.configuration import Configuration
+from models.configuration import Configuration, LastConfig
 from models.instance import Instance
 
 logger = logging.getLogger(config.APP_LOGGER)
@@ -64,9 +64,12 @@ class SmartTuningContext:
         self._planner: Planner = planner
         self._workload: str = workload
 
+    def __repr__(self):
+        return f'SmartTuningContext({self.workload})'
+
     @property
     def search_space_ctx(self):
-        return self.search_space_ctx
+        return self._search_space_ctx
 
     @property
     def production(self):
@@ -84,20 +87,31 @@ class SmartTuningContext:
     def workload(self):
         return self._workload
 
-    def progress(self) -> (Configuration, bool):
-        configuration, is_last_iteration = next(self.planner)
-        return configuration, is_last_iteration
+    def progress(self) -> (Configuration):
+        configuration = next(self.planner)
+        return configuration
+
+    def restore_config(self):
+        self.production.patch_current_config()
+        self.training.patch_current_config()
 
     def stop(self):
         pass
 
 
+curr_workload_mock = -1
+mocked_workloads = ['jsf','jsp']#,'trading-jsp','browsing-jsp']
 def curr_workload() -> str:
+
     # fetch data from a work-queue
     # https://kubernetes.io/docs/tasks/job/coarse-parallel-processing-work-queue/
     #
     # enhance how save trace of all workloads into Mongo
-    return ''
+    global curr_workload_mock
+    curr_workload_mock = (curr_workload_mock + 1) % len(mocked_workloads)
+    workload = f'{mocked_workloads[curr_workload_mock]}'
+    logger.info(f'workload: {workload}')
+    return workload
 
 
 def create_context(production_microservice, training_microservice):
@@ -113,7 +127,8 @@ def create_context(production_microservice, training_microservice):
 
     workload = None
     counter = 0
-    while counter < config.NUMBER_ITERATIONS:
+    stoped = False
+    while not stoped:
         try:
             # get event from search space deployment
             with searchspace.search_space_lock:
@@ -126,23 +141,26 @@ def create_context(production_microservice, training_microservice):
                 continue
 
             # check if there is a context for the current workload, if not, create a new context
-            if len(context_by_workload) > 0 and workload == curr_workload():
-                smarttuning_context = [ctx for ctx in context_by_workload if ctx.workload == workload][0]
+            # if len(context_by_workload) > 0:
+            workload = curr_workload()
+            smarttuning_context_lst = [ctx for ctx in context_by_workload if ctx.workload == workload]
+            if smarttuning_context_lst and workload == smarttuning_context_lst[0].workload:
+                smarttuning_context = smarttuning_context_lst[0]
+                workload = smarttuning_context.workload
             else:
-                workload = curr_workload()
                 search_space_ctx: SearchSpaceContext = searchspace.new_search_space_ctx(
                     # this name will be used as uid for the bayesian engine too
                     search_space_ctx_name=f'{event["object"]["metadata"]["name"]}_{workload}',
-                    raw_search_space_model=event['object']
+                    raw_search_space_model=event['object'],
+                    workload=workload
                 )
-
                 production = Instance(name=production_sanitized, namespace=config.NAMESPACE, is_production=True,
                                       sample_interval_in_secs=config.WAITING_TIME * config.SAMPLE_SIZE,
                                       ctx=search_space_ctx)
                 training = Instance(name=training_sanitized, namespace=config.NAMESPACE, is_production=False,
                                     sample_interval_in_secs=config.WAITING_TIME * config.SAMPLE_SIZE,
                                     ctx=search_space_ctx)
-                p = Planner(production=production, training=training, ctx=search_space_ctx,
+                p = Planner(production=production, training=training, ctx=search_space_ctx, max_iterations=config.NUMBER_ITERATIONS,
                             k=config.ITERATIONS_BEFORE_REINFORCE, ratio=config.REINFORCEMENT_RATIO,
                             when_try=config.TRY_BEST_AT_EVERY, restart_trigger=config.RESTART_TRIGGER)
 
@@ -154,22 +172,28 @@ def create_context(production_microservice, training_microservice):
                     workload=workload
                 )
                 context_by_workload.append(smarttuning_context)
-                print('XXXXX ', context_by_workload, len(context_by_workload))
+
+            # restore proper config to pods
+            # smarttuning_context.production.patch_current_config()
+            # smarttuning_context.training.patch_current_config()
+            smarttuning_context.restore_config()
 
             # iterate trying a new config
-            configuration, last_iteration = smarttuning_context.progress()
-            logger.info(f'[{counter}, last:{last_iteration}] {configuration}')
+            configuration = smarttuning_context.progress()
+            logger.info(f'[{counter}, last:{isinstance(configuration, LastConfig)}] {configuration}')
             counter += 1
 
         except:
             logger.exception('error during tuning iteration')
+        finally:
+            # stop smart tuning when all BO reach the max number of iterations
+            final = [ctx.planner.iterations_performed for ctx in context_by_workload if ctx.planner.iterations_performed == config.NUMBER_ITERATIONS-1]
+            stoped = len(final) == len(context_by_workload)
 
     del training
     # logger.info(f'stopping tuning for {production_name}:: {context_by_workload}')
     for ctx in context_by_workload:
         searchspace.stop_tuning(ctx.search_space_ctx)
-
-
 
 
 ##

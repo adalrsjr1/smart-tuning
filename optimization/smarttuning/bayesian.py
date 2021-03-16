@@ -123,6 +123,8 @@ class BayesianEngine:
         logger.info(f'initializing bayesian engine={name}')
 
         def objective_fn():
+            # TODO: implement eager stop
+            # https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html?highlight=stop#optuna.study.Study.stop
             try:
                 self._study.optimize(self.objective, n_trials=max_evals, show_progress_bar=False)
 

@@ -58,7 +58,7 @@ def searchspace_controller(event):
             stop_tuning(ctx)
 
 
-def new_search_space_ctx(search_space_ctx_name: str, raw_search_space_model: dict) -> SearchSpaceContext:
+def new_search_space_ctx(search_space_ctx_name: str, raw_search_space_model: dict, workload: str) -> SearchSpaceContext:
     sampler = RandomSampler(seed=config.RANDOM_SEED)
     if config.BAYESIAN:
         sampler = TPESampler(
@@ -69,7 +69,7 @@ def new_search_space_ctx(search_space_ctx_name: str, raw_search_space_model: dic
         )
     study = optuna.create_study(sampler=sampler)
     ctx = SearchSpaceContext(search_space_ctx_name,
-                             SearchSpaceModel(raw_search_space_model, study))
+                             SearchSpaceModel(raw_search_space_model, study), workload)
 
     ctx.create_bayesian_searchspace(study, max_evals=config.NUMBER_ITERATIONS)
     return ctx
@@ -93,13 +93,14 @@ def context(deployment_name) -> SearchSpaceContext:
 
 
 class SearchSpaceContext:
-    def __init__(self, name: str, search_space: SearchSpaceModel):
+    def __init__(self, name: str, search_space: SearchSpaceModel, workload: str):
         self.name = name
         self.namespace = search_space.namespace
         self.service = search_space.service
         self.model = search_space
         self.api = config.customApi()
         self.engine: BayesianEngine = None
+        self.workload: str = workload
 
     def function_of_observables(self):
         return ListToWatch(config.coreApi().list_namespaced_custom_object, namespace=self.namespace,

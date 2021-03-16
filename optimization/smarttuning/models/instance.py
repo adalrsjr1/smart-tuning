@@ -95,6 +95,12 @@ class Instance:
     def last_config(self) -> Configuration:
         return self._last_config
 
+    def patch_current_config(self):
+        if self.configuration:
+            self.patch_config(self.configuration)
+        else:
+            logger.warning(f'null configuration to update {self}')
+
     def patch_config(self, config_to_apply: Configuration):
         if self.active:
             try:
