@@ -71,7 +71,11 @@ def new_search_space_ctx(search_space_ctx_name: str, raw_search_space_model: dic
     ctx = SearchSpaceContext(search_space_ctx_name,
                              SearchSpaceModel(raw_search_space_model, study), workload)
 
-    ctx.create_bayesian_searchspace(study, max_evals=config.NUMBER_ITERATIONS)
+    ctx.create_bayesian_searchspace(
+        study,
+        max_evals=config.NUMBER_ITERATIONS,
+        max_evals_no_change=round(config.MAX_N_ITERATION_NO_IMPROVEMENT),
+    )
     return ctx
 
 
@@ -126,11 +130,12 @@ class SearchSpaceContext:
 
         return current_config
 
-    def create_bayesian_searchspace(self, study: optuna.study.Study, max_evals: int):
+    def create_bayesian_searchspace(self, study: optuna.study.Study, max_evals: int, max_evals_no_change: int =100):
         self.engine = BayesianEngine(
             name=self.name,
             space=self.model,
-            max_evals=max_evals
+            max_evals=max_evals,
+            max_evals_no_change=max_evals_no_change,
         )
 
     def delete_bayesian_searchspace(self):

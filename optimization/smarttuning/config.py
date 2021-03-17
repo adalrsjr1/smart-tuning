@@ -105,6 +105,8 @@ N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
 GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(float(
     os.environ.get('NUMBER_ITERATIONS', default='10')))
+MAX_N_ITERATION_NO_IMPROVEMENT = int(float(
+    os.environ.get('MAX_N_ITERATION_NO_IMPROVEMENT', default='15')))
 ITERATIONS_BEFORE_REINFORCE = int(os.environ.get('ITERATIONS_BEFORE_REINFORCE', default='3'))
 RESTART_TRIGGER = float(os.environ.get('RESTART_TRIGGER', default='1'))
 TRY_BEST_AT_EVERY = int(os.environ.get('TRY_BEST_AT_EVERY', default=ITERATIONS_BEFORE_REINFORCE))

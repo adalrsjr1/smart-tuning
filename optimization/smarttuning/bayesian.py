@@ -4,6 +4,7 @@ import logging
 import random
 import threading
 import time
+from dataclasses import dataclass
 from queue import Queue, Empty
 
 import optuna
@@ -105,6 +106,23 @@ class EmptyBayesianDTO(BayesianDTO):
         super(EmptyBayesianDTO, self).__init__()
 
 
+@dataclass
+class StopCriteria:
+    n_iterations_no_change: int = 0
+    last_best_score: float = float('inf')
+
+    max_n_no_changes: int = 100
+
+    def __call__(self, study: optuna.study.Study, trial: optuna.trial.BaseTrial):
+        self.n_iterations_no_change += 1
+        if study.best_value != self.last_best_score:
+            self.last_best_score = study.best_value
+            self.n_iterations_no_change = 0
+
+        if self.n_iterations_no_change >= self.max_n_no_changes:
+            study.stop()
+
+
 class BayesianEngine:
     # to make search-space dynamic
     # https://github.com/hyperopt/hyperopt/blob/2814a9e047904f11d29a8d01e9f620a97c8a4e37/tutorial/Partial-sampling%20in%20hyperopt.ipynb
@@ -112,6 +130,7 @@ class BayesianEngine:
                  name: str,
                  space: SearchSpaceModel,
                  max_evals: int,
+                 max_evals_no_change: int = 100
                  ):
         self._id: str = name
         self._running: bool = False
@@ -119,6 +138,8 @@ class BayesianEngine:
         self._study: optuna.study.Study = self._space.study
         self._trials: SmartTuningTrials = SmartTuningTrials(space=self._space)
         self._stoped: bool = False
+        self._iterations: int = 0
+        self._last_best_score: float = float('inf')
 
         logger.info(f'initializing bayesian engine={name}')
 
@@ -126,7 +147,12 @@ class BayesianEngine:
             # TODO: implement eager stop
             # https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html?highlight=stop#optuna.study.Study.stop
             try:
-                self._study.optimize(self.objective, n_trials=max_evals, show_progress_bar=False)
+                self._study.optimize(
+                    self.objective,
+                    n_trials=max_evals,
+                    show_progress_bar=False,
+                    callbacks=[StopCriteria(max_n_no_changes=max_evals_no_change)]
+                )
 
                 best_trial = self._study.best_trial
                 best = self._study.best_params
@@ -193,14 +219,11 @@ class BayesianEngine:
         return self._running
 
     def objective(self, trial: optuna.trial.BaseTrial):
-        # print(trial.params)
-        # print(trial.distributions)
-        # print(trial.number)
         if self._stoped:
             return float('nan')
 
-        # follow this hint for implement multiple workload types
-        # https://github.com/hyperopt/hyperopt/issues/181
+        self._iterations += 1
+
         loss = float('nan')
         try:
             # pass params to configuration through search space model: <configuration.data = space.sample()>
@@ -211,7 +234,7 @@ class BayesianEngine:
             # TODO: bring 'wait' from 'app.py' here
             configuration.update_score(dto.metric)
             loss = configuration.score
-
+            self._last_best_score = min(self._last_best_score, loss)
 
         except Exception:
             logger.exception(f'evalution failed at bayesian core for {trial.params}')
