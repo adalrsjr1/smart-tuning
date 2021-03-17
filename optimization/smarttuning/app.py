@@ -100,9 +100,8 @@ class SmartTuningContext:
 
 
 curr_workload_mock = -1
-mocked_workloads = ['jsf','jsp']#,'trading-jsp','browsing-jsp']
 def curr_workload() -> str:
-
+    mocked_workloads = ['jsf','jsp','browsing-jsp','trading-jsp']
     # fetch data from a work-queue
     # https://kubernetes.io/docs/tasks/job/coarse-parallel-processing-work-queue/
     #
