@@ -83,7 +83,7 @@ spec:
           - name: CONFIGMAP_TARGET
             value: "jmeter-config"
           - name: N_ITERATIONS
-            value: "24"
+            value: "1000"
           - name: ITERATION_DURATION
             value: "3600"
           - name: WORKLOADS_LIST

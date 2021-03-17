@@ -7,6 +7,7 @@ import math
 import time
 import types
 import typing
+from numbers import Number
 
 import optuna
 
@@ -23,9 +24,12 @@ logger.setLevel(config.LOGGING_LEVEL)
 
 
 class Planner:
-    def __init__(self, production: Instance, training: Instance, ctx: SearchSpaceContext, max_iterations: int, k: int, ratio: float = 1,
+    global_counter = -1
+
+    def __init__(self, uid: str, production: Instance, training: Instance, ctx: SearchSpaceContext, max_iterations: int, k: int, ratio: float = 1,
                  when_try: int = 1, restart_trigger: float = 1):
-        self._date = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        # self._uid = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        self._uid = uid
         self.training = training
         self.production = production
         self.ctx = ctx
@@ -53,6 +57,10 @@ class Planner:
     def iterations_performed(self):
         return self._iterations_performed
 
+    @iterations_performed.setter
+    def iterations_performed(self, value):
+        self._iterations_performed = value
+
     @property
     def max_iterations(self):
         return self._max_iterations
@@ -68,15 +76,17 @@ class Planner:
         if best is None:
             best = [{}]
 
-        self.logger.info(f'saving tuning trace')
+        self.logger.info(f'saving tuning trace into collection: trace-{self._uid}')
         if not config.ping(config.MONGO_ADDR, config.MONGO_PORT):
             self.logger.warning(f'cannot save logging -- mongo unable at {config.MONGO_ADDR}:{config.MONGO_PORT}')
             return None
         db = config.mongo()[config.MONGO_DB]
-        collection = db[f'trace-{self._date}']
+        collection = db[f'trace-{self._uid}']
 
         document = self.sanitize_document({
+            'date': datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'workload': self.ctx.workload,
+            'global_iteration': Planner.global_counter,
             'iteration': self.iterations_performed,
             'best': best,
             'reinforcement': reinforcement,
@@ -108,11 +118,12 @@ class Planner:
         else:
             return document
 
-    def __next__(self) -> Configuration:
+    def __next__(self) -> typing.Union[Configuration,Number]:
         # aux = self.iterate()
         # last = None
         # cur = None
         # while True:
+        Planner.global_counter += 1
         try:
             if isinstance(self._curr_, types.GeneratorType):
                 self._last_ = self._aux_
@@ -122,8 +133,9 @@ class Planner:
                 self._curr_ = next(self._aux_)
         except StopIteration:
             self._curr_ = self._last_
-
-        return self._curr_ if not isinstance(self._curr_, types.GeneratorType) else None
+        finally:
+            return self._curr_ if not isinstance(self._curr_, types.GeneratorType) else None
+            # return self._curr_
 
     def _restart_if_poor_perf(self, instance: Instance):
         self.logger.info(
@@ -137,9 +149,10 @@ class Planner:
             instance.restart()
 
     def iterate(self) -> Configuration:
-        for self.iterations_performed in range(self.max_iterations):
+        for i in range(self.max_iterations):
+            self.iterations_performed = i
             end_of_tuning: bool = False
-            self.logger.info(f'{{{self.iterations_performed}}} iteration')
+            self.logger.info(f'{{{self.iterations_performed}/{Planner.global_counter}}} iteration')
             config_to_apply = self.ctx.get_from_engine()
 
             if isinstance(config_to_apply, EmptyConfiguration):
@@ -431,20 +444,23 @@ class Planner:
             self.logger.info(
                 f'\t \\- train_mean:{t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f} train_median: {t_running_stats.median()}')
 
-            if i == 0:
-                continue
+            if config.FAIL_FAST:
+                # TODO: fail fast disabled for mocking workload classification
+                if i == 0:
+                    continue
 
-            # TODO: Is this fail fast working as expected?
-            if (t_running_stats.mean() + t_running_stats.standard_deviation()) > (
-                    p_running_stats.mean() + p_running_stats.standard_deviation()):
-                self.logger.warning(
-                    f'\t |- [T] fail fast -- prod: {p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} train: {t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f}')
-                break
+                # TODO: Is this fail fast working as expected?
 
-            if (p_running_stats.mean() + p_running_stats.standard_deviation()) > (
-                    t_running_stats.mean() - t_running_stats.standard_deviation()):
-                self.logger.warning(
-                    f'\t |- [P] fail fast -- prod: {p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} train: {t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f}')
-                break
+                if (t_running_stats.mean() + t_running_stats.standard_deviation()) > (
+                        p_running_stats.mean() + p_running_stats.standard_deviation()):
+                    self.logger.warning(
+                        f'\t |- [T] fail fast -- prod: {p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} train: {t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f}')
+                    break
+
+                if (p_running_stats.mean() + p_running_stats.standard_deviation()) > (
+                        t_running_stats.mean() - t_running_stats.standard_deviation()):
+                    self.logger.warning(
+                        f'\t |- [P] fail fast -- prod: {p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} train: {t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f}')
+                    break
 
         return t_metric, p_metric

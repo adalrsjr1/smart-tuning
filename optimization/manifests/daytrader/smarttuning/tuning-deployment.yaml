@@ -32,6 +32,7 @@ metadata:
   name: smarttuning-config
 data:
   # test config
+  FAIL_FAST: "False"
   MOCK: "False"
   PRINT_CONFIG: "True"
   # mongo config
@@ -57,7 +58,7 @@ data:
   N_EI_CANDIDATES: '24'
   # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
   GAMMA: '0.25'
-  NUMBER_ITERATIONS: '50'
+  NUMBER_ITERATIONS: '25'
   ITERATIONS_BEFORE_REINFORCE: '10'
   MAX_N_ITERATION_NO_IMPROVEMENT: '15'
   TRY_BEST_AT_EVERY: '10'

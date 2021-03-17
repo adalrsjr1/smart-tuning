@@ -101,7 +101,12 @@ class SmartTuningContext:
 
 curr_workload_mock = -1
 def curr_workload() -> str:
-    mocked_workloads = ['jsf','jsp','browsing-jsp','trading-jsp']
+    mocked_workloads = [
+        'jsf','jsf','jsf',
+        'jsp','jsp','jsp',
+        'browsing-jsp','browsing-jsp','browsing-jsp',
+        'trading-jsp','trading-jsp','trading-jsp'
+    ]
     # fetch data from a work-queue
     # https://kubernetes.io/docs/tasks/job/coarse-parallel-processing-work-queue/
     #
@@ -159,7 +164,7 @@ def create_context(production_microservice, training_microservice):
                 training = Instance(name=training_sanitized, namespace=config.NAMESPACE, is_production=False,
                                     sample_interval_in_secs=config.WAITING_TIME * config.SAMPLE_SIZE,
                                     ctx=search_space_ctx)
-                p = Planner(production=production, training=training, ctx=search_space_ctx, max_iterations=config.NUMBER_ITERATIONS,
+                p = Planner(uid=config.STARTUP_TIME, production=production, training=training, ctx=search_space_ctx, max_iterations=config.NUMBER_ITERATIONS,
                             k=config.ITERATIONS_BEFORE_REINFORCE, ratio=config.REINFORCEMENT_RATIO,
                             when_try=config.TRY_BEST_AT_EVERY, restart_trigger=config.RESTART_TRIGGER)
 

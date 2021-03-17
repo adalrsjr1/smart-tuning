@@ -2,15 +2,19 @@ import logging
 import os
 import sys
 import time
+import datetime
+
 import kubernetes
 from concurrent.futures import ThreadPoolExecutor
 
 from pymongo import MongoClient
 
+STARTUP_TIME = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
 
 def print_config(toPrint=False):
     if toPrint:
-        print('\n *** loading config ***\n')
+        print(f'\n *** loading config {STARTUP_TIME} ***\n')
         for item in globals().items():
             if item[0].isupper():
                 print('\t', item)
@@ -20,11 +24,11 @@ def print_config(toPrint=False):
 # K8S_HOST = 'trxrhel7perf-1'
 # LOCALHOST = '9.26.100.254'
 
-# K8S_HOST = 'trinity01'
-# LOCALHOST = '127.0.0.1'
+K8S_HOST = 'trinity01'
+LOCALHOST = '127.0.0.1'
 
-K8S_HOST = 'localhost'
-LOCALHOST = 'localhost'
+# K8S_HOST = 'localhost'
+# LOCALHOST = 'localhost'
 
 # K8S_CONF = f'{os.environ.get("HOME")}/.kube/trxrhel7perf-1/config'
 K8S_CONF = f'{os.environ.get("HOME")}/.kube/trinity01/config'
@@ -68,8 +72,9 @@ SEARCH_SPACE_LOGGER = 'searchspace.smarttuning.ibm'
 EVENT_LOOP_LOGGER = 'eventloop.smarttuning.ibm'
 
 # debug config
+FAIL_FAST = eval(os.environ.get('FAIL_FAST', default='False'))
 MOCK = eval(os.environ.get('MOCK', default='True'))
-PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='False'))
+PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='True'))
 LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='NOTSET').upper()
 logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format=FORMAT)
 # proxy config
@@ -84,7 +89,6 @@ PROXY_CONFIG_MAP = os.environ.get('PROXY_CONFIG_MAP', default='smarttuning-proxy
 MONGO_ADDR = os.environ.get('MONGO_ADDR', default=LOCALHOST)
 MONGO_PORT = int(os.environ.get('MONGO_PORT', default='30027'))
 MONGO_DB = os.environ.get('MONGO_DB', default='smarttuning')
-
 # prometheus config
 PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', default=LOCALHOST)
 PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', default='30099')
