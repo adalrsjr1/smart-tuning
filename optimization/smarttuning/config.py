@@ -72,6 +72,7 @@ SEARCH_SPACE_LOGGER = 'searchspace.smarttuning.ibm'
 EVENT_LOOP_LOGGER = 'eventloop.smarttuning.ibm'
 
 # debug config
+MOCK_WORKLOADS = os.environ.get('MOCK_WORKLOADS', default='jsf,jsp,browsing-jsp,trading-jsp').split(',')
 FAIL_FAST = eval(os.environ.get('FAIL_FAST', default='False'))
 MOCK = eval(os.environ.get('MOCK', default='True'))
 PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='True'))

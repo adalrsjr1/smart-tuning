@@ -2,6 +2,8 @@ import logging
 import time
 from threading import Condition
 
+import kubernetes
+
 import config
 from controllers import injector, searchspace
 from controllers.k8seventloop import EventLoop
@@ -99,22 +101,22 @@ class SmartTuningContext:
         pass
 
 
-curr_workload_mock = -1
-def curr_workload() -> str:
-    mocked_workloads = [
-        'jsf','jsf','jsf',
-        'jsp','jsp','jsp',
-        'browsing-jsp','browsing-jsp','browsing-jsp',
-        'trading-jsp','trading-jsp','trading-jsp'
-    ]
-    # fetch data from a work-queue
-    # https://kubernetes.io/docs/tasks/job/coarse-parallel-processing-work-queue/
-    #
-    # enhance how save trace of all workloads into Mongo
-    global curr_workload_mock
-    curr_workload_mock = (curr_workload_mock + 1) % len(mocked_workloads)
-    workload = f'{mocked_workloads[curr_workload_mock]}'
-    logger.info(f'workload: {workload}')
+def curr_workload(iteration: int) -> str:
+    # cm: kubernetes.client.models.V1ConfigMap = config.coreApi().read_namespaced_config_map(namespace='default', name='jmeter-config')
+    # workload = cm.data['TEST_GROUP']
+    # logger.info(f'workload: {workload}')
+    workload = config.MOCK_WORKLOADS[iteration % len(config.MOCK_WORKLOADS)]
+    logger.debug(f'mocking new workload: {workload}')
+    result = config.coreApi().patch_namespaced_config_map(name='jmeter-config', namespace='default',
+                                                 body={
+                                                     "kind": "ConfigMap",
+                                                     "apiVersion": "v1",
+                                                     "metadata": {"labels": {"date": str(int(time.time()))}},
+                                                     "data": {
+                                                         'TEST_GROUP': workload
+                                                     }
+                                                 })
+    logger.debug(f'workload: {result}')
     return workload
 
 
@@ -146,7 +148,7 @@ def create_context(production_microservice, training_microservice):
 
             # check if there is a context for the current workload, if not, create a new context
             # if len(context_by_workload) > 0:
-            workload = curr_workload()
+            workload = curr_workload(counter)
             smarttuning_context_lst = [ctx for ctx in context_by_workload if ctx.workload == workload]
             if smarttuning_context_lst and workload == smarttuning_context_lst[0].workload:
                 smarttuning_context = smarttuning_context_lst[0]
