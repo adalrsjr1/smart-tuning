@@ -109,11 +109,11 @@ N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
 # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
 GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(float(
-    os.environ.get('NUMBER_ITERATIONS', default='10')))
+    os.environ.get('NUMBER_ITERATIONS', default='3')))
 MAX_N_ITERATION_NO_IMPROVEMENT = int(float(
     os.environ.get('MAX_N_ITERATION_NO_IMPROVEMENT', default='15')))
 ITERATIONS_BEFORE_REINFORCE = int(os.environ.get('ITERATIONS_BEFORE_REINFORCE', default='3'))
-RESTART_TRIGGER = float(os.environ.get('RESTART_TRIGGER', default='1'))
+RESTART_TRIGGER = float(os.environ.get('RESTART_TRIGGER', default='2'))
 TRY_BEST_AT_EVERY = int(os.environ.get('TRY_BEST_AT_EVERY', default=ITERATIONS_BEFORE_REINFORCE))
 REINFORCEMENT_RATIO = float(os.environ.get('REINFORCEMENT_RATIO', default='1.0'))
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
@@ -122,7 +122,7 @@ RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
 OBJECTIVE = str(os.environ.get('OBJECTIVE', default='memory'))
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
-WAITING_TIME = int(os.environ.get('WAITING_TIME', default='10'))
+WAITING_TIME = int(os.environ.get('WAITING_TIME', default='120'))
 GATEWAY_NAME = os.environ.get('GATEWAY_NAME', default='acmeair-nginxservice')
 
 # failfast threshold

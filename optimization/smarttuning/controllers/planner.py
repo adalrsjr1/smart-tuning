@@ -4,6 +4,7 @@ import datetime
 import heapq
 import logging
 import math
+import threading
 import time
 import types
 import typing
@@ -24,7 +25,8 @@ logger.setLevel(config.LOGGING_LEVEL)
 
 
 class Planner:
-    global_counter = -1
+    global_counter = 0
+    lock = threading.Lock()
 
     def __init__(self, uid: str, production: Instance, training: Instance, ctx: SearchSpaceContext, max_iterations: int, k: int, ratio: float = 1,
                  when_try: int = 1, restart_trigger: float = 1):
@@ -123,7 +125,7 @@ class Planner:
         # last = None
         # cur = None
         # while True:
-        Planner.global_counter += 1
+
         try:
             if isinstance(self._curr_, types.GeneratorType):
                 self._last_ = self._aux_
@@ -134,6 +136,9 @@ class Planner:
         except StopIteration:
             self._curr_ = self._last_
         finally:
+            Planner.lock.acquire()
+            Planner.global_counter += 1
+            Planner.lock.release()
             return self._curr_ if not isinstance(self._curr_, types.GeneratorType) else None
             # return self._curr_
 

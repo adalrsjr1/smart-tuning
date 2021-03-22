@@ -109,10 +109,11 @@ class SmartTuningTrials:
                 return configuration
 
     def get_config_by_trial(self, best_trial: optuna.trial.BaseTrial) -> Configuration:
+        # for name, configuration in self._data.items():
         for name, configuration in self._data.items():
+            logger.debug(f'{name}:{configuration.trial.params} == {best_trial.params}')
             if configuration.trial.params == best_trial.params:
                 return configuration
-
 
 
 class EmptySmartTuningTrials(SmartTuningTrials):

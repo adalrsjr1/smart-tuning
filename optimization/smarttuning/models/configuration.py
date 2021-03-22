@@ -128,7 +128,14 @@ class DefaultConfiguration(Configuration):
 
 class EmptyConfiguration(Configuration):
     def __init__(self):
-        pass
+        self._uid = -1
+        self._trial = None
+        self._trials = None
+        self._ctx = None
+        self._data = {}
+        self._name = hashlib.md5(bytes(str(self.data.items()), 'ascii')).hexdigest()
+        self.stats = RunningStats()
+        self._n_restarts = 0
 
     def __str__(self):
         return 'EmptyConfig'

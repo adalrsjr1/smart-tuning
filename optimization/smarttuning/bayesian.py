@@ -12,7 +12,7 @@ from hyperopt import space_eval
 
 import config
 from controllers.searchspacemodel import SearchSpaceModel
-from models.configuration import Configuration, LastConfig
+from models.configuration import Configuration, LastConfig, EmptyConfiguration
 from models.smartttuningtrials import SmartTuningTrials
 from sampler import Metric
 
@@ -165,9 +165,7 @@ class BayesianEngine:
 
                 best = LastConfig(best_config)
                 BayesianChannel.put_out(self.id(), best)
-
-                # BayesianChannel.put_out(self.id(), LastConfig(trial=best_trial, ctx=self._space, trials=self.smarttuning_trials))
-                # BayesianChannel.put_out(self.id(), best)
+                self.stop()
             except:
                 logger.exception('error while evaluating fmin')
 
@@ -228,12 +226,17 @@ class BayesianEngine:
         try:
             # pass params to configuration through search space model: <configuration.data = space.sample()>
             configuration = Configuration(trial=trial, ctx=self._space, trials=self.smarttuning_trials)
+            self.smarttuning_trials.add_new_configuration(configuration)
             BayesianChannel.put_out(self.id(), configuration)
             dto: BayesianDTO = BayesianChannel.get_in(self.id())
             # TODO: evaluate intermediary values to prune poor configs
             # TODO: bring 'wait' from 'app.py' here
             configuration.update_score(dto.metric)
             loss = configuration.score
+            # TODO: verify workloads
+            # if workload at this point is different from the begging
+            # mark the current trial as FAIL
+            trial.stat
             self._last_best_score = min(self._last_best_score, loss)
 
         except Exception:

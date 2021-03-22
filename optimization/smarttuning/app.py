@@ -102,6 +102,7 @@ class SmartTuningContext:
 
 
 def curr_workload(iteration: int) -> str:
+    return 'fake'
     # cm: kubernetes.client.models.V1ConfigMap = config.coreApi().read_namespaced_config_map(namespace='default', name='jmeter-config')
     # workload = cm.data['TEST_GROUP']
     # logger.info(f'workload: {workload}')
@@ -187,11 +188,12 @@ def create_context(production_microservice, training_microservice):
             # iterate trying a new config
             configuration = smarttuning_context.progress()
             logger.info(f'[{counter}, last:{isinstance(configuration, LastConfig)}] {configuration}')
-            counter += 1
+
 
         except:
             logger.exception('error during tuning iteration')
         finally:
+            counter += 1
             # stop smart tuning when all BO reach the max number of iterations
             final = [ctx.planner.iterations_performed for ctx in context_by_workload if ctx.planner.iterations_performed == config.NUMBER_ITERATIONS-1]
             stoped = len(final) == len(context_by_workload)
