@@ -1,12 +1,12 @@
-import logging
-import os
-import sys
-import time
 import datetime
-
-import kubernetes
+import logging
+import logging.config
+import os
+import time
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 
+import kubernetes
 from pymongo import MongoClient
 
 STARTUP_TIME = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -47,12 +47,18 @@ def init_k8s(hostname=K8S_HOST):
             kubernetes.config.load_kube_config()
 
 
-## to disable loggers
+# to disable loggers
 FORMAT = '%(asctime)-15s - %(name)-30s %(levelname)-7s - %(threadName)-30s: %(message)s'
 INJECTOR_LOGGER = 'injector.smarttuning.ibm'
 PLANNER_LOGGER = 'planner.smarttuning.ibm'
 CONFIGURATION_MODEL_LOGGER = 'configuration.smarttuning.ibm'
 SMARTTUNING_TRIALS_LOGGER = 'sttrials.smarttuning.ibm'
+
+# disable k8s loggings
+logging.config.dictConfig({'version': 1, 'disable_existing_loggers': True})
+# disable optuna warnings
+warnings.filterwarnings("ignore", category=Warning)
+
 # logging.getLogger('INJECTOR_LOGGER').addHandler(logging.NullHandler())
 # logging.getLogger('INJECTOR_LOGGER').propagate = False
 #
@@ -72,6 +78,8 @@ SEARCH_SPACE_LOGGER = 'searchspace.smarttuning.ibm'
 EVENT_LOOP_LOGGER = 'eventloop.smarttuning.ibm'
 
 # debug config
+# timeout before update workload
+WORKLOAD_TIMEOUT = int(os.environ.get('WORKLOAD_TIMEOUT', default='1'))
 MOCK_WORKLOADS = os.environ.get('MOCK_WORKLOADS', default='jsf,jsp,browsing-jsp,trading-jsp').split(',')
 FAIL_FAST = eval(os.environ.get('FAIL_FAST', default='False'))
 MOCK = eval(os.environ.get('MOCK', default='True'))
@@ -109,10 +117,10 @@ N_EI_CANDIDATES = int(os.environ.get('N_EI_CANDIDATES', default=24))
 # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
 GAMMA = float(os.environ.get('GAMMA', default=0.25))
 NUMBER_ITERATIONS = int(float(
-    os.environ.get('NUMBER_ITERATIONS', default='3')))
+    os.environ.get('NUMBER_ITERATIONS', default='10')))
 MAX_N_ITERATION_NO_IMPROVEMENT = int(float(
     os.environ.get('MAX_N_ITERATION_NO_IMPROVEMENT', default='15')))
-ITERATIONS_BEFORE_REINFORCE = int(os.environ.get('ITERATIONS_BEFORE_REINFORCE', default='3'))
+ITERATIONS_BEFORE_REINFORCE = int(os.environ.get('ITERATIONS_BEFORE_REINFORCE', default='2'))
 RESTART_TRIGGER = float(os.environ.get('RESTART_TRIGGER', default='2'))
 TRY_BEST_AT_EVERY = int(os.environ.get('TRY_BEST_AT_EVERY', default=ITERATIONS_BEFORE_REINFORCE))
 REINFORCEMENT_RATIO = float(os.environ.get('REINFORCEMENT_RATIO', default='1.0'))
@@ -122,8 +130,7 @@ RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
 OBJECTIVE = str(os.environ.get('OBJECTIVE', default='memory'))
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
-WAITING_TIME = int(os.environ.get('WAITING_TIME', default='120'))
-GATEWAY_NAME = os.environ.get('GATEWAY_NAME', default='acmeair-nginxservice')
+WAITING_TIME = int(os.environ.get('WAITING_TIME', default='60'))
 
 # failfast threshold
 THROUGHPUT_THRESHOLD = float(os.environ.get('THROUGHPUT_THRESHOLD', default='1.0'))
@@ -132,16 +139,6 @@ QUANTILE = float(os.environ.get('QUANTILE', default='1.0'))
 
 # actuator config
 NAMESPACE = os.environ.get('NAMESPACE', 'default')
-
-# # deprecated -- to remove
-# SEARCH_SPACE_NAME = os.environ.get('SEARCH_SPACE_NAME', default='default')
-# NAMESPACE_PROD = os.environ.get('NAMESPACE_PROD', 'default')
-# SEARCHSPACE_PATH = os.environ.get('SEARCHSPACE_PATH', default='')
-# CONFIGMAP_NAME = os.environ.get('CONFIGMAP_NAME', default='tuning-config')
-# CONFIGMAP_PROD_NAME = os.environ.get('CONFIGMAP_PROD_NAME', default='tuning-config')
-# POD_REGEX = os.environ.get(''
-#                            'POD_REGEX', default='acmeair-.+servicessmarttuning-.+')
-# POD_PROD_REGEX = os.environ.get('POD_PROD_REGEX', default='acmeair-.+services-.+')
 
 
 print_config(PRINT_CONFIG)

@@ -3,7 +3,7 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 
 import config
-from bayesian import BayesianDTO
+from models.bayesiandto import BayesianDTO
 from controllers import injector
 from controllers import searchspace
 from controllers.k8seventloop import EventLoop

@@ -85,8 +85,12 @@ spec:
           - name: N_ITERATIONS
             value: "1000"
           - name: ITERATION_DURATION
-            value: "3600"
+            #value: "131"
+            # 23 minutes
+            #value: "1860"
+            value: "2220"
           - name: WORKLOADS_LIST
-            value: "jsf,jsp,browsing-jsp,trading-jsp"
+            value: "trading-jsp,browsing-jsp"
+            #value: "jsf,jsp,browsing-jsp,trading-jsp"
       restartPolicy: Never
 status: {}

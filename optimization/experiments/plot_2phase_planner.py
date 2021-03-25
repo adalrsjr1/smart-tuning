@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.patches import Polygon
 from matplotlib.table import Table
 from pandas.plotting import scatter_matrix
 
@@ -31,7 +32,7 @@ def reset_seeds():
 reset_seeds()
 
 
-def load_raw_data(filename: str, service_name: str) -> pd.DataFrame:
+def load_raw_data(filename: str, service_name: str, workload: str) -> pd.DataFrame:
     raw_data = []
 
     def name(data):
@@ -43,8 +44,12 @@ def load_raw_data(filename: str, service_name: str) -> pd.DataFrame:
             row = re.sub(r'{"_id":{"\$oid":"[a-z0-9]+"},', '{', row)
 
             record = json.loads(row)
+            if workload != '' and record['ctx_workload'] != workload:
+                continue
+
             raw_data.append(Iteration(
-                record['iteration'],
+                record.get('pruned', False),
+                record['global_iteration'],
                 record['production']['curr_config']['name'],
                 math.fabs(record['production']['curr_config']['score'] or 0),
                 math.fabs(record['production']['curr_config']['stats']['mean'] or 0),
@@ -92,11 +97,12 @@ class Param:
 
 
 class Iteration:
-    def __init__(self, iteration,
+    def __init__(self, pruned, iteration,
                  pname, pscore, pmean, pmedian, pmin, pmax, pstddev, ptruput, pproctime, pmem, pmem_lim, prestarts,
                  pparams,
                  tname, tscore, tmean, tmedian, tmin, tmax, tstddev, ttruput, tproctime, tmem, tmem_lim, trestarts,
                  tparams, nbest):
+        self.pruned = pruned
         self.pname = pname
         self.pscore = pscore
         self.pmean = pmean
@@ -127,7 +133,7 @@ class Iteration:
         self.nbest = nbest
 
 
-def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = False, show_table: bool = False):
+def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = False, show_table: bool = False) -> list[Axes]:
     # pip install SecretColors
     # create a color map
     from SecretColors.cmaps import TableauMap
@@ -197,7 +203,9 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
                 color='blue')  # training
 
         # paint full column
-        ax.axvspan(index - 0.5, index + 0.5, facecolor=cmap(memoization[row['pname']]), alpha=0.5)
+        rectangle: Polygon = ax.axvspan(index - 0.5, index + 0.5, facecolor=cmap(memoization[row['pname']]), alpha=0.5)
+        if row['pruned']:
+            rectangle.set_hatch('/')
 
         # draw delta(score, (max,min)) -- residual
         plot_training([index, _tmin], [index, _tmax], [index, row['tscore']], ax, color='blue', marker='x',
@@ -290,6 +298,8 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         mlines.Line2D([], [], color='black', marker='', linestyle='--', linewidth=0.7))
     handles.append(matplotlib.patches.Patch(facecolor=cmap(list(memoization.values())[0]), edgecolor='k', alpha=0.7,
                                             label='config. color'))
+    handles.append(matplotlib.patches.Patch(facecolor=cmap(list(memoization.values())[0]), edgecolor='k', alpha=0.7, hatch='///',
+                                            label='config. prunedr'))
     handles.append(matplotlib.patches.Patch(facecolor='red', edgecolor='k', alpha=0.7,
                                             label='config. color'))
     handles.append(matplotlib.patches.Patch(facecolor='blue', edgecolor='k', alpha=0.7,
@@ -327,6 +337,7 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         'train. value at n-th iteration',
         'residual (*:prod, X:train), $y_i - \overline{Y_i}$',
         'config. \'abc\' color',
+        'config. \'abc\' pruned',
         'production',
         'training',
     ], frameon=False, ncol=5, bbox_to_anchor=(0.6, 1.52), loc='upper center', fontsize='small')
@@ -345,7 +356,7 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     else:
         plt.show()
     plt.show()
-
+    return axs
 
 # def newline(p1, p2, ax, arrow=False, **kwargs):
 #     xmin, xmax = ax.get_xbound()
@@ -459,10 +470,12 @@ def features_table(df: pd.DataFrame, service_name, config_name, params) -> pd.Da
 
 def importance(df: pd.DataFrame, service_name='', config_name='', params='tparams', name='') -> list:
     # df is table of all parameters, one parameter per column, one iteration per row
-    df = features_table(df, service_name=service_name, config_name=config_name, params=params)
-
+    df = features_table(df, service_name=service_name, config_name=config_name, params=params).T
     X = df.iloc[:, :-1]
     y = df.iloc[:, -1]
+
+    # print(X)
+    # print(y)
 
     # print(df.info())
     # print(df.head())
@@ -496,19 +509,19 @@ def plot_importance(raw_data:dict):
     # colormap = cm.colorblind()
     #
     # plt.set_cmap(colormap)
-
-    df = pd.DataFrame(raw_data).T
+    print(raw_data)
+    df = pd.DataFrame.from_dict(raw_data, orient='index')
 
     print(df.to_csv())
 
-    ax = df.plot.bar()
-
-    handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles, labels, frameon=False, ncol=5, bbox_to_anchor=(0.5, 1.15), loc='upper center', fontsize='small')
-
-
-
-    plt.show()
+    # ax = df.plot.bar()
+    #
+    # handles, labels = ax.get_legend_handles_labels()
+    # ax.legend(handles, labels, frameon=False, ncol=5, bbox_to_anchor=(0.5, 1.15), loc='upper center', fontsize='small')
+    #
+    #
+    #
+    # plt.show()
 
 
 if __name__ == '__main__':
@@ -534,8 +547,8 @@ if __name__ == '__main__':
     # df = load_raw_data('./resources/trace-2021-01-06T00 41 25.json')
     title = 'Daytrader'
     # title = 'Fruits'
-    service_name = "acmeair-service"
-    # service_name = "daytrader-service"
+    # service_name = "acmeair-service"
+    service_name = "daytrader-service"
     # service_name = 'quarkus-service'
 
     name = 'trace-2021-01-07T17 05 39'
@@ -569,11 +582,15 @@ if __name__ == '__main__':
     ##
     # browsing
     # name = 'trading-browsing-trx-trace-2021-03-04T17 12 43'
-
+    name = 'trace-multi-2021-03-17T19 42 57'
+    name = 'trace-multi-2021-03-18T22 51 57'
+    name = 'trace-multi-2021-03-19T21 05 56'
+    name = 'trace-multi-2021-03-21T00 51 09'
+    name = 'trace-2021-03-25T01 09 37'
     data = {}
-    df = load_raw_data('./resources/' + name + '.json', service_name)
+    # df = load_raw_data('./resources/' + name + '.json', service_name)
     # print(features_table(df, 'daytrader', 'config'))
-    print(features_table(df, 'acmeair', 'config', 'tparams').T.to_csv())
+    # print(features_table(df, 'acmeair', 'config', 'tparams').T.to_csv())
     # data['browsing'] = importance(df)
     # # trading
     # name = 'trace-trading-2021-03-08T16 54 14'
@@ -590,11 +607,12 @@ if __name__ == '__main__':
 
     # plot_importance(data)
 
-
-    # df = load_raw_data('./resources/' + name + '.json', service_name)
+    workload = 'trading-jsp'
+    df = load_raw_data('./resources/' + name + '.json', service_name, workload)
     # plot(df, title=title+': '+name, objective=r'$\frac{1}{1+resp. time} \times \frac{requests}{\$}$', save=title+name, show_table=True)
-    # plot(df, title=title + ': ' + name, objective_label=r'$\frac{1}{(1+resp. time)} \times \frac{requests}{\$}$',
-    #      save=False,
-    #      show_table=True)
+    plot(df, title=title + ': ' + name + '\n' + workload,
+         objective_label=r'$\frac{1}{(1+resp. time)} \times \frac{requests}{\$}$',
+         save=False,
+         show_table=True)
     # plot_app_curves(df)
-    # importance(df)
+    # plot_importance(importance(df, 'daytrader', 'config'))

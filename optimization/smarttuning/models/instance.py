@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime
 import logging
 import time
-from concurrent.futures import Future
 
 from kubernetes.client import ApiException
 
@@ -30,8 +29,8 @@ class Instance:
         self._is_production = is_production
         self._ctx: SearchSpaceContext = ctx
         self._default_sample_interval = sample_interval_in_secs
-        self._sampler: PrometheusSampler = PrometheusSampler(self.name,
-                                                             self._default_sample_interval) if sampler is None else sampler
+        self._sampler: PrometheusSampler = \
+            PrometheusSampler(self.name, self._default_sample_interval) if sampler is None else sampler
         self._active = True
         self._curr_config = None
         self._last_config = None
@@ -44,15 +43,16 @@ class Instance:
             'namespace': self.namespace,
             'production': self.is_production,
             'metric': self.metrics(cached=True).serialize(),
-            'curr_config': self.configuration.serialize() if not self.configuration is None else {},
-            'last_config': self.last_config.serialize() if not self.last_config is None else {},
+            'curr_config': self.configuration.serialize() if self.configuration is not None else {},
+            'last_config': self.last_config.serialize() if self.last_config is not None else {},
         }
 
     def set_default_config(self, metrics: Metric):
         # eval option data
         current_config = self._ctx.get_current_config()
         strials = self._ctx.get_smarttuning_trials()
-        self.configuration = strials.add_default_config(data=current_config, metric=metrics)
+        self.configuration = strials.add_default_config(data=current_config, metric=metrics,
+                                                        workload=self._ctx.workload)
 
     @property
     def name(self) -> str:
@@ -110,7 +110,7 @@ class Instance:
                 data_to_apply = config_to_apply.data if not isinstance(config_to_apply,
                                                                        DefaultConfiguration) else config_to_apply.data
                 self._do_patch(manifests, data_to_apply)
-            except:
+            except Exception:
                 logger.exception(f'error when patching config:{config_to_apply.data}')
 
     def _do_patch(self, manifests, configuration):
@@ -142,15 +142,15 @@ class Instance:
         metric.set_restarts(self.configuration.n_restarts if self.configuration else 0)
         return metric
 
-    def workload(self, interval: int = 0) -> Future:
-        if not self.active:
-            return Future()
-
-        self._sampler.interval = self._default_sample_interval
-        if interval > 0:
-            self._sampler.interval = interval
-
-        return self._sampler.workload()
+    # def workload(self, interval: int = 0) -> Future:
+    #     if not self.active:
+    #         return Future()
+    #
+    #     self._sampler.interval = self._default_sample_interval
+    #     if interval > 0:
+    #         self._sampler.interval = interval
+    #
+    #     return self._sampler.workload()
 
     @property
     def active(self) -> bool:
@@ -162,17 +162,11 @@ class Instance:
         try:
             config.appsApi().patch_namespaced_deployment(name=self.name, namespace=self.namespace,
                                                          body={
-                                                             "spec": {
-                                                                 "template": {
-                                                                     "metadata": {
-                                                                         "annotations": {
-                                                                             "kubectl.kubernetes.io/restartedAt": datetime.datetime.now(
-                                                                                 datetime.timezone.utc).isoformat()
-                                                                         }
-                                                                     },
-                                                                 }
-                                                             }
-                                                         })
+                                                             "spec": {"template": {"metadata": {"annotations": {
+                                                                 "kubectl.kubernetes.io/restartedAt":
+                                                                     datetime.datetime.now(
+                                                                         datetime.timezone.utc).isoformat()
+                                                             }}, }}})
         except ApiException:
             logger.exception(f'cannot restart deployment:  {self.name}')
 

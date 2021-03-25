@@ -32,6 +32,8 @@ metadata:
   name: smarttuning-config
 data:
   # test config
+  WORKLOAD_TIMEOUT: "60"
+  MOCK_WORKLOADS: "trading-jsp,browsing-jsp"
   FAIL_FAST: "False"
   MOCK: "False"
   PRINT_CONFIG: "True"
@@ -42,8 +44,8 @@ data:
   # prometheus config
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
-  SAMPLING_METRICS_TIMEOUT: '1200'
-  WAITING_TIME: '1200'
+  SAMPLING_METRICS_TIMEOUT: '600'
+  WAITING_TIME: '600'
   SAMPLE_SIZE: '0.3334'
   # classification config
   K: '1'
@@ -58,7 +60,7 @@ data:
   N_EI_CANDIDATES: '24'
   # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
   GAMMA: '0.25'
-  NUMBER_ITERATIONS: '25'
+  NUMBER_ITERATIONS: '50'
   ITERATIONS_BEFORE_REINFORCE: '10'
   MAX_N_ITERATION_NO_IMPROVEMENT: '15'
   TRY_BEST_AT_EVERY: '10'
@@ -104,6 +106,7 @@ spec:
       containers:
         - name: smarttuning
           image: quay.io/smarttuning/smarttuning:dev
+          #image: smarttuning/smarttuning:dev
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000

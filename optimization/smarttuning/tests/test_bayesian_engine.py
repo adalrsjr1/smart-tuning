@@ -5,7 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 import optuna
 from optuna.samplers import TPESampler
 
-from bayesian import BayesianEngine, BayesianDTO
+from bayesian import BayesianEngine
+from models.bayesiandto import BayesianDTO
 from controllers.searchspacemodel import SearchSpaceModel
 from models.configuration import Configuration
 from sampler import Metric

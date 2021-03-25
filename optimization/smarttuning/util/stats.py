@@ -1,7 +1,10 @@
 from __future__ import annotations
-from scipy.stats import t
-import math
+
 import heapq
+import math
+
+from scipy.stats import t
+
 
 class RunningStats:
     """ https://www.johndcook.com/blog/standard_deviation/ """
@@ -61,6 +64,9 @@ class RunningStats:
     def slope(self):
         return self.curr() - self.last()
 
+    def prev_state(self):
+        return self._prev_state
+
     def push(self, x):
         self._last = self.curr()
         self._curr = x
@@ -86,7 +92,7 @@ class RunningStats:
             self._m_oldS = self._m_newS
 
     def n(self):
-        return  self._m_n
+        return self._m_n
 
     def median(self):
         pivot = self.n() // 2 + 1

@@ -1,20 +1,19 @@
 from __future__ import annotations
 
-import datetime
-from threading import Lock, Condition
+from threading import Lock
 
-import optuna
 from kubernetes.client.rest import ApiException
 from optuna.samplers import TPESampler, RandomSampler
 
-from bayesian import BayesianEngine, BayesianDTO, BayesianChannel
+from bayesian import BayesianEngine, BayesianChannel, SmartTuningPrunner
 from controllers.injector import duplicate_deployment_for_training
 from controllers.k8seventloop import ListToWatch
 from controllers.searchspacemodel import *
+from models.bayesiandto import BayesianDTO
 from models.configuration import Configuration, EmptyConfiguration
 
 logger = logging.getLogger(config.SEARCH_SPACE_LOGGER)
-logger.setLevel(config.LOGGING_LEVEL)
+logger.setLevel(logging.DEBUG)
 
 
 def init(loop):
@@ -26,7 +25,7 @@ def init(loop):
                               plural='searchspaces'), searchspace_controller)
 
 
-search_spaces: dict[str, Condition] = {}
+search_spaces: dict[str, dict] = {}
 search_space_lock = Lock()
 
 
@@ -46,16 +45,20 @@ def searchspace_controller(event):
             update_n_replicas(deployment_name, namespace, deployment.spec.replicas - 1)
 
             with search_space_lock:
+                logger.warning(f'initialiazing search space {name}:{deployment_name}')
                 search_spaces[deployment_name] = event
 
         except ApiException as e:
             if 422 == e.status:
                 logger.warning(f'failed to duplicate deployment {name}')
     elif 'DELETED' == t:
-        name = event['object']['spec']['deployment']
-        if name in search_spaces:
-            ctx = search_spaces[name]
-            stop_tuning(ctx)
+        name = event['object']['metadata']['name']
+        namespace = event['object']['metadata']['namespace']
+        deployment_name = event['object']['spec']['deployment']
+        logger.warning(f'removing {name}')
+        if deployment_name in search_spaces:
+            with search_space_lock:
+                search_spaces[deployment_name] = event
 
 
 def new_search_space_ctx(search_space_ctx_name: str, raw_search_space_model: dict, workload: str) -> SearchSpaceContext:
@@ -67,15 +70,22 @@ def new_search_space_ctx(search_space_ctx_name: str, raw_search_space_model: dic
             # gamma=config.GAMMA,
             seed=config.RANDOM_SEED
         )
-    study = optuna.create_study(sampler=sampler)
+    study = optuna.create_study(
+        sampler=sampler,
+        study_name=workload
+    )
+
     ctx = SearchSpaceContext(search_space_ctx_name,
                              SearchSpaceModel(raw_search_space_model, study), workload)
-
     ctx.create_bayesian_searchspace(
         study,
         max_evals=config.NUMBER_ITERATIONS,
         max_evals_no_change=round(config.MAX_N_ITERATION_NO_IMPROVEMENT),
+        workload=workload
     )
+
+    study.pruner = SmartTuningPrunner(workload, ctx)
+
     return ctx
 
 
@@ -99,6 +109,7 @@ def context(deployment_name) -> SearchSpaceContext:
 class SearchSpaceContext:
     def __init__(self, name: str, search_space: SearchSpaceModel, workload: str):
         self.name = name
+        self.deployment = search_space.deployment
         self.namespace = search_space.namespace
         self.service = search_space.service
         self.model = search_space
@@ -130,12 +141,13 @@ class SearchSpaceContext:
 
         return current_config
 
-    def create_bayesian_searchspace(self, study: optuna.study.Study, max_evals: int, max_evals_no_change: int =100):
+    def create_bayesian_searchspace(self, study: optuna.study.Study, max_evals: int, max_evals_no_change: int =100, workload: str = ''):
         self.engine = BayesianEngine(
             name=self.name,
             space=self.model,
             max_evals=max_evals,
             max_evals_no_change=max_evals_no_change,
+            workload=workload
         )
 
     def delete_bayesian_searchspace(self):
@@ -149,7 +161,16 @@ class SearchSpaceContext:
     def get_from_engine(self) -> Configuration:
         if self.engine and self.engine.is_running():
             return self.engine.get()
+        logger.warning(f'engine:{self.engine} is_running:{self.engine.is_running()}')
         return EmptyConfiguration()
+
+    def task_done_engine(self):
+        if self.engine and self.engine.is_running():
+            self.engine.task_done()
+
+    def join_engine(self):
+        if self.engine and self.engine.is_running():
+            self.engine.join()
 
     def get_best_so_far(self, ):
         if self.engine:
@@ -170,5 +191,6 @@ class SearchSpaceContext:
             return self.engine.smarttuning_trials
         return None
 
-    def get_trials_as_documents(self):
-        return self.engine.trials_as_documents()
+    # TODO: to remove
+    # def get_trials_as_documents(self):
+    #     return self.engine.trials_as_documents()

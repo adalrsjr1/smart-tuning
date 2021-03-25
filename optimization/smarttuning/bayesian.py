@@ -1,33 +1,40 @@
 from __future__ import annotations
 
+import copy
 import logging
 import random
 import threading
-import time
 from dataclasses import dataclass
 from queue import Queue, Empty
 
 import optuna
 from hyperopt import space_eval
+from optuna.pruners import BasePruner
 
 import config
 from controllers.searchspacemodel import SearchSpaceModel
-from models.configuration import Configuration, LastConfig, EmptyConfiguration
+from models.bayesiandto import BayesianDTO
+from models.configuration import Configuration, LastConfig
 from models.smartttuningtrials import SmartTuningTrials
-from sampler import Metric
 
 random.seed(config.RANDOM_SEED)
 logger = logging.getLogger(config.BAYESIAN_LOGGER)
 logger.setLevel(logging.DEBUG)
 
 
+class SnapshotQueue(Queue):
+    def snapshot(self):
+        with self.mutex:
+            return list(self.queue)
+
+
 class BayesianChannel:
-    channels: dict[str, dict[str, Queue]] = {}
+    channels: dict[str, dict[str, SnapshotQueue]] = {}
     lock = threading.RLock()
 
     @staticmethod
-    def _erase_queues(channel_name: str, channel: dict[str, Queue]):
-        gate: Queue
+    def _erase_queues(channel_name: str, channel: dict[str, SnapshotQueue]):
+        gate: SnapshotQueue
         for name, gate in channel.items():
             # with gate.mutex:
             if not gate.empty():
@@ -40,8 +47,8 @@ class BayesianChannel:
     def register(bayesian_id):
         BayesianChannel.lock.acquire()
         BayesianChannel.channels[bayesian_id] = {
-            'in': Queue(maxsize=1),
-            'out': Queue(maxsize=1)
+            'in': SnapshotQueue(maxsize=1),
+            'out': SnapshotQueue(maxsize=1)
         }
         BayesianChannel.lock.release()
 
@@ -91,19 +98,48 @@ class BayesianChannel:
         logger.debug(f'got value:{value} channel.{bayesian_id}.out')
         return value
 
+    @staticmethod
+    def head(bayesian_id):
+        if bayesian_id not in BayesianChannel.channels:
+            BayesianChannel.register(bayesian_id)
+        logger.debug(f'sneaking value channel.{bayesian_id}.out')
+        nqueue = BayesianChannel.channels[bayesian_id]['out'].snapshot()
+        logger.debug(f'sneaked value:{nqueue[0]} channel.{bayesian_id}.out')
+        return copy.deepcopy(nqueue[0])
 
-class BayesianDTO:
-    def __init__(self, metric: Metric = Metric.zero(), workload_classification: str = ''):
-        self.metric = metric
-        self.classification = workload_classification
+    @staticmethod
+    def task_done(bayesian_id):
+        if bayesian_id not in BayesianChannel.channels:
+            BayesianChannel.register(bayesian_id)
+        logger.debug(f'task done value channel.{bayesian_id}.out')
+        BayesianChannel.channels[bayesian_id]['out'].task_done()
+        logger.debug(f'done task  channel.{bayesian_id}.out')
 
-    def __repr__(self):
-        return f'{{"metric": {self.metric}, "classification": "{self.classification}"}}'
+    @staticmethod
+    def join(bayesian_id):
+        if bayesian_id not in BayesianChannel.channels:
+            BayesianChannel.register(bayesian_id)
+        logger.debug(f'join value channel.{bayesian_id}.out')
+        BayesianChannel.channels[bayesian_id]['out'].join()
+        logger.debug(f'joined  channel.{bayesian_id}.out')
 
 
-class EmptyBayesianDTO(BayesianDTO):
-    def __init__(self):
-        super(EmptyBayesianDTO, self).__init__()
+class SmartTuningPrunner(BasePruner):
+
+    def __init__(self, workload: str, ctx):
+        super(SmartTuningPrunner, self).__init__()
+        self._workload: str = workload
+        self._ctx = ctx
+        self._smart_tuning_trials: SmartTuningTrials = self._ctx.get_smarttuning_trials()
+
+    def prune(self, study: "optuna.study.Study", trial: "optuna.trial.FrozenTrial") -> bool:
+        from controllers.planner import Planner
+        configuration: Configuration = self._smart_tuning_trials.get_config_by_trial(trial)
+        pruned = configuration.workload != Planner.get_workload(self._ctx.deployment)
+        if pruned:
+            configuration.prune()
+            study.enqueue_trial(trial.params)
+        return pruned
 
 
 @dataclass
@@ -120,20 +156,23 @@ class StopCriteria:
             self.n_iterations_no_change = 0
 
         if self.n_iterations_no_change >= self.max_n_no_changes:
+            logger.warning(f'stoping iterations at study: {study.study_name}')
+            logger.warning(
+                f'n_iterations_no_change:{self.n_iterations_no_change} max_n_no_chanages:{self.max_n_no_changes}')
             study.stop()
 
 
 class BayesianEngine:
-    # to make search-space dynamic
-    # https://github.com/hyperopt/hyperopt/blob/2814a9e047904f11d29a8d01e9f620a97c8a4e37/tutorial/Partial-sampling%20in%20hyperopt.ipynb
     def __init__(self,
                  name: str,
                  space: SearchSpaceModel,
+                 workload: str,
                  max_evals: int,
                  max_evals_no_change: int = 100
                  ):
         self._id: str = name
         self._running: bool = False
+        self._workload: str = workload
         self._space: SearchSpaceModel = space
         self._study: optuna.study.Study = self._space.study
         self._trials: SmartTuningTrials = SmartTuningTrials(space=self._space)
@@ -144,8 +183,6 @@ class BayesianEngine:
         logger.info(f'initializing bayesian engine={name}')
 
         def objective_fn():
-            # TODO: implement eager stop
-            # https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html?highlight=stop#optuna.study.Study.stop
             try:
                 self._study.optimize(
                     self.objective,
@@ -160,13 +197,12 @@ class BayesianEngine:
                 best.update({'is_best_config': True})
 
                 best_config = self.smarttuning_trials.get_config_by_trial(best_trial)
-                # best_config = self.smarttuning_trials.get_config_by_trial(best_trial)
                 logger.info(f'found best config after {max_evals} iterations: {best_config}')
 
                 best = LastConfig(best_config)
                 BayesianChannel.put_out(self.id(), best)
                 self.stop()
-            except:
+            except Exception:
                 logger.exception('error while evaluating fmin')
 
         self.fmin = threading.Thread(name='bayesian-engine-' + name, target=objective_fn, daemon=True)
@@ -188,30 +224,35 @@ class BayesianEngine:
     def smarttuning_trials(self) -> SmartTuningTrials:
         return self._trials
 
-    def trials_as_documents(self):
-        documents = []
+    @property
+    def workload(self):
+        return self._workload
 
-        try:
-            trial: optuna.trial.FrozenTrial
-            for trial in self.trials.trials:
-                params = trial.params
-                loss = trial.value
-                tid = trial.number
-                status = trial.state.name
-                iteration = tid
-
-                documents.append({
-                    'uid': time.time_ns(),
-                    'tid': tid,
-                    'params': params,
-                    'loss': loss,
-                    'iteration': iteration,
-                    'status': status
-                })
-        except:
-            logger.exception('error when retrieving trials')
-
-        return documents
+    # TODO: to remove
+    # def trials_as_documents(self):
+    #     documents = []
+    #
+    #     try:
+    #         trial: optuna.trial.FrozenTrial
+    #         for trial in self.trials.trials:
+    #             params = trial.params
+    #             loss = trial.value
+    #             tid = trial.number
+    #             status = trial.state.name
+    #             iteration = tid
+    #
+    #             documents.append({
+    #                 'uid': time.time_ns(),
+    #                 'tid': tid,
+    #                 'params': params,
+    #                 'loss': loss,
+    #                 'iteration': iteration,
+    #                 'status': status
+    #             })
+    #     except Exception:
+    #         logger.exception('error when retrieving trials')
+    #
+    #     return documents
 
     def is_running(self):
         return self._running
@@ -223,26 +264,36 @@ class BayesianEngine:
         self._iterations += 1
 
         loss = float('nan')
+        configuration = None
         try:
-            # pass params to configuration through search space model: <configuration.data = space.sample()>
-            configuration = Configuration(trial=trial, ctx=self._space, trials=self.smarttuning_trials)
-            self.smarttuning_trials.add_new_configuration(configuration)
+            configuration = self.smarttuning_trials.get_config_by_trial(trial)
+            if configuration is None:
+                configuration = Configuration(trial=trial, ctx=self._space, trials=self.smarttuning_trials)
+                configuration.workload = self.workload
+                self.smarttuning_trials.add_new_configuration(configuration)
+
+            # out: config
             BayesianChannel.put_out(self.id(), configuration)
+            # in: score
             dto: BayesianDTO = BayesianChannel.get_in(self.id())
-            # TODO: evaluate intermediary values to prune poor configs
-            # TODO: bring 'wait' from 'app.py' here
             configuration.update_score(dto.metric)
+            # configuration.workload = dto.classification
             loss = configuration.score
-            # TODO: verify workloads
-            # if workload at this point is different from the begging
-            # mark the current trial as FAIL
-            trial.stat
             self._last_best_score = min(self._last_best_score, loss)
 
         except Exception:
-            logger.exception(f'evalution failed at bayesian core for {trial.params}')
-            exit(0)
+            logger.exception(f'evalution failed at bayesian core for {self._study.study_name}:{trial.params}')
+            logger.warning(f'going to prune due to error: {configuration}')
         finally:
+            with configuration.semaphore:
+                if not (configuration.trial is trial):
+                    # updating trial if reusing a config
+                    configuration.trial = trial
+
+            if configuration.was_pruned:
+                logger.warning(f'pruning')
+                raise optuna.TrialPruned
+
             logger.debug(f'params at bayesian obj: {trial.params}:{loss}')
             return loss
 
@@ -257,6 +308,12 @@ class BayesianEngine:
 
     def put(self, dto: BayesianDTO):
         BayesianChannel.put_in(self.id(), dto)
+
+    def task_done(self):
+        BayesianChannel.task_done(self.id())
+
+    def join(self):
+        BayesianChannel.join(self.id())
 
     def best_so_far(self) -> (dict, float):
         return self._study.best_trial.params, self._study.best_value

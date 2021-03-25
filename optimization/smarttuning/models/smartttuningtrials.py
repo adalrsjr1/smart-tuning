@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+from typing import Union
 
 import optuna
-from hyperopt import Trials
 
 import config
 # workaround to fix circular dependency
@@ -39,12 +39,12 @@ class SmartTuningTrials:
                     'loss': loss,
                     'status': status
                 })
-        except:
+        except Exception:
             logger.exception(f'error when retrieving trials at it: {i}')
 
         return documents
 
-    def last_trial(self) -> optuna.trial.FrozenTrial:
+    def last_trial(self) -> Union[optuna.trial.FrozenTrial, None]:
         if len(self.wrapped_trials) > 0:
             return self.wrapped_trials[-1]
         return None
@@ -65,15 +65,14 @@ class SmartTuningTrials:
     def wrapped_trials(self) -> list[optuna.trial.FrozenTrial]:
         return self.ctx.get_trials(deepcopy=False)
 
-    def add_default_config(self, data: dict, metric: Metric) -> DefaultConfiguration:
-        trial = self.new_trial_entry(data, metric.objective(), classification=None)
-        default_configuration = DefaultConfiguration(trial=trial, ctx=self._space, trials=self)
+    def add_default_config(self, data: dict, metric: Metric, workload: str) -> DefaultConfiguration:
+        trial = self.new_trial_entry(data, metric.objective())
+        default_configuration = DefaultConfiguration(trial=trial, ctx=self._space, trials=self, workload=workload)
         self.add_new_configuration(configuration=default_configuration)
         default_configuration.update_score(metric)
         return default_configuration
 
-    def new_trial_entry(self, configuration: dict, loss: float,
-                        classification: str = None) -> optuna.trial.BaseTrial:
+    def new_trial_entry(self, configuration: dict, loss: float) -> optuna.trial.BaseTrial:
 
         flat_config = {}
         # {'manifest_name': {'x':0}} --> {'x':0}
@@ -88,34 +87,38 @@ class SmartTuningTrials:
 
         new_trial = optuna.create_trial(
             params=flat_config,
-            distributions={name: optuna.distributions.CategoricalDistribution(choices=[param]) for name, param in flat_config.items()},
+            distributions={name: optuna.distributions.CategoricalDistribution(choices=[param])
+                           for name, param in flat_config.items()},
             value=loss
         )
         self.ctx.add_trial(new_trial)
 
         return new_trial
 
-    def add_new_configuration(self, configuration: Configuration):
-        if not self.get_config_by_name(configuration.name):
+    def add_new_configuration(self, configuration: Configuration) -> Configuration:
+        if self.get_config_by_name(configuration.name) is None:
             self._data[configuration.name] = configuration
         return self._data[configuration.name]
 
-    def get_config_by_name(self, name: str) -> Configuration:
+    def get_config_by_name(self, name: str) -> Union[Configuration, None]:
         return self._data.get(name, None)
 
-    def get_config_by_id(self, uid: int) -> Configuration:
+    def get_config_by_id(self, uid: int) -> Union[Configuration, None]:
         for name, configuration in self._data.items():
             if uid == configuration.uid:
                 return configuration
+        return None
 
-    def get_config_by_trial(self, best_trial: optuna.trial.BaseTrial) -> Configuration:
+    def get_config_by_trial(self, best_trial: optuna.trial.BaseTrial) -> Union[Configuration, None]:
         # for name, configuration in self._data.items():
         for name, configuration in self._data.items():
-            logger.debug(f'{name}:{configuration.trial.params} == {best_trial.params}')
+            # logger.debug(f'{name}:{configuration.trial.params} == {best_trial.params}')
             if configuration.trial.params == best_trial.params:
                 return configuration
+        return None
 
 
-class EmptySmartTuningTrials(SmartTuningTrials):
-    def __init__(self):
-        super().__init__({}, Trials())
+# TODO: to remove
+# class EmptySmartTuningTrials(SmartTuningTrials):
+#     def __init__(self):
+#         super().__init__(None)

@@ -1,6 +1,6 @@
 import logging
+import threading
 import time
-from threading import Condition
 
 import kubernetes
 
@@ -89,7 +89,7 @@ class SmartTuningContext:
     def workload(self):
         return self._workload
 
-    def progress(self) -> (Configuration):
+    def progress(self) -> Configuration:
         configuration = next(self.planner)
         return configuration
 
@@ -101,30 +101,49 @@ class SmartTuningContext:
         pass
 
 
-def curr_workload(iteration: int) -> str:
-    return 'fake'
-    # cm: kubernetes.client.models.V1ConfigMap = config.coreApi().read_namespaced_config_map(namespace='default', name='jmeter-config')
-    # workload = cm.data['TEST_GROUP']
-    # logger.info(f'workload: {workload}')
-    workload = config.MOCK_WORKLOADS[iteration % len(config.MOCK_WORKLOADS)]
-    logger.debug(f'mocking new workload: {workload}')
-    result = config.coreApi().patch_namespaced_config_map(name='jmeter-config', namespace='default',
-                                                 body={
-                                                     "kind": "ConfigMap",
-                                                     "apiVersion": "v1",
-                                                     "metadata": {"labels": {"date": str(int(time.time()))}},
-                                                     "data": {
-                                                         'TEST_GROUP': workload
-                                                     }
-                                                 })
-    logger.debug(f'workload: {result}')
-    return workload
+def curr_workload(time_tick: int, global_iteration: int, workload: str) -> str:
+    # TODO: move this to Planner.get_workload()
+    # workload = curr_workload
+    new_workload = workload
+    try:
+        cm: kubernetes.client.models.V1ConfigMap = config.coreApi().read_namespaced_config_map(namespace='default',
+                                                                                               name='jmeter-config')
+        new_workload = cm.data['TEST_GROUP']
+        if new_workload != workload:
+            logger.info(f'workload: {workload} global_counter: {global_iteration} time_tick: {time_tick}')
+    finally:
+        if new_workload != workload:
+            logger.info(f'using default workload type: {workload}')
+        workload = new_workload
+        return workload
+    # workload = config.MOCK_WORKLOADS[global_iteration % len(config.MOCK_WORKLOADS)]
+    # workload = config.MOCK_WORKLOADS[time_tick % len(config.MOCK_WORKLOADS)]
+    #
+    # if time_tick < 1:
+    #     return config.MOCK_WORKLOADS[0]
+    # else:
+    #     config.MOCK_WORKLOADS[1]
+    #
+    # return workload
+    # logger.debug(f'sampling new workload type: {workload} for iteration {global_iteration} at tick {time_tick}')
+    # result: V1ConfigMap = config.coreApi().patch_namespaced_config_map(name='jmeter-config', namespace='default',
+    #                                                                    body={
+    #                                                                        "kind": "ConfigMap",
+    #                                                                        "apiVersion": "v1",
+    #                                                                        "metadata": {"labels": {
+    #                                                                            "date": str(int(time.time()))}},
+    #                                                                        "data": {
+    #                                                                            'TEST_GROUP': workload
+    #                                                                        }
+    #                                                                    })
+    # logger.debug(f'workload: {result.data["TEST_GROUP"]}')
+    # return workload
 
 
 def create_context(production_microservice, training_microservice):
     logger.info(f'creating context for ({production_microservice},{training_microservice})')
     production_name = production_microservice
-    training_name = training_microservice
+    # training_name = training_microservice
 
     production_sanitized = production_microservice.replace('.', '\\.')
     training_sanitized = training_microservice.replace('.', '\\.')
@@ -132,9 +151,29 @@ def create_context(production_microservice, training_microservice):
 
     context_by_workload: list[SmartTuningContext] = []
 
-    workload = None
+    # workload = None
     counter = 0
     stoped = False
+    start_event: threading.Event = threading.Event()
+
+    def update_workloads():
+        tick = 0
+        last = ''
+        while not stoped:
+            try:
+                Planner.update_workload(production_name, curr_workload(tick, counter, last))
+                start_event.set()
+                if last != Planner.get_workload(production_name):
+                    last = Planner.get_workload(production_name)
+                    logger.debug(f'updating workload at {production_name} to: {Planner.get_workload(production_name)}')
+            except Exception:
+                logger.exception(f'cannot update workload at {production_name}')
+            finally:
+                time.sleep(config.WORKLOAD_TIMEOUT)
+            tick = tick + 1
+
+    config.executor().submit(update_workloads)
+    start_event.wait()
     while not stoped:
         try:
             # get event from search space deployment
@@ -147,13 +186,17 @@ def create_context(production_microservice, training_microservice):
                 time.sleep(0.1)
                 continue
 
-            # check if there is a context for the current workload, if not, create a new context
-            # if len(context_by_workload) > 0:
-            workload = curr_workload(counter)
+            if 'DELETED' == event['type']:
+                logger.warning(f'stoping smarrtuning tuning for app: {production_name}')
+                stoped = True
+                raise RuntimeError('search space removed')
+
+            workload = Planner.get_workload(production_name)
             smarttuning_context_lst = [ctx for ctx in context_by_workload if ctx.workload == workload]
+
             if smarttuning_context_lst and workload == smarttuning_context_lst[0].workload:
                 smarttuning_context = smarttuning_context_lst[0]
-                workload = smarttuning_context.workload
+                # workload = smarttuning_context.workload
             else:
                 search_space_ctx: SearchSpaceContext = searchspace.new_search_space_ctx(
                     # this name will be used as uid for the bayesian engine too
@@ -167,7 +210,8 @@ def create_context(production_microservice, training_microservice):
                 training = Instance(name=training_sanitized, namespace=config.NAMESPACE, is_production=False,
                                     sample_interval_in_secs=config.WAITING_TIME * config.SAMPLE_SIZE,
                                     ctx=search_space_ctx)
-                p = Planner(uid=config.STARTUP_TIME, production=production, training=training, ctx=search_space_ctx, max_iterations=config.NUMBER_ITERATIONS,
+                p = Planner(uid=config.STARTUP_TIME, production=production, training=training, ctx=search_space_ctx,
+                            max_iterations=config.NUMBER_ITERATIONS,
                             k=config.ITERATIONS_BEFORE_REINFORCE, ratio=config.REINFORCEMENT_RATIO,
                             when_try=config.TRY_BEST_AT_EVERY, restart_trigger=config.RESTART_TRIGGER)
 
@@ -181,25 +225,22 @@ def create_context(production_microservice, training_microservice):
                 context_by_workload.append(smarttuning_context)
 
             # restore proper config to pods
-            # smarttuning_context.production.patch_current_config()
-            # smarttuning_context.training.patch_current_config()
             smarttuning_context.restore_config()
 
             # iterate trying a new config
             configuration = smarttuning_context.progress()
             logger.info(f'[{counter}, last:{isinstance(configuration, LastConfig)}] {configuration}')
 
-
-        except:
+        except Exception:
             logger.exception('error during tuning iteration')
         finally:
-            counter += 1
             # stop smart tuning when all BO reach the max number of iterations
-            final = [ctx.planner.iterations_performed for ctx in context_by_workload if ctx.planner.iterations_performed == config.NUMBER_ITERATIONS-1]
-            stoped = len(final) == len(context_by_workload)
+            final = [ctx.planner.iterations_performed for ctx in context_by_workload if
+                     ctx.planner.iterations_performed == config.NUMBER_ITERATIONS - 1]
+            stoped = (stoped or len(final) == len(context_by_workload))
+            counter += 1
 
     del training
-    # logger.info(f'stopping tuning for {production_name}:: {context_by_workload}')
     for ctx in context_by_workload:
         searchspace.stop_tuning(ctx.search_space_ctx)
 
@@ -220,7 +261,7 @@ def main():
             microservices = injector.duplicated_dep
             create_contexts(microservices)
             time.sleep(1)
-        except:
+        except Exception:
             logger.exception(f'error in main loop')
             break
 

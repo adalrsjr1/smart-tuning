@@ -150,7 +150,7 @@ class TestPlanner(TestCase):
 
         # trials.last_trial = fake_trial(0)
 
-        ctx = SearchSpaceContext(name='', search_space=search_space(study))
+        ctx = SearchSpaceContext(name='', search_space=search_space(study), workload='')
         ctx.create_bayesian_searchspace(study, 10)
         ctx.get_current_config = get_current_config()
         # ctx.get_from_engine = get_from_engine(trials, search_space(study))
@@ -181,7 +181,7 @@ class TestPlanner(TestCase):
         p.restart = MagicMock(return_value=None)
         p._do_patch = Mock(side_effect=print('patching production'))
 
-        planner = Planner(p, t, ctx, k=10, ratio=0.3334)
+        planner = Planner(p, t, ctx, k=10, ratio=0.3334, max_iterations=10, ctx=ctx)
 
         def annonymous(reinforcement=None, best=None):
             print([cfg['name'] for cfg in best])
@@ -204,8 +204,7 @@ class TestPlanner(TestCase):
         print(planner.heap1)
         print(planner.heap2)
 
-        print(optuna.importance.get_param_importances(study,
-                                                      evaluator=optuna.importance.MeanDecreaseImpurityImportanceEvaluator()))
+        # print(optuna.importance.get_param_importances(study))
 
     def test_update_heap(self):
         study = optuna.create_study(sampler=RandomSampler())
@@ -223,7 +222,8 @@ class TestPlanner(TestCase):
         c1.stats.median = MagicMock(return_value=-3)
         c = Configuration(trial=fake_trial(1), ctx=search_space(study),trials=MagicMock())
 
-        planner = Planner(MagicMock(), MagicMock(), MagicMock(), k=0, ratio=0)
+        ctx = SearchSpaceContext(name='', search_space=search_space(study), workload='')
+        planner = Planner(MagicMock(), MagicMock(), MagicMock(), k=0, ratio=0, ctx=ctx, max_iterations=10)
         planner.heap1 = [c1]
         planner.heap2 = [c2]
         self.assertIs(planner.heap1[0], c1)

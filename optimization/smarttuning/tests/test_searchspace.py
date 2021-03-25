@@ -10,7 +10,7 @@ import config
 from kubernetes.client.models import *
 import kubernetes
 from controllers import searchspace
-from bayesian import BayesianDTO
+from models.bayesiandto import BayesianDTO
 from controllers.searchspacemodel import SearchSpaceModel
 from controllers.k8seventloop import EventLoop, ListToWatch
 from controllers.searchspace import SearchSpaceContext

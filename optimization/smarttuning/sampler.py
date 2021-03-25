@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import math
 import re
+import time
 from collections import defaultdict
 from concurrent.futures import Future
 from numbers import Number
@@ -14,7 +15,7 @@ from prometheus_pandas import query as handler
 import config
 
 logger = logging.getLogger(config.SAMPLER_LOGGER)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 def __extract_value_from_future__(future, timeout=config.SAMPLING_METRICS_TIMEOUT):
@@ -138,6 +139,8 @@ class Metric:
                  in_out=None,
                  restarts=0):
 
+        self._startup_time = time.time()
+
         self.name = name
         self._f_cpu = f_cpu
         self._cpu = cpu
@@ -205,6 +208,9 @@ class Metric:
 
     def set_restarts(self, n):
         self._restarts = n
+
+    def ttl(self):
+        return time.time() - self._startup_time
 
     def __operation__(self, other, op):
         if isinstance(other, Metric):
