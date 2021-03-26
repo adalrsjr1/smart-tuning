@@ -14,7 +14,7 @@ from optuna.pruners import BasePruner
 import config
 from controllers.searchspacemodel import SearchSpaceModel
 from models.bayesiandto import BayesianDTO
-from models.configuration import Configuration, LastConfig
+from models.configuration import Configuration, LastConfig, EmptyConfiguration
 from models.smartttuningtrials import SmartTuningTrials
 
 random.seed(config.RANDOM_SEED)
@@ -146,13 +146,27 @@ class SmartTuningPrunner(BasePruner):
 class StopCriteria:
     n_iterations_no_change: int = 0
     last_best_score: float = float('inf')
-
+    last_best_uid: int = -1
+    last_best_config: Configuration = EmptyConfiguration()
+    smart_tuning_trials: SmartTuningTrials = None
     max_n_no_changes: int = 100
 
     def __call__(self, study: optuna.study.Study, trial: optuna.trial.BaseTrial):
+        try:
+            logger.info(f'stop criteria @ {study.study_name} -- n_iterations_no_change:{self.n_iterations_no_change}/{self.max_n_no_changes}, '
+                        f'last_best_score|id: {self.last_best_score}|{self.last_best_uid}, '
+                        f'best_config|workload: {self.last_best_config.name}|{self.last_best_config.workload}')
+        except Exception:
+            logger.info(f'stop criteria @ {study.study_name} -- n_iterations_no_change:{self.n_iterations_no_change}/{self.max_n_no_changes}, '
+                        f'last_best_score|id: {self.last_best_score}|{self.last_best_uid}')
+
         self.n_iterations_no_change += 1
+
         if study.best_value != self.last_best_score:
-            self.last_best_score = study.best_value
+
+            self.last_best_score = study.best_trial.value
+            self.last_best_uid = study.best_trial.number
+            self.last_best_config = self.smart_tuning_trials.get_config_by_trial(study.best_trial)
             self.n_iterations_no_change = 0
 
         if self.n_iterations_no_change >= self.max_n_no_changes:
@@ -188,7 +202,7 @@ class BayesianEngine:
                     self.objective,
                     n_trials=max_evals,
                     show_progress_bar=False,
-                    callbacks=[StopCriteria(max_n_no_changes=max_evals_no_change)]
+                    callbacks=[StopCriteria(max_n_no_changes=max_evals_no_change, smart_tuning_trials=self.smarttuning_trials)]
                 )
 
                 best_trial = self._study.best_trial
