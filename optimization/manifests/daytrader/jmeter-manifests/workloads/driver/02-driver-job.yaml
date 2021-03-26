@@ -70,11 +70,17 @@ spec:
               item="${array[$((i % array_len))]}"
               echo ""
               echo "iteration: $i, workload: $item"
-              echo ""
               # log only the updated parameter
               #update_cm $item
               update_cm $item | grep \"TEST_GROUP\":
+
+              if [[ -n $RANDOM ]]; then
+                ITERATION_DURATION=$(($RANDOM % $MAX_RANDOM + $MIN_RANDOM))
+              fi
+
+              echo "sleeping: $(($ITERATION_DURATION / 60))"
               sleep $ITERATION_DURATION
+              echo ""
             done;
         resources: {}
         env:
@@ -84,6 +90,15 @@ spec:
             value: "jmeter-config"
           - name: N_ITERATIONS
             value: "1000"
+            # unset if want a fixed value for ITERATION_DURATION
+          - name: RANDOM
+            value: "true"
+            # 67 min
+          - name: MAX_RANDOM
+            value: "4020"
+            # 17 min
+          - name: MIN_RANDOM
+            value: "1020"
           - name: ITERATION_DURATION
             #value: "131"
             # 23 minutes
