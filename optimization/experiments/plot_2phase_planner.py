@@ -8,6 +8,7 @@ import sys
 
 import matplotlib
 import matplotlib.lines as mlines
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -46,9 +47,9 @@ def load_raw_data(filename: str, service_name: str, workload: str) -> pd.DataFra
             record = json.loads(row)
             if workload != '' and record['ctx_workload'] != workload:
                 continue
-
             raw_data.append(Iteration(
                 record.get('pruned', False),
+                record.get('ctx_workload', ''),
                 record['global_iteration'],
                 record['production']['curr_config']['name'],
                 math.fabs(record['production']['curr_config']['score'] or 0),
@@ -97,12 +98,13 @@ class Param:
 
 
 class Iteration:
-    def __init__(self, pruned, iteration,
+    def __init__(self, pruned, workload, iteration,
                  pname, pscore, pmean, pmedian, pmin, pmax, pstddev, ptruput, pproctime, pmem, pmem_lim, prestarts,
                  pparams,
                  tname, tscore, tmean, tmedian, tmin, tmax, tstddev, ttruput, tproctime, tmem, tmem_lim, trestarts,
                  tparams, nbest):
         self.pruned = pruned
+        self.workload = workload
         self.pname = pname
         self.pscore = pscore
         self.pmean = pmean
@@ -153,6 +155,7 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         # create a color table for all configs
         punique = row['pname']
         tunique = row['tname']
+        wunique = row['workload']
 
         if punique not in memoization:
             # create a unique color table
@@ -167,6 +170,12 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
 
         if tunique in memoization:
             new_colors.append(memoization[tunique])
+
+        if wunique not in memoization:
+            unique_color(memoization, wunique)
+
+        if wunique in memoization:
+            new_colors.append(memoization[wunique])
 
     # plotting elements
     fig: Figure
@@ -203,9 +212,10 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
                 color='blue')  # training
 
         # paint full column
-        rectangle: Polygon = ax.axvspan(index - 0.5, index + 0.5, facecolor=cmap(memoization[row['pname']]), alpha=0.5)
+        rectangle: Polygon = ax.axvspan(index - 0.5, index + 0.5, facecolor=cmap(memoization[row['pname']]), alpha=0.5,
+                                        linewidth=0.4)
         if row['pruned']:
-            rectangle.set_hatch('/')
+            rectangle.set_hatch('///')
 
         # draw delta(score, (max,min)) -- residual
         plot_training([index, _tmin], [index, _tmax], [index, row['tscore']], ax, color='blue', marker='x',
@@ -250,8 +260,6 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         ax.xaxis.set_ticks([])
         ax.set_xlabel('')
         ax.margins(x=0)
-
-        plt_table: matplotlib.table
         table = pd.DataFrame(reduced_table['nbest'].to_dict())
         table = table.T
         table['restarts'] = reduced_table['prestarts']
@@ -276,6 +284,10 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
             text: str = cell.get_text().get_text()
             if pos[0] != 0 and len(text) == 3 and text not in '1st2nd3rd':
                 plt_table[pos].set_facecolor(cmap(memoization[text]))
+                cell.set_alpha(0.7)
+            if pos[0] == 0:
+                # print(reduced_table['workload'].iloc[pos[1]])
+                plt_table[pos].set_facecolor(cmap(memoization[reduced_table['workload'].iloc[pos[1]]]))
                 cell.set_alpha(0.7)
 
     # customize legend
@@ -347,6 +359,8 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     ax.text(-4, 0, 'prod.\ncfg.', fontsize='smaller')
     ax.text(-4, top + 30, 'train.\ncfg.', fontsize='smaller')
 
+    # hack to change hatch linewidth
+    mpl.rc('hatch', color='k', linewidth=0.5)
     # tight layout to avoid waste of white space
     gs.tight_layout(fig)
     if save:
@@ -587,6 +601,8 @@ if __name__ == '__main__':
     name = 'trace-multi-2021-03-19T21 05 56'
     name = 'trace-multi-2021-03-21T00 51 09'
     name = 'trace-2021-03-25T01 09 37'
+    name = 'trace-sched-2021-03-25T18 21 19'
+    name = 'trace-sched-2021-03-26T16 29 38'
     data = {}
     # df = load_raw_data('./resources/' + name + '.json', service_name)
     # print(features_table(df, 'daytrader', 'config'))
@@ -607,7 +623,7 @@ if __name__ == '__main__':
 
     # plot_importance(data)
 
-    workload = 'trading-jsp'
+    workload = ''
     df = load_raw_data('./resources/' + name + '.json', service_name, workload)
     # plot(df, title=title+': '+name, objective=r'$\frac{1}{1+resp. time} \times \frac{requests}{\$}$', save=title+name, show_table=True)
     plot(df, title=title + ': ' + name + '\n' + workload,
