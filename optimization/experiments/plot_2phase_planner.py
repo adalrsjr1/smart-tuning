@@ -47,6 +47,7 @@ def load_raw_data(filename: str, service_name: str, workload: str) -> pd.DataFra
             record = json.loads(row)
             if workload != '' and record['ctx_workload'] != workload:
                 continue
+
             raw_data.append(Iteration(
                 record.get('pruned', False),
                 record.get('ctx_workload', ''),
@@ -68,11 +69,11 @@ def load_raw_data(filename: str, service_name: str, workload: str) -> pd.DataFra
                 Param(record['production']['curr_config']['data'] or {},
                       math.fabs(record['production']['curr_config']['score'] or 0)),
                 record['training']['curr_config']['name'],
-                math.fabs(record['training']['curr_config']['score']),
-                math.fabs(record['training']['curr_config']['stats']['mean']),
-                math.fabs(record['training']['curr_config']['stats']['median']),
-                math.fabs(record['training']['curr_config']['stats']['min']),
-                math.fabs(record['training']['curr_config']['stats']['max']),
+                math.fabs(record['training']['curr_config']['score'] or 0),
+                math.fabs(record['training']['curr_config']['stats']['mean'] or 0),
+                math.fabs(record['training']['curr_config']['stats']['median'] or 0),
+                math.fabs(record['training']['curr_config']['stats']['min'] or 0),
+                math.fabs(record['training']['curr_config']['stats']['max'] or 0),
                 record['training']['curr_config']['stats']['stddev'],
                 record['training']['metric']['throughput'],
                 record['training']['metric']['process_time'],
@@ -603,6 +604,7 @@ if __name__ == '__main__':
     name = 'trace-2021-03-25T01 09 37'
     name = 'trace-sched-2021-03-25T18 21 19'
     name = 'trace-sched-2021-03-26T16 29 38'
+    name = 'trace-sched-2021-03-28T03 10 37'
     data = {}
     # df = load_raw_data('./resources/' + name + '.json', service_name)
     # print(features_table(df, 'daytrader', 'config'))
@@ -623,7 +625,7 @@ if __name__ == '__main__':
 
     # plot_importance(data)
 
-    workload = ''
+    workload = 'trading-jsp'
     df = load_raw_data('./resources/' + name + '.json', service_name, workload)
     # plot(df, title=title+': '+name, objective=r'$\frac{1}{1+resp. time} \times \frac{requests}{\$}$', save=title+name, show_table=True)
     plot(df, title=title + ': ' + name + '\n' + workload,

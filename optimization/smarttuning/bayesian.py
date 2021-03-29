@@ -290,10 +290,13 @@ class BayesianEngine:
             BayesianChannel.put_out(self.id(), configuration)
             # in: score
             dto: BayesianDTO = BayesianChannel.get_in(self.id())
-            configuration.update_score(dto.metric)
-            # configuration.workload = dto.classification
-            loss = configuration.score
-            self._last_best_score = min(self._last_best_score, loss)
+
+            if not configuration.was_pruned:
+                # don't update config score if it was pruned
+                configuration.update_score(dto.metric)
+                # configuration.workload = dto.classification
+                loss = configuration.score
+                self._last_best_score = min(self._last_best_score, loss)
 
         except Exception:
             logger.exception(f'evalution failed at bayesian core for {self._study.study_name}:{trial.params}')
