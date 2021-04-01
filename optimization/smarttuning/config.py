@@ -131,6 +131,7 @@ OBJECTIVE = str(os.environ.get('OBJECTIVE', default='memory'))
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
 WAITING_TIME = int(os.environ.get('WAITING_TIME', default='60'))
+AGGREGATION_FUNCTION = os.environ.get('AGGREGATION_FUNCTION', default='sum') # sum, avg, max, min
 
 # failfast threshold
 THROUGHPUT_THRESHOLD = float(os.environ.get('THROUGHPUT_THRESHOLD', default='1.0'))

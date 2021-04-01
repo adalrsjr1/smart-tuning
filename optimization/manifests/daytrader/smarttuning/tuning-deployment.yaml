@@ -73,6 +73,7 @@ data:
   ## AWS Cost, CPU: 0.0535/vCore Memory: 0.013375/GB --> (total_cost / CPU  + total_cost / GB) / 2
   ## M5 Instance https://aws.amazon.com/ec2/pricing/on-demand/
   OBJECTIVE: '-(1.0/(1+process_time))*(throughput / ((((memory_limit / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))'
+  AGGREGATION_FUNCTION: 'avg'
   THROUGHPUT_THRESHOLD: '10'
   QUANTILE: '1.0'
   NAMESPACE: 'default'
