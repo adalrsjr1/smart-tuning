@@ -1,0 +1,102 @@
+#apiVersion: autoscaling/v2beta2
+#kind: HorizontalPodAutoscaler
+#metadata:
+#  name: daytrader-service
+#  annotations:
+#    # workaround for python client
+#    # https://github.com/kubernetes-client/python/issues/553#issuecomment-510577028
+#    autoscaling.alpha.kubernetes.io/conditions: "[ {\"type\":\"ScalingLimited\",\"status\":\"True\",\"reason\":\"TooFewReplicas\",\"message\":\"who needs messages\"}]"
+#spec:
+#  scaleTargetRef:
+#    apiVersion: apps/v1
+#    kind: Deployment
+#    name: daytrader-service
+#  minReplicas: 1
+#  maxReplicas: 2
+#  metrics:
+##    - type: Resource
+##      resource:
+##        name: memory
+##        target:
+##          type: Utilization
+##          averageValue: 1024Mi
+#    - type: Resource
+#      resource:
+#        name: cpu
+#        target:
+#          type: Utilization
+#          averageUtilization: 50
+#    # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#stabilization-window
+#    # https://github.com/kubernetes/enhancements/blob/master/keps/sig-autoscaling/853-configurable-hpa-scale-velocity/README.md
+#
+## default config:
+## https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#default-behavior
+#  behavior:
+#    scaleDown:
+#      stabilizationWindowSeconds: 200
+#      policies:
+#      - type: Pods
+#        value: 1
+#        periodSeconds: 15 # scaleDown at speed of value/period
+#      - type: Percent
+#        value: 100
+#        periodSeconds: 15
+#      selectPolicy: Max
+#    scaleUp:
+#      #stabilizationWindowSeconds: 120
+#      policies:
+#      - type: Pods
+#        value: 1
+#        periodSeconds: 120
+#      - type: Percent
+#        value: 100
+#        periodSeconds: 120
+#      selectPolicy: Max
+
+---
+kind: HorizontalPodAutoscaler
+apiVersion: autoscaling/v2beta2
+metadata:
+  name: daytrader-service
+spec:
+  scaleTargetRef:
+    # point the HPA at the sample application
+    # you created above
+    apiVersion: apps/v1
+    kind: Deployment
+    name: daytrader-service
+  # autoscale between 1 and 10 replicas
+  # cluster supports at most 24 cores
+  minReplicas: 1
+  # 9 prod + 1 train
+  maxReplicas: 4 # 10 replicas of 2 cores
+  metrics:
+  # use a "Pods" metric, which takes the average of the
+  # given metric across all pods controlled by the autoscaling target
+     - type: Resource
+       resource:
+         name: cpu
+         target:
+           type: Utilization
+           averageUtilization: 40
+           #  behavior:
+           #    scaleDown:
+           #      stabilizationWindowSeconds: 60
+           #      policies:
+           #      - type: Pods
+           #        value: 1
+           #        periodSeconds: 15 # scaleDown at speed of value/period
+           #      - type: Percent
+           #        value: 100
+           #        periodSeconds: 100
+           #      selectPolicy: Max
+           #    scaleUp:
+           #      stabilizationWindowSeconds: 60
+           #      policies:
+           #      - type: Pods
+           #        value: 1
+           #        periodSeconds: 15
+           #      - type: Percent
+           #        value: 100
+           #        periodSeconds: 100
+           #      selectPolicy: Max

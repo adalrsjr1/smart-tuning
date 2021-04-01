@@ -87,4 +87,8 @@ it accessing `http://localhost:30081`.
 Access the Grafana's dashboard `http://localhost:30030` and import the grafana
 dashboard json from `../grafana/smarttuning.json`
 
-
+## Tips
+When benchmarking an application with Smart Tuning, set the number of
+clients/threads equal to the number of max connections to DB. Also, set the
+upper limit for db connections in search space the same number as the available
+connections in db.

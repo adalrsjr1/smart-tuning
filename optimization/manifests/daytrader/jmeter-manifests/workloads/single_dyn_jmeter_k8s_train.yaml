@@ -28,7 +28,7 @@ spec:
             value: 'daytrader-smarttuning.default.svc.cluster.local'
         envFrom:
           - configMapRef:
-              name: jmeter-config
+              name: jmeter-config-train
               #        volumeMounts:
               #          - mountPath: /etc/jmeter
               #            name: jmeter-config

@@ -63,19 +63,22 @@ spec:
                     values:
                       - kind-worker
                       - docker-desktop
+                      - kind-control-plane
       containers:
         - name: grafana
           image: grafana/grafana:7.0.1
           #image: https://quay.io/repository/app-sre/grafana:7.0.1
           env:
             - name: GF_INSTALL_PLUGINS
-              value: jdbranham-diagram-panel
+              value: "jdbranham-diagram-panel,grafana-simple-json-datasource"
           ports:
             - containerPort: 3000
           resources:
             limits:
               memory: 1024Mi
               cpu: 100m
+          securityContext:
+            privileged: true
           volumeMounts:
             - mountPath: /etc/grafana/provisioning/datasources
               name: grafana-datasources
@@ -99,10 +102,10 @@ spec:
             name: grafana-config
         - name: grafana-data
           emptyDir: {}
-  #          hostPath:
-  #            type: DirectoryOrCreate
-  #            # change the ownership path to 472:472
-  #            path: /smarttuning/grafana
+          #hostPath:
+          #  type: DirectoryOrCreate
+          # change the ownership path to 472:472
+          #  path: /smarttuning/grafana
   selector:
     matchLabels:
       app: grafana-server

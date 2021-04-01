@@ -1,0 +1,123 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: updater
+rules:
+  - apiGroups: ["*"]
+    resources:
+      - configmaps
+      - services
+      - deployments
+      - searchspaces
+      - pods
+      - jobs
+      - cronjobs
+    verbs: ["get","list","watch","create","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: updater
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: updater
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+---
+# driver to try different workloads on Jmeter
+# Jmeter must have support to change the worklaod through env_var
+# Jmeter must be restarted when an env_var is updated
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: updater
+spec:
+  schedule: "*/20 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - image: amouat/network-utils
+            name: updater
+            command: ["bash", "-c"]
+            args:
+              - |
+                set -e
+                #set -x
+                function shutdown() {
+                  echo "deleting this job"
+                  KUBE_TOKEN=$(</var/run/secrets/kubernetes.io/serviceaccount/token)
+                  curl -sSk \
+                    -X DELETE \
+                    -H "Authorization: Bearer $KUBE_TOKEN" \
+                    -H 'Accept: application/json' \
+                    -H 'Content-Type: application/json' \
+                    https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/apis/batch/v1beta1/namespaces/$NAMESPACE/cronjobs/$(echo $SELF_NAME | awk 'BEGIN {FS="-";} {print $1}')
+
+                }
+
+
+                function n_replicas() {
+                  KUBE_TOKEN=$(</var/run/secrets/kubernetes.io/serviceaccount/token)
+                  N=$(curl -sSk \
+                    -X GET \
+                    -H "Authorization: Bearer $KUBE_TOKEN" \
+                    -H 'Accept: application/json' \
+                    -H 'Content-Type: application/json' \
+                    https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/apis/apps/v1/namespaces/$NAMESPACE/deployments/$NAME | jq .spec.replicas)
+                }
+
+                function replicate() {
+                  echo "creating $N replicas of $NAME:NAMESPACE"
+                  # patch config map
+                  KUBE_TOKEN=$(</var/run/secrets/kubernetes.io/serviceaccount/token)
+                  curl -sSk \
+                    -X PATCH \
+                    -d "{\"kind\":\"Deployment\",\"apiVersion\":\"apps/v1\",\"spec\":{\"replicas\": $N}}" \
+                    -H "Authorization: Bearer $KUBE_TOKEN" \
+                    -H 'Accept: application/json' \
+                    -H 'Content-Type: application/strategic-merge-patch+json' \
+                    https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/apis/apps/v1/namespaces/$NAMESPACE/deployments/$NAME | jq .spec.replicas
+                }
+
+                function update_cm() {
+                  KEY=$1
+                  VALUE=$2
+                  # patch config map
+                  KUBE_TOKEN=$(</var/run/secrets/kubernetes.io/serviceaccount/token)
+                  NAME=$1
+                  curl -sSk \
+                    -X PATCH \
+                    -d "{\"kind\":\"ConfigMap\",\"apiVersion\":\"v1\",\"data\":{\"$KEY\":\"$VALUE\"}}" \
+                    -H "Authorization: Bearer $KUBE_TOKEN" \
+                    -H 'Accept: application/json' \
+                    -H 'Content-Type: application/strategic-merge-patch+json' \
+                    https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/api/v1/namespaces/$NAMESPACE/configmaps/$CONFIGMAP_TARGET
+                }
+                n_replicas
+                N=$((N + 1))
+                replicate $n
+                if [[ $N -ge $MAX_REPLICAS ]]; then
+                  shutdown
+                fi
+            env:
+              - name: SELF_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: SELF_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: NAME
+                value: daytrader-service
+              - name: NAMESPACE
+                value: default
+              - name: MAX_REPLICAS
+                value: "6"
+          restartPolicy: OnFailure

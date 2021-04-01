@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-jvm
+data:
+  jvm.options: |-
+    -Xmx128m
+    -Xms128m
+    -Xmn16m
+    -Xscmx=16m
+    -XX:SharedCacheHardLimit=32m
+    -Xgcpolicy:gencon
+    -XX:+UseContainerSupport
+    -Xtune:virtualized

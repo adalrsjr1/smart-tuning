@@ -2,6 +2,7 @@ import unittest
 from unittest import TestCase
 from unittest.mock import MagicMock
 
+import optuna
 from optuna.samplers import RandomSampler
 
 from controllers import searchspacemodel
@@ -132,7 +133,8 @@ class TestSearchModel(TestCase):
                     }
                 },
             ],
-        }, study)
+        # }, study)
+        })
 
         def objective(trial: optuna.trial.Trial):
             sample = ctx.sample(trial)
@@ -151,7 +153,8 @@ class TestSearchModel(TestCase):
 
     def test_real_search_space(self):
         study = optuna.create_study(sampler=RandomSampler())
-        ctx = SearchSpaceModel(mock_daytrader_ss(), study)
+        # ctx = SearchSpaceModel(mock_daytrader_ss(), study)
+        ctx = SearchSpaceModel(mock_daytrader_ss())
 
         def objective(trial: optuna.trial.Trial):
             sample = ctx.sample(trial)
@@ -278,7 +281,8 @@ class TestSearchModel(TestCase):
                     }
                 },
             ],
-        }, study)
+        # }, study)
+        })
 
         trial = optuna.trial.create_trial(
             params={"a": 49, "b": 49, "c": 49, "x": 53},
@@ -364,7 +368,8 @@ class TestSearchModel(TestCase):
                     }
                 },
             ],
-        }, study)
+        # }, study)
+        })
 
         def objective(trial: optuna.trial.Trial):
             sample = ctx.sample(trial)
@@ -406,7 +411,8 @@ class TestSearchModel(TestCase):
     def test_searchspace_model(self):
         study = optuna.create_study(sampler=RandomSampler())
 
-        ss = SearchSpaceModel(self.ss, study)
+        # ss = SearchSpaceModel(self.ss, study)
+        ss = SearchSpaceModel(self.ss)
 
         self.assertEqual(ss.deployment, "acmeair-service")
         self.assertEqual(len(ss.manifests), 3)
@@ -415,14 +421,16 @@ class TestSearchModel(TestCase):
 
     def test_searchspace_deployment(self):
         study = optuna.create_study(sampler=RandomSampler())
-        ss = SearchSpaceModel(self.ss, study)
+        # ss = SearchSpaceModel(self.ss, study)
+        ss = SearchSpaceModel(self.ss)
 
         ss_dep = [manifest for manifest in ss.manifests if isinstance(manifest, DeploymentSearchSpaceModel)][0]
         self.assertSetEqual({'cpu', 'memory'}, set(ss_dep.tunables.keys()))
 
     def test_searchspace_deployment_get_current_config(self):
         study = optuna.create_study(sampler=RandomSampler())
-        ss = SearchSpaceModel(self.ss, study)
+        # ss = SearchSpaceModel(self.ss, study)
+        ss = SearchSpaceModel(self.ss)
 
         ss_dep = [manifest for manifest in ss.manifests if isinstance(manifest, DeploymentSearchSpaceModel)][0]
         self.assertSetEqual(set(ss_dep.tunables.keys()),
@@ -438,7 +446,8 @@ class TestSearchModel(TestCase):
 
     def test_searchspace_deployment_get_current_config(self):
         study = optuna.create_study(sampler=RandomSampler())
-        ss = SearchSpaceModel(self.ss_dep_continuous, study)
+        # ss = SearchSpaceModel(self.ss_dep_continuous, study)
+        ss = SearchSpaceModel(self.ss_dep_continuous)
 
         ss_dep = [manifest for manifest in ss.manifests if isinstance(manifest, DeploymentSearchSpaceModel)][0]
         self.assertSetEqual(set(ss_dep.tunables.keys()),
@@ -453,7 +462,8 @@ class TestSearchModel(TestCase):
 
     def test_patch_deployment(self):
         study = optuna.create_study(sampler=RandomSampler())
-        ss = SearchSpaceModel(self.ss_dep_continuous, study)
+        # ss = SearchSpaceModel(self.ss_dep_continuous, study)
+        ss = SearchSpaceModel(self.ss_dep_continuous)
         ss_dep = [manifest for manifest in ss.manifests if isinstance(manifest, DeploymentSearchSpaceModel)][0]
 
         searchspacemodel.get_deployment = mock_acmeair_deployment
@@ -466,14 +476,16 @@ class TestSearchModel(TestCase):
 
     def test_configs_maps(self):
         study = optuna.create_study(sampler=RandomSampler())
-        ss = SearchSpaceModel(self.ss_dep_continuous, study)
+        # ss = SearchSpaceModel(self.ss_dep_continuous, study)
+        ss = SearchSpaceModel(self.ss_dep_continuous)
         ss_cms = [manifest for manifest in ss.manifests if isinstance(manifest, ConfigMapSearhSpaceModel)]
 
         self.assertEqual(2, len(ss_cms))
 
     def test_get_current_config_map_app(self):
         study = optuna.create_study(sampler=RandomSampler())
-        ss = SearchSpaceModel(self.ss, study)
+        # ss = SearchSpaceModel(self.ss, study)
+        ss = SearchSpaceModel(self.ss)
         ss_cm = [manifest for manifest in ss.manifests if
                  isinstance(manifest, ConfigMapSearhSpaceModel) and 'acmeair-config-app' == manifest.name][0]
 
@@ -495,7 +507,8 @@ class TestSearchModel(TestCase):
 
     def test_get_current_config_map_jvm_eval_with_search_space(self):
         study = optuna.create_study(sampler=RandomSampler())
-        ss = SearchSpaceModel(self.ss, study)
+        # ss = SearchSpaceModel(self.ss, study)
+        ss = SearchSpaceModel(self.ss)
         ss_cm = [manifest for manifest in ss.manifests if
                  isinstance(manifest, ConfigMapSearhSpaceModel) and 'acmeair-config-jvm' == manifest.name][0]
 
@@ -618,7 +631,8 @@ class TestSearchModel(TestCase):
     def test_searchspace_model(self):
         study = optuna.create_study(sampler=RandomSampler(seed=0))
         raw_object = mock_daytrader_ss()
-        model = SearchSpaceModel(raw_object, study)
+        # model = SearchSpaceModel(raw_object, study)
+        model = SearchSpaceModel(raw_object)
 
         for _ in range(100):
             trial = model.adhoc_trial()
@@ -627,11 +641,118 @@ class TestSearchModel(TestCase):
     def test_adhoc_trial(self):
         study = optuna.create_study(sampler=RandomSampler(seed=0))
         raw_object = mock_daytrader_ss()
-        model = SearchSpaceModel(raw_object, study)
+        # model = SearchSpaceModel(raw_object, study)
+        model = SearchSpaceModel(raw_object)
 
         t = model.adhoc_trial()
 
+    def test_extract_structure(self):
+        study = optuna.create_study(sampler=RandomSampler())
+        ctx = SearchSpaceModel({
+            "spec": {
+                "deployment": "acmeair-service",
+                "manifests": [
+                    {
+                        "name": "manifest-name-1",
+                        "type": "configMap"
+                    },
+                    {
+                        "name": "manifest-name-2",
+                        "type": "configMap"
+                    },
+                    {
+                        "name": "manifest-name-3",
+                        "type": "deployment"
+                    },
+                ],
+                "namespace": "default",
+                "service": "fake-svc"
+            },
+            "data": [
+                {
+                    "filename": "",
+                    "name": "manifest-name-1",
+                    "tunables": {
+                        "option": [
+                            {
+                                "name": "x",
+                                "type": "integer",
+                                "values": [ ]
+                            },
+                        ],
+                    },
+                },
+                {
+                    "filename": "",
+                    "name": "manifest-name-2",
+                    "tunables": {
+                        "option": [
+                            {
+                                "name": "y",
+                                "type": "integer",
+                                "values": [ ]
+                            },
+                        ],
+                    },
+                },
+                {
+                    "filename": "",
+                    "name": "manifest-name-3",
+                    "tunables": {
+                        "option": [
+                            {
+                                "name": "z",
+                                "type": "integer",
+                                "values": [ ]
+                            },
+                        ],
+                    },
+                },
+            ],
+        # }, study)
+        })
 
+        self.assertDictEqual({
+            'manifest-name-1': {'x': None},
+            'manifest-name-2': {'y': None},
+            'manifest-name-3': {'z': None},
+        }, ctx.hierarchy())
+
+    def test_e2e(self):
+        # import kubernetes
+        #
+        # client = kubernetes.client.CoreV1Api()
+        # print(client.list_namespace())
+        config.init_k8s()
+
+        group='smarttuning.ibm.com'
+        version='v1alpha2'
+        plural='searchspaces'
+        custom_object = config.customApi().get_namespaced_custom_object(group=group, version=version, plural=plural,
+                                                        namespace='default', name='daytrader-ss')
+        ctx = SearchSpaceModel(custom_object)
+        print(custom_object['data'][0]['tunables']['option'][1])
+        print(custom_object['data'][2]['tunables']['number'][1])
+
+        s = optuna.create_study()
+
+
+        for i in range(1000):
+            params = {}
+            memo = {}
+
+            trial = s.ask()
+            for name, tunable in ctx.tunables().items():
+                print(name, tunable.sample(trial, memo))
+
+            memo = {}
+
+            for name, tunable in ctx.tunables().items():
+                tunable.new_sample(trial, memo)
+
+            # xmx = ctx.tunables()['-Xmx'].new_sample(trial, memo=memo)
+            # mem = ctx.tunables()['memory'].new_sample(trial, memo=memo)
+            # assert xmx < mem*0.8, f'[{i}]: xmx={xmx}, mem={0.8*mem}'
 
 if __name__ == '__main__':
     unittest.main()

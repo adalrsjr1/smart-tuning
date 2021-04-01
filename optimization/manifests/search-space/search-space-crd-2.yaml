@@ -119,6 +119,7 @@ spec:
                                     - type: string
                             step:
                               type: number
+                              default: 0
                             real:
                               type: boolean
                               default: false

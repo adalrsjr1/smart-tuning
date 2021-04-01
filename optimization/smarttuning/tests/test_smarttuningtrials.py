@@ -124,7 +124,7 @@ class TestSmartTuningTrials(TestCase):
         self.assertEqual(n, t.last_uid(), msg=f'n:{n}, last_uid:{t.last_uid()}')
 
         c.update_score(Metric.zero())
-        self.assertEqual(c.median(), c.trial.value)
+        self.assertEqual(c.final_score(), c.trial.value)
 
     def test_default_config(self):
         n = 10

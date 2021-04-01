@@ -24,11 +24,11 @@ def print_config(toPrint=False):
 # K8S_HOST = 'trxrhel7perf-1'
 # LOCALHOST = '9.26.100.254'
 
-K8S_HOST = 'trinity01'
-LOCALHOST = '127.0.0.1'
+# K8S_HOST = 'trinity01'
+# LOCALHOST = '127.0.0.1'
 
-# K8S_HOST = 'localhost'
-# LOCALHOST = 'localhost'
+K8S_HOST = 'localhost'
+LOCALHOST = 'localhost'
 
 # K8S_CONF = f'{os.environ.get("HOME")}/.kube/trxrhel7perf-1/config'
 K8S_CONF = f'{os.environ.get("HOME")}/.kube/trinity01/config'
@@ -76,12 +76,18 @@ KMEANS_LOGGER = 'kmeans.smarttuning.ibm'
 BAYESIAN_LOGGER = 'bayesian.smarttuning.ibm'
 SEARCH_SPACE_LOGGER = 'searchspace.smarttuning.ibm'
 EVENT_LOOP_LOGGER = 'eventloop.smarttuning.ibm'
+WORKLOAD_LOGGER = 'workload.smarttuning.ibm'
 
 # debug config
 # timeout before update workload
+TWO_SERVICES = int(os.environ.get('TWO_SERVICES', default='1'))
 WORKLOAD_TIMEOUT = int(os.environ.get('WORKLOAD_TIMEOUT', default='1'))
+WORKLOAD_CLASSIFIER = os.environ.get('WORKLOAD_CLASSIFIER', default='RPS')
+WORKLOAD_BANDS = os.environ.get('WORKLOAD_BANDS', default='200,600,1500').split(',')
+WORKLOAD_BAND_WIDTH = int(os.environ.get('WORKLOAD_BAND_WIDTH', default='100'))
+WORKLOAD_BAND_DEV = int(os.environ.get('WORKLOAD_BAND_DEV', default='50'))
 MOCK_WORKLOADS = os.environ.get('MOCK_WORKLOADS', default='jsf,jsp,browsing-jsp,trading-jsp').split(',')
-FAIL_FAST = eval(os.environ.get('FAIL_FAST', default='False'))
+FAIL_FAST = eval(os.environ.get('FAIL_FAST', default='True'))
 MOCK = eval(os.environ.get('MOCK', default='True'))
 PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='True'))
 LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='NOTSET').upper()
@@ -127,11 +133,11 @@ REINFORCEMENT_RATIO = float(os.environ.get('REINFORCEMENT_RATIO', default='1.0')
 METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))
 RANDOM_SEED = int(os.environ.get('RANDOM_SEED', default=time.time()))
 # OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='-throughput/(memory / 2 ** 20)'), '<string>', 'eval')
-OBJECTIVE = str(os.environ.get('OBJECTIVE', default='memory'))
+OBJECTIVE = str(os.environ.get('OBJECTIVE', default='memory_limit'))
 # sampling config
 SAMPLE_SIZE = float(os.environ.get('SAMPLE_SIZE', default='0.3334'))
-WAITING_TIME = int(os.environ.get('WAITING_TIME', default='60'))
-AGGREGATION_FUNCTION = os.environ.get('AGGREGATION_FUNCTION', default='sum') # sum, avg, max, min
+WAITING_TIME = int(os.environ.get('WAITING_TIME', default='120'))
+AGGREGATION_FUNCTION = os.environ.get('AGGREGATION_FUNCTION', default='sum')  # sum, avg, max, min
 
 # failfast threshold
 THROUGHPUT_THRESHOLD = float(os.environ.get('THROUGHPUT_THRESHOLD', default='1.0'))
@@ -139,7 +145,54 @@ THROUGHPUT_THRESHOLD = float(os.environ.get('THROUGHPUT_THRESHOLD', default='1.0
 QUANTILE = float(os.environ.get('QUANTILE', default='1.0'))
 
 # actuator config
-NAMESPACE = os.environ.get('NAMESPACE', 'default')
+NAMESPACE = os.environ.get('NAMESPACE', default='default')
+HPA_NAME = os.environ.get('HPA_NAME', default='daytrader-service')
+
+# ------------------------------
+# Prom Queries
+# ------------------------------
+Q_CPU = os.environ.get('Q_CPU', default='f\'sum(rate(container_cpu_usage_seconds_total{{id=~".*kubepods.*",'
+                                        'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",'
+                                        'container=""}}[''{self.interval}s]))\'')
+
+Q_CPU_L = os.environ.get('Q_CPU_L', default='f\'sum(sum_over_time(container_spec_cpu_quota{{id=~".*kubepods.*",'
+                                            'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",'
+                                            'container=""}}[{self.interval}s])) / avg(sum_over_time('
+                                            'container_spec_cpu_period{{id=~".*kubepods.*",pod=~"{self.podname}-.*",'
+                                            'name!~".*POD.*",namespace="{self.namespace}",container=""}}[{'
+                                            'self.interval}s]))\'')
+
+Q_MEM = os.environ.get('Q_MEM', default='f\'sum(max_over_time(container_memory_working_set_bytes{{id=~".*kubepods.*",'
+                                       'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",'
+                                       'container=""}}[{self.interval}s]))\'')
+
+Q_MEM_L = os.environ.get('Q_MEM_L', default='f\'sum(max_over_time(container_spec_memory_limit_bytes{{id=~".*kubepods.*",'
+                                         'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",'
+                                         'container=""}}[{self.interval}s]))\'')
+
+Q_THRUPUT = os.environ.get('Q_THRUPUT', default='f\'sum(rate(smarttuning_http_requests_total{{code=~"[2|3]..",'
+                                           'pod=~"{self.podname}-.*",namespace="{self.namespace}",name!~".*POD.*"}}'
+                                           '[{self.interval}s]))\'')
+
+Q_RESP_TIME = os.environ.get('Q_RESP_TIME', default='f\'sum(rate(smarttuning_http_processtime_seconds_sum{{pod=~"'
+                                             '{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}'
+                                             '[{self.interval}s])) / sum( rate('
+                                             'smarttuning_http_processtime_seconds_count{{pod=~"{self.podname}-.*",'
+                                             'name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s]))\'')
+
+Q_ERRORS = os.environ.get('Q_ERRORS', default='f\'sum(rate(smarttuning_http_requests_total{{code=~"[4|5]..",'
+                                          'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}['
+                                          '{self.interval}s])) / sum( rate(smarttuning_http_requests_total{{pod=~"{'
+                                          'self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{'
+                                          'self.interval}s]))\'')
+
+Q_REPLICAS = os.environ.get('Q_REPLICAS', default='f\'sum(count(count(sum(rate(container_cpu_usage_seconds_total{{'
+                                            'id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",container!="",'
+                                            'namespace="{self.namespace}"}}[{self.interval}s])) by (container,pod)) by (pod) > 1) '
+                                            'by (pod))\'')
+
+
+# ------------------------------
 
 
 print_config(PRINT_CONFIG)
@@ -174,6 +227,16 @@ def appsApi() -> kubernetes.client.AppsV1Api:
     if not __appsApi:
         __appsApi = kubernetes.client.AppsV1Api()
     return __appsApi
+
+
+__hpaApi = None
+
+
+def hpaApi() -> kubernetes.client.api.autoscaling_v2beta2_api.AutoscalingV2beta2Api:
+    global __hpaApi
+    if not __hpaApi:
+        __hpaApi = kubernetes.client.api.autoscaling_v2beta2_api.AutoscalingV2beta2Api()
+    return __hpaApi
 
 
 def executor() -> ThreadPoolExecutor:

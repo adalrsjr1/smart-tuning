@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import datetime
+import heapq
 import logging
 import time
 
-from kubernetes.client import ApiException
+from kubernetes.client import ApiException, V2beta1HorizontalPodAutoscaler
 
 import config
-from controllers.searchspace import SearchSpaceContext
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from controllers.searchspace import SearchSpaceContext
 from models.configuration import Configuration, DefaultConfiguration
 from sampler import PrometheusSampler, Metric
 
@@ -38,14 +41,15 @@ class Instance:
         self._cache = {}
 
     def serialize(self) -> dict:
-        return {
+        serialized = {
             'name': self.name,
             'namespace': self.namespace,
             'production': self.is_production,
-            'metric': self.metrics(cached=True).serialize(),
+            'metric': self.metrics().serialize(),
             'curr_config': self.configuration.serialize() if self.configuration is not None else {},
             'last_config': self.last_config.serialize() if self.last_config is not None else {},
         }
+        return serialized
 
     def set_default_config(self, metrics: Metric):
         # eval option data
@@ -80,16 +84,24 @@ class Instance:
 
     @configuration.setter
     def configuration(self, new_config: Configuration):
+        self.__configuration(new_config)
+        self.patch_config(new_config)
+
+    def __configuration(self, new_config: Configuration):
         self._config_counter += 1
         if self._curr_config is not new_config:
             self._config_counter = 0
         self._cache = {}
         self._last_config = self._curr_config
         self._curr_config = new_config
-        self.patch_config(new_config)
 
-    def update_configuration_score(self, metric: Metric):
-        self.configuration.update_score(metric)
+    def set_initial_configuration(self, configuration: Configuration, driver):
+        self.__configuration(configuration)
+        driver.session().study.add_trial(configuration.trial)
+        heapq.heappush(driver.session().nursery, configuration)
+
+    # def update_configuration_score(self, metric: Metric):
+    #     self.configuration.update_score(metric)
 
     @property
     def last_config(self) -> Configuration:
@@ -99,7 +111,7 @@ class Instance:
         if self.configuration:
             self.patch_config(self.configuration)
         else:
-            logger.warning(f'null configuration to update {self}')
+            logger.warning(f'null configuration to update {self.name}')
 
     def patch_config(self, config_to_apply: Configuration):
         if self.active:
@@ -111,7 +123,7 @@ class Instance:
                                                                        DefaultConfiguration) else config_to_apply.data
                 self._do_patch(manifests, data_to_apply)
             except Exception:
-                logger.exception(f'error when patching config:{config_to_apply.data}')
+                logger.exception(f'error when patching config:{config_to_apply.data} to {self.name}')
 
     def _do_patch(self, manifests, configuration):
         for key, value in configuration.items():
@@ -120,26 +132,8 @@ class Instance:
                     manifest.patch(value, production=self.is_production)
                     time.sleep(1)
 
-    def metrics(self, interval: int = 0, cached=False) -> Metric:
-        if cached and ('metrics', interval) in self._cache:
-            metric = self._cache[('metrics', interval)]
-            metric.set_restarts(self.configuration.n_restarts)
-            return metric
-        if not self.active:
-            Metric.zero()
-
-        self._sampler.interval = self._default_sample_interval
-        if interval > 0:
-            self._sampler.interval = interval
-
-        self._cache[('metrics', interval)] = self._sampler.metric()
-        if cached:
-            metric = self._cache[('metrics', interval)]
-            metric.set_restarts(self.configuration.n_restarts)
-            return metric
-
+    def metrics(self) -> Metric:
         metric = self._sampler.metric()
-        metric.set_restarts(self.configuration.n_restarts if self.configuration else 0)
         return metric
 
     # def workload(self, interval: int = 0) -> Future:
@@ -158,7 +152,6 @@ class Instance:
 
     def restart(self):
         logger.warning(f'restarting {self.name}')
-        self.configuration.increment_restart_counter()
         try:
             config.appsApi().patch_namespaced_deployment(name=self.name, namespace=self.namespace,
                                                          body={
@@ -170,11 +163,43 @@ class Instance:
         except ApiException:
             logger.exception(f'cannot restart deployment:  {self.name}')
 
-    def shutdown(self):
-        if not self.active:
-            logger.info(f'deleting training:{self.name}')
-            self._active = False
-            config.appsApi().delete_namespaced_deployment(self.name, self.namespace)
+    @property
+    def max_replicas(self) -> int:
+        from controllers import injector
+        name = self.name.strip(injector.training_suffix())
+        replicas = 1
+        try:
+            hpa: V2beta1HorizontalPodAutoscaler = config.hpaApi().read_namespaced_horizontal_pod_autoscaler(
+                name, self.namespace)
+            replicas = hpa.spec.max_replicas
+        except ApiException:
+            logger.exception(f'error when retrieving number replicas of {name}.{self.namespace}')
+        finally:
+            return replicas
+
+    @max_replicas.setter
+    def max_replicas(self, value: int):
+        from controllers import injector
+        name = self.name.strip(injector.training_suffix())
+        try:
+            body = {
+                'apiVersion': 'autoscaling/v2beta2',
+                'kind': 'HorizontalPodAutoScaler',
+                'spec': {'maxReplicas': value}
+            }
+            logger.debug(f'increate the max number of replicas of {name}.{self.namespace} to {value}')
+            config.hpaApi().patch_namespaced_horizontal_pod_autoscaler(name, self.namespace, body=body)
+        except ApiException:
+            logger.exception(f'error when assigning a new number of replicas for {name}.{self.namespace}')
 
     def __del__(self):
         self.shutdown()
+
+    def shutdown(self):
+        if self.active:
+            logger.info(f'deleting {self.name}')
+            self._active = False
+            try:
+                config.appsApi().delete_namespaced_deployment(self.name, self.namespace)
+            except ApiException:
+                logger.exception(f'fail to delete {self.name} instance on k8s cluster')

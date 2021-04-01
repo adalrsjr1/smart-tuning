@@ -39,9 +39,11 @@ spec:
                     values:
                       - kind-worker
                       - docker-desktop
+                      - kind-control-plane
       containers:
         - name: mongo-admin-workload
           image: mongo-express
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081
           envFrom:
@@ -49,6 +51,7 @@ spec:
                 name: mongoexpress-config
         - name: mongo-workload
           image: mongo
+          imagePullPolicy: IfNotPresent
           lifecycle:
             preStop:
               exec:

@@ -1,5 +1,11 @@
 ## Release notes
 
+### Version 4.0
+* smarttuning architecture relies on a state machine to progress over different
+  tuning stages
+* tuning multi-replicas services [#21](/../../issues/21)
+* classify workloads based on the number of replicas
+* classify workloads based on throughput
 #### Version 3.0
 * update codebase to create one tuning context per workload [#18](/../../issues/18)
   * add eager stop

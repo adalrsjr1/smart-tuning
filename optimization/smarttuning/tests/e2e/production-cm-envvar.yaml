@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-envvar
+data:
+# there is a bug when interpreting bool in envvar parameters
+#  BOOL: "True"
+  FLOAT: "3.14"
+  INT: "0"
+  STR: "str3"

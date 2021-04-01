@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-appsmarttuning
+  labels:
+    app: sample-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      initContainers:
+      - image: smarttuning/init-proxy
+        imagePullPolicy: IfNotPresent
+        name: init-proxy
+        env:
+        - name: PROXY_PORT
+          value: "80"
+        - name: SERVICE_PORT
+          value: "8080"
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+      containers:
+      - image: smarttuning/proxy
+        imagePullPolicy: IfNotPresent
+        name: proxy
+        env:
+          - name: TRAINING
+            value: "true"
+        envFrom:
+          - configMapRef:
+              name: smarttuning-proxy-config
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        - containerPort: 9090
+          protocol: TCP
+      - image: luxas/autoscale-demo:v0.1.2
+        name: metrics-provider
+        ports:
+        - name: http
+          containerPort: 8080
+---

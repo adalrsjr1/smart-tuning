@@ -5,6 +5,9 @@ import os
 import random
 import re
 import sys
+import traceback
+from dataclasses import dataclass, field
+from typing import Any
 
 import matplotlib
 import matplotlib.lines as mlines
@@ -17,6 +20,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 from matplotlib.table import Table
 from pandas.plotting import scatter_matrix
+
 
 SEED = 0
 
@@ -45,12 +49,13 @@ def load_raw_data(filename: str, service_name: str, workload: str) -> pd.DataFra
             row = re.sub(r'{"_id":{"\$oid":"[a-z0-9]+"},', '{', row)
 
             record = json.loads(row)
-            if workload != '' and record['ctx_workload'] != workload:
+            if workload != '' and record['ctx_workload']['name'] != workload:
+                raw_data.append(Iteration().__dict__)
                 continue
 
             raw_data.append(Iteration(
                 record.get('pruned', False),
-                record.get('ctx_workload', ''),
+                record['curr_workload']['name'],
                 record['global_iteration'],
                 record['production']['curr_config']['name'],
                 math.fabs(record['production']['curr_config']['score'] or 0),
@@ -61,11 +66,11 @@ def load_raw_data(filename: str, service_name: str, workload: str) -> pd.DataFra
                 record['production']['curr_config']['stats']['stddev'] or 0,
                 record['production']['metric']['throughput'],
                 record['production']['metric']['process_time'],
-                record['production']['metric']['memory'] / 2 ** 20,
-                record['production']['metric'].get('memory_limit',
-                                                   record['production']['curr_config']['data'][service_name][
-                                                       'memory'] * 2 ** 20) / 2 ** 20,
-                record['production']['metric'].get('restarts', 1),
+                (record['production']['metric']['memory'] or 0) / 2 ** 20,
+                (record['production']['metric'].get('memory_limit',
+                                                    (record['production']['curr_config']['data'][service_name][
+                                                         'memory'] or 0) * 2 ** 20) or 0) / 2 ** 20,
+                math.ceil(record['production']['metric'].get('curr_replicas', 1)),
                 Param(record['production']['curr_config']['data'] or {},
                       math.fabs(record['production']['curr_config']['score'] or 0)),
                 record['training']['curr_config']['name'],
@@ -77,14 +82,15 @@ def load_raw_data(filename: str, service_name: str, workload: str) -> pd.DataFra
                 record['training']['curr_config']['stats']['stddev'],
                 record['training']['metric']['throughput'],
                 record['training']['metric']['process_time'],
-                record['training']['metric']['memory'] / 2 ** 20,
-                record['training']['metric'].get('memory_limit',
-                                                 record['training']['curr_config']['data'][service_name][
-                                                     'memory'] * 2 ** 20) / 2 ** 20,
-                record['training']['metric'].get('restarts', 1),
-                Param(record['training']['curr_config']['data'], math.fabs(record['training']['curr_config']['score'])),
+                (record['training']['metric']['memory'] or 0) / 2 ** 20,
+                (record['training']['metric'].get('memory_limit',
+                                                  (record['training']['curr_config']['data'][service_name][
+                                                       'memory'] or 0) * 2 ** 20) or 0) / 2 ** 20,
+                math.ceil(record['training']['metric'].get('curr_replicas', 1)),
+                Param(record['training']['curr_config']['data'],
+                      math.fabs(record['training']['curr_config']['score'] or 0)),
                 # create an auxiliary table to hold the 3 best config at every iteration
-                {chr(i + 97): best['name'][:3] for i, best in enumerate(record['best'])} if 'best' in record else []
+                {chr(i + 97): best['name'][:3] for i, best in enumerate(record['best'])} if 'best' in record else {}
             ).__dict__)
 
     return pd.DataFrame(raw_data).reset_index()
@@ -94,49 +100,46 @@ class Param:
     """ Config params holder"""
 
     def __init__(self, params, score):
-        self.params = params
+        self.params: dict[str:dict[str:Any]] = params
         self.params['score'] = score
 
 
+@dataclass
 class Iteration:
-    def __init__(self, pruned, workload, iteration,
-                 pname, pscore, pmean, pmedian, pmin, pmax, pstddev, ptruput, pproctime, pmem, pmem_lim, prestarts,
-                 pparams,
-                 tname, tscore, tmean, tmedian, tmin, tmax, tstddev, ttruput, tproctime, tmem, tmem_lim, trestarts,
-                 tparams, nbest):
-        self.pruned = pruned
-        self.workload = workload
-        self.pname = pname
-        self.pscore = pscore
-        self.pmean = pmean
-        self.pmedian = pmedian
-        self.pmin = pmax
-        self.pmax = pmin
-        self.pstddev = pstddev
-        self.ptruput = ptruput
-        self.pproctime = pproctime
-        self.pmem = pmem
-        self.pmem_lim = pmem_lim
-        self.prestarts = prestarts
-        self.pparams = pparams
-        self.tname = tname
-        self.tscore = tscore
-        self.tmean = tmean
-        self.tmedian = tmedian
-        self.tmin = tmax
-        self.tmax = tmin
-        self.tstddev = tstddev
-        self.ttruput = ttruput
-        self.tproctime = tproctime
-        self.tmem = tmem
-        self.tmem_lim = tmem_lim
-        self.tparams = tparams
-        self.trestarts = trestarts
-        self.iteration = iteration
-        self.nbest = nbest
+    pruned: bool = False
+    workload: str = ''
+    iteration: int = 0
+    pname: str = ''
+    pscore: float = 0
+    pmean: float = 0
+    pmedian: float = 0
+    pmin: float = 0
+    pmax: float = 0
+    pstddev: float = 0
+    ptruput: float = 0
+    pproctime: float = 0
+    pmem: int = 0
+    pmem_lim: int = 0
+    preplicas: int = 0
+    pparams: Param = 0
+    tname: str = ''
+    tscore: float = 0
+    tmean: float = 0
+    tmedian: float = 0
+    tmin: float = 0
+    tmax: float = 0
+    tstddev: float = 0
+    ttruput: float = 0
+    tproctime: float = 0
+    tmem: int = 0
+    tmem_lim: int = 0
+    treplicas: int = 0
+    tparams: Param = 0
+    nbest: dict = field(default_factory=dict)
 
 
-def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = False, show_table: bool = False) -> list[Axes]:
+def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = False, show_table: bool = False) -> list[
+    Axes]:
     # pip install SecretColors
     # create a color map
     from SecretColors.cmaps import TableauMap
@@ -185,7 +188,7 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     ax_m: Axes  # memory row
     ax_t: Axes  # truput row
     fig = plt.figure(figsize=(18, 8))
-    gs = fig.add_gridspec(nrows=4, hspace=0.000, height_ratios=[1, 1, 1, 3])
+    gs = fig.add_gridspec(nrows=4, hspace=0.100, height_ratios=[1, 1, 1, 4])
     axs = gs.subplots(sharex='col')
     # bottom-up rows
     ax = axs[3]  # iterations
@@ -196,8 +199,15 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     # split chart by configs and paint each region with a unique color
     cmap = matplotlib.cm.get_cmap(colormap)
     # find highest point in iteration row
-    top = max(max(reduced_table['pmax']), max(reduced_table['tmax']))
-    ax.set_ylim(ymax=top + 40)  # 40 is a magic number for this figsize
+    top = max([
+        reduced_table['pscore'].max(),
+        reduced_table['pmean'].max() + reduced_table['pstddev'].max(),
+        reduced_table['tscore'].max(),
+        reduced_table['tmean'].max() + reduced_table['tstddev'].max()
+    ])
+    # print(top, reduced_table['pscore'].max(), reduced_table['pstddev'].max(), reduced_table['tscore'].max(), reduced_table['tstddev'].max())
+    magic_number = 0
+    ax.set_ylim(ymax=top+magic_number)
     for index, row in reduced_table.iterrows():
         # max min score boundaris at every iteration
         _tmax = max(row['pmean'], row['tscore'])
@@ -209,7 +219,7 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         # configuration label
         ax.text(index, 0, f"{row['pname'][:3]}", {'ha': 'center', 'va': 'bottom'}, rotation=45, fontsize='x-small',
                 color='red')  # production
-        ax.text(index, top + 40, f"{row['tname'][:3]}", {'ha': 'center', 'va': 'top'}, rotation=45, fontsize='x-small',
+        ax.text(index, top + magic_number, f"{row['tname'][:3]}", {'ha': 'center', 'va': 'top'}, rotation=45, fontsize='x-small',
                 color='blue')  # training
 
         # paint full column
@@ -263,19 +273,19 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         ax.margins(x=0)
         table = pd.DataFrame(reduced_table['nbest'].to_dict())
         table = table.T
-        table['restarts'] = reduced_table['prestarts']
+        table['replicas'] = reduced_table['preplicas']
         table = table.T
         table = table.fillna(value='')
         plt_table: Table
 
-        # change restarts line position
+        # change replicas line position
         tmp = table.iloc[-1]
         for i in reversed(range(len(table))):
             table.iloc[i] = table.iloc[i - 1]
         table.iloc[0] = tmp
 
         plt_table = ax.table(cellText=table.to_numpy().reshape(4, -1), rowLoc='center',
-                             rowLabels=['r', '1st', '2nd', '3rd'], colLabels=reduced_table['index'],
+                             rowLabels=['replicas', '1st', '2nd', '3rd'], colLabels=reduced_table['index'],
                              cellLoc='center',
                              colLoc='center', loc='bottom')
         plt_table.set_fontsize('x-small')
@@ -311,8 +321,9 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         mlines.Line2D([], [], color='black', marker='', linestyle='--', linewidth=0.7))
     handles.append(matplotlib.patches.Patch(facecolor=cmap(list(memoization.values())[0]), edgecolor='k', alpha=0.7,
                                             label='config. color'))
-    handles.append(matplotlib.patches.Patch(facecolor=cmap(list(memoization.values())[0]), edgecolor='k', alpha=0.7, hatch='///',
-                                            label='config. prunedr'))
+    handles.append(
+        matplotlib.patches.Patch(facecolor=cmap(list(memoization.values())[0]), edgecolor='k', alpha=0.7, hatch='///',
+                                 label='config. prunedr'))
     handles.append(matplotlib.patches.Patch(facecolor='red', edgecolor='k', alpha=0.7,
                                             label='config. color'))
     handles.append(matplotlib.patches.Patch(facecolor='blue', edgecolor='k', alpha=0.7,
@@ -327,6 +338,7 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     ax_r.set_ylabel('resp. time (s)')
     ax_t.set_ylim(0, ax_t.get_yaxis().get_data_interval()[1])
     ax_r.set_ylim(0, .5)
+    # ax.set_ylim(0, top)
     ax_t.set_yticks(np.linspace(0, ax_t.get_yaxis().get_data_interval()[1], 4))
     ax_r.set_yticks(np.linspace(0, .5, 4))
     rlabels = [f'{item:.2f}' for item in np.linspace(0, .5, 4)]
@@ -363,15 +375,16 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     # hack to change hatch linewidth
     mpl.rc('hatch', color='k', linewidth=0.5)
     # tight layout to avoid waste of white space
-    gs.tight_layout(fig)
+    gs.tight_layout(fig, pad=3.0)
     if save:
         fig = plt.gcf()
         fig.set_size_inches((18, 8), forward=False)
-        fig.savefig(save + '.pdf', dpi=150)  # Change is over here
+        fig.savefig(title + '.pdf', dpi=150)  # Change is over here
     else:
         plt.show()
-    plt.show()
+    # plt.show()
     return axs
+
 
 # def newline(p1, p2, ax, arrow=False, **kwargs):
 #     xmin, xmax = ax.get_xbound()
@@ -453,6 +466,7 @@ def plot_app_curves(df: pd.DataFrame, title: str = ''):
             cel.set_ylabel(label, fontsize='xx-small')
     plt.show()
 
+
 def features_table(df: pd.DataFrame, service_name, config_name, params) -> pd.DataFrame:
     data = {}
     for index, row in df.iterrows():
@@ -480,8 +494,8 @@ def features_table(df: pd.DataFrame, service_name, config_name, params) -> pd.Da
     # recreate data frame
     df = pd.DataFrame.from_dict(data, orient='index')
 
-
     return df
+
 
 def importance(df: pd.DataFrame, service_name='', config_name='', params='tparams', name='') -> list:
     # df is table of all parameters, one parameter per column, one iteration per row
@@ -504,17 +518,18 @@ def importance(df: pd.DataFrame, service_name='', config_name='', params='tparam
 
     # data_dmatrix = xgb.DMatrix(data=X, label=y)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=123)
-    xg_reg = xgb.XGBRegressor(objective ='reg:linear', colsample_bytree = 0.3, learning_rate = 0.1,
-                              max_depth = 5, alpha = 10, n_estimators = 10)
-    xg_reg.fit(X_train,y_train)
+    xg_reg = xgb.XGBRegressor(objective='reg:linear', colsample_bytree=0.3, learning_rate=0.1,
+                              max_depth=5, alpha=10, n_estimators=10)
+    xg_reg.fit(X_train, y_train)
 
     preds = xg_reg.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, preds))
     print("RMSE: %f" % (rmse))
 
-    return {col: score for col,score in zip(X_train.columns,xg_reg.feature_importances_)}
+    return {col: score for col, score in zip(X_train.columns, xg_reg.feature_importances_)}
 
-def plot_importance(raw_data:dict):
+
+def plot_importance(raw_data: dict):
     # fig = plt.figure()
     # gs = fig.add_gridspec(nrows=len(raw_data), hspace=0.000, height_ratios=[1 for _ in range(len(raw_data))])
     # axs = gs.subplots(sharex='row')
@@ -606,6 +621,24 @@ if __name__ == '__main__':
     name = 'trace-sched-2021-03-26T16 29 38'
     name = 'trace-sched-2021-03-28T03 10 37'
     name = 'trace-rsum-2021-03-31T21 16 20'
+    name = 'trace-2021-04-01T23 02 18'
+    name = 'trace-replicas-2021-04-06T00 01 10'
+    name = 'trace-replicas-2021-04-06T05 03 30'
+    name = 'trace-replicas-2021-04-06T16 15 42'
+    name = 'trace-replicas-2021-04-07T13 38 18'
+    name = 'trace-replicas-2021-04-08T18 19 41'
+    name = 'trace-replicas-2021-04-09T22 25 05'
+    name = 'trace-replicas-2021-04-10T18 20 20'
+    name = 'trace-replicas-sum-2021-04-13T17 31 51'
+    name = 'trace-replicas-avg-2021-04-14T22 29 11'
+    name = 'trace-replicas-periodic-2021-04-15T16 43 28'
+    name = 'trace-replicas-periodic-2021-04-16T17 46 31'
+    name = 'trace-replicas-periodic-2021-04-18T20 16 11'
+    name = 'trace-replicas-periodic-2021-04-19T21 02 11'
+    name = 'trace-replicas-periodic-2021-04-20T23 30 53'
+    name = 'trace-replicas-max-2021-04-21T22 39 27'
+    name = 'trace-periodic-simple-2021-05-01T20 28 31'
+    name = 'trace-periodic-simple-avg-2021-05-03T01 34 05'
     data = {}
     # df = load_raw_data('./resources/' + name + '.json', service_name)
     # print(features_table(df, 'daytrader', 'config'))
@@ -626,12 +659,18 @@ if __name__ == '__main__':
 
     # plot_importance(data)
 
-    workload = ''
-    df = load_raw_data('./resources/' + name + '.json', service_name, workload)
-    # plot(df, title=title+': '+name, objective=r'$\frac{1}{1+resp. time} \times \frac{requests}{\$}$', save=title+name, show_table=True)
-    plot(df, title=title + ': ' + name + '\n' + workload,
-         objective_label=r'$\frac{1}{(1+resp. time)} \times \frac{requests}{\$}$',
-         save=False,
-         show_table=True)
-    # plot_app_curves(df)
-    # plot_importance(importance(df, 'daytrader', 'config'))
+    for workload in [''] + [f'workload_{i}' for i in range(1,5)]:
+      try:
+        #workload = f'workload_{i}'
+        print(workload)
+        df = load_raw_data('./resources/' + name + '.json', service_name, workload)
+        # plot(df, title=title+': '+name, objective=r'$\frac{1}{1+resp. time} \times \frac{requests}{\$}$', save=title+name, show_table=True)
+        plot(df, title=title + ': ' + name + '\n' + workload,
+             objective_label=r'$\frac{1}{(1+resp. time)} \times \frac{requests}{N \times \$}$',
+             save=False,
+             show_table=True)
+        # plot_app_curves(df)
+        # plot_importance(importance(df, 'daytrader', 'config'))
+      except:
+        traceback.print_exc()
+        continue

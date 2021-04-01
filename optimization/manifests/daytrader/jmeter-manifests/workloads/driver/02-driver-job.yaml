@@ -43,6 +43,7 @@ spec:
       containers:
       - image: amouat/network-utils
         name: jmeter-driver
+        imagePullPolicy: IfNotPresent
         command: ["bash", "-c"]
         args:
           - |
@@ -72,6 +73,7 @@ spec:
               echo "iteration: $i, workload: $item"
               # log only the updated parameter
               #update_cm $item
+              # TODO: update any key:value data
               update_cm $item | grep \"TEST_GROUP\":
 
               if [[ -n $RANDOM ]]; then
@@ -103,9 +105,10 @@ spec:
             #value: "131"
             # 23 minutes
             #value: "1860"
-            value: "2220"
+            value: "90000"
           - name: WORKLOADS_LIST
-            value: "trading-jsp,browsing-jsp"
+            value: "all"
+            #value: "trading-jsp,browsing-jsp"
             #value: "jsf,jsp,browsing-jsp,trading-jsp"
       restartPolicy: Never
 status: {}

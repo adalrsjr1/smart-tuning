@@ -1,0 +1,119 @@
+apiVersion: "smarttuning.ibm.com/v1alpha2"
+kind: SearchSpace
+metadata:
+  name: mock-ss
+spec:
+  deployment: mock
+  service: mock
+  namespace: "default"
+  manifests:
+    - name: mock
+      type: "deployment"
+    - name: mock-envvar
+      type: "configMap"
+    - name: mock-jvm
+      type: "configMap"
+data:
+  - name: mock
+    tunables:
+      option:
+        - name: "cpu"
+          type: "real"
+          values:
+            - "0.5"
+            - "0.8"
+            - "1"
+        - name: "memory"
+          type: "integer"
+          values:
+            - "256"
+            - "384"
+            - "512"
+  - name: mock-envvar
+    tunables:
+#      boolean:
+#        - name: "BOOL"
+      number:
+        - name: "FLOAT"
+          lower:
+            value: 0
+          upper:
+            value: 300
+          step: 10
+          real: True
+        - name: "INT"
+          lower:
+            value: 0
+          upper:
+            value: 300
+            dependsOn: "FLOAT"
+          step: 10
+          real: False
+      option:
+        - name: "STR"
+          type: "string"
+          values:
+            - "str0"
+            - "str1"
+            - "str2"
+            - "str3"
+            - "str4"
+  - name: mock-jvm
+    filename: "jvm.options"
+    tunables:
+      number:
+        - name: "-Xms"
+          lower:
+            value: 8
+          upper:
+            value: 512
+            dependsOn: "-Xmx"
+          step: 8
+          real: False
+        - name: "-Xmx"
+          lower:
+            value: 128
+          upper:
+            value: 1024
+            # change it to 'memory 0.4 *' since memory is split between 2 containers
+            dependsOn: "memory 0.4 *"
+          step: 16
+          real: False
+        - name: "-Xmn"
+          lower:
+            value: 8
+          upper:
+            value: 896
+            # https://www.ibm.com/support/pages/maximo-75-64-bit-application-won%E2%80%99t-start-after-automated-installation
+            dependsOn: "-Xms 0.8 *"
+          step: 8
+          real: False
+        - name: "-Xscmx"
+          lower:
+            value: 16
+          upper:
+            value: 64
+            dependsOn: "-XX:SharedCacheHardLimit"
+          step: 4
+          real: False
+        - name: "-XX:SharedCacheHardLimit"
+          lower:
+            value: 16
+          upper:
+            value: 64
+          step: 4
+          real: False
+      boolean:
+        - name: "-Xtune:virtualized"
+      option:
+        - name: "gc"
+          values:
+            - "-Xgcpolicy:gencon"
+            - "-Xgc:concurrentScavenge"
+            - "-Xgcpolicy:metronome"
+            - "-Xgcpolicy:optavgpause"
+            - "-Xgcpolicy:optthruput"
+        - name: "container_support"
+          values:
+            - "-XX:+UseContainerSupport"
+            - "-XX:-UseContainerSupport"

@@ -1,5 +1,6 @@
 import logging
 import os
+import traceback
 from concurrent.futures import Future
 from functools import partial
 
@@ -46,6 +47,7 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
             try:
                 callback(event)
             except Exception:
+                traceback.print_exc()
                 logger.exception('error at event loop')
                 if context:
                     manager = context[0]
@@ -54,7 +56,8 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
                 else:
                     w.stop()
         logger.debug(f'stopping watcher loop {loop_name}')
-    except:
+    except Exception:
+        traceback.print_exc()
         logger.exception('error outside loop ', name(event))
 
 
@@ -84,7 +87,6 @@ class EventLoop:
         return True
 
     def shutdown(self):
-
         keys = [key for key in self.loops.keys()]
         for key in keys:
             self.unregister(key)

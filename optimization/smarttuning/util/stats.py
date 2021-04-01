@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import heapq
 import math
 
@@ -58,20 +59,19 @@ class RunningStats:
         return self._last
 
     def accumulative_diff(self):
-        ## goes to 0 in the long run if the values are uniform
+        # goes to 0 in the long run if the values are uniform
+        if self.n() <= 1:
+            return 0
         return self._acc_diff
 
     def slope(self):
         return self.curr() - self.last()
 
-    def prev_state(self):
-        return self._prev_state
-
     def push(self, x):
         self._last = self.curr()
         self._curr = x
 
-        self._acc_diff += self.curr() - self.last()
+        self._acc_diff = self.accumulative_diff() + (self.curr() - self.last())
 
         heapq.heappush(self._heap, x)
         self._m_n += 1
@@ -94,17 +94,31 @@ class RunningStats:
     def n(self):
         return self._m_n
 
-    def median(self):
-        pivot = self.n() // 2 + 1
+    @staticmethod
+    def __median(values, n):
+        pivot = n // 2 + 1
 
         _median = float('nan')
-        if self.n() > 0:
-            if self.n() % 2 == 0:
-                _median = sum(heapq.nsmallest(pivot, self._heap)[-2:])/2
+        if n > 0:
+            if n % 2 == 0:
+                _median = sum(heapq.nsmallest(pivot, values)[-2:])/2
             else:
-                _median = heapq.nsmallest(pivot, self._heap)[-1]
+                _median = heapq.nsmallest(pivot, values)[-1]
 
         return _median
+
+    def median(self):
+        return RunningStats.__median(self._heap, self.n())
+
+    def mad(self):
+        """
+            Median Absolute Deviation
+            https://en.wikipedia.org/wiki/Median_absolute_deviation
+        """
+        _m = self.median()
+        _mad = RunningStats.__median([abs(x - _m) for x in self._heap], self.n())
+
+        return _mad
 
     def mean(self):
         return self._m_newM if self._m_n > 0 else 0
@@ -176,11 +190,17 @@ class RunningStats:
 
     def serialize(self) -> dict:
         return {
+            'acc_diff': self.accumulative_diff(),
             'median': self.median(),
             'mean': self.mean(),
             'variance': self.variance(),
             'stddev': self.standard_deviation(),
+            'mad': self.mad(),
             'min': self.min(),
             'max': self.max(),
-            'n': self.n()
+            'n': self.n(),
+            'debug': self._heap,
         }
+
+    def debug(self) -> list[float]:
+        return copy.deepcopy(self._heap)

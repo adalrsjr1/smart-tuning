@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import threading
-from typing import TYPE_CHECKING
 
 import optuna
 
@@ -11,10 +9,6 @@ import config
 # workaround to fix circular dependency
 # https://www.stefaanlippens.net/circular-imports-type-hints-python.html
 from controllers.searchspacemodel import SearchSpaceModel
-
-if TYPE_CHECKING:
-    from models.smartttuningtrials import SmartTuningTrials
-from sampler import Metric
 from util.stats import RunningStats
 
 logger = logging.getLogger(config.CONFIGURATION_MODEL_LOGGER)
@@ -22,191 +16,180 @@ logger.setLevel(config.LOGGING_LEVEL)
 
 
 class Configuration:
-    def __init__(self, trial: optuna.trial.BaseTrial, ctx: SearchSpaceModel, trials: SmartTuningTrials):
-        self._uid = trial.number
-        self._trial = trial
-        self._trials = trials
-        self._ctx = ctx
-        self._data = self.ctx.sample(trial, full=True)
-        self._name = hashlib.md5(bytes(str(self.data.items()), 'ascii')).hexdigest()
-        self.stats: RunningStats = RunningStats()
-        self._n_restarts = 0
-        self._workload = ''
-        self._was_pruned = False
-        self.semaphore = threading.BoundedSemaphore(value=1)
-        self._lock = threading.Lock()
+    @staticmethod
+    def new(trial: optuna.trial.BaseTrial, search_space: SearchSpaceModel):
+
+        return Configuration(trial, data=search_space.sample(trial, full=True))
+
+    @staticmethod
+    def new_best(trial: optuna.trial.BaseTrial, search_space: SearchSpaceModel):
+        hierarchy = search_space.hierarchy()
+        params = trial.params
+
+        for manifest_name, tunables in hierarchy.items():
+            for key, value in params:
+                if key in tunables:
+                    tunables[key] = value
+
+        return Configuration(trial, data=hierarchy)
+
+    @staticmethod
+    def running_config(search_space: SearchSpaceModel, score: float = 0) -> DefaultConfiguration:
+        current_config = {}
+        params = {}
+        for manifest in search_space.manifests:
+            name = manifest.name
+            current_config[name] = manifest.get_current_config()
+            params.update(current_config[name])
+            logger.debug(f'getting manifest {name}:{current_config[name]}')
+
+        distributions = search_space.distributions()
+
+        def make_params_valid(params: dict, distributions: dict) -> dict:
+            new_params = {}
+            for key, value in params.items():
+                new_value = value
+                distribution: optuna.distributions.BaseDistribution = distributions.get(key, None)
+                if isinstance(distribution, optuna.distributions.IntUniformDistribution) or \
+                        isinstance(distribution, optuna.distributions.UniformDistribution):
+                    if not (distribution.low <= value <= distribution.high):
+
+                        # use the closest value in the valid distribution as defaul parameter
+                        if abs(value - distribution.low) < abs(value - distribution.high):
+                            new_value = distribution.low
+                        else:
+                            new_value = distribution.high
+                        logger.warning(f'rescaling {key}:{value} to {new_value}')
+
+                elif isinstance(distribution, optuna.distributions.CategoricalDistribution):
+                    if value not in distribution.choices:
+                        new_value = distribution.choices[0]
+                        logger.warning(f'rescaling {key}:{value} to {new_value}')
+
+                elif distribution is None:
+                    logger.warning(f'doesn\'t exist a distribution for the parameter {key}:{value}')
+                    continue
+
+                new_params[key] = new_value
+            return new_params
+
+        trial = optuna.create_trial(
+            params=make_params_valid(params, distributions),
+            distributions=distributions,
+            value=score,
+        )
+
+        configuration = DefaultConfiguration(trial, data=search_space.hierarchy(params))
+        configuration.score = score
+
+        configuration.trial.number = 0
+
+        return configuration
+
+    __empty_config = None
+
+    @staticmethod
+    def empty_config():
+        if not Configuration.__empty_config:
+            Configuration.__empty_config = EmptyConfiguration()
+        return Configuration.__empty_config
+
+    @staticmethod
+    def last_confignew(trial: optuna.trial.BaseTrial, search_space: SearchSpaceModel):
+        return LastConfiguration(Configuration.new(trial, search_space))
+
+    def __init__(self, trial: optuna.trial.BaseTrial, data: dict):
+        self.__trial = trial
+        self.__data = data
+        self.__name = hashlib.md5(bytes(str(self.data.items()), 'ascii')).hexdigest()
+        self.__stats: RunningStats = RunningStats()
+
+    def debug_stats(self) -> list[float]:
+        return self.__stats.debug()
+
+    def __lt__(self, other: Configuration):
+        return self.median < other.median
 
     def __hash__(self):
         return hash(self.name)
 
-    def __lt__(self, other: Configuration):
-        return self.stats.median() < other.stats.median()
-
-    def __gt__(self, other: Configuration):
-        return self.stats.median() > other.stats.median()
-
-    def __eq__(self, other: Configuration):
-        # return self.stats == other.stats
+    def __eq__(self, other):
         return self.name == other.name
 
     def __str__(self):
-        return f'{{' \
-               f'"name":{self.name}, ' \
-               f'"uid":{self.uid}, ' \
-               f'"pruned":{self.was_pruned}, ' \
-               f'"workload": {self.workload}, ' \
-               f'"score":{self.score}, ' \
-               f'"mean":{self.mean()}, ' \
-               f'"std":{self.stddev()}, ' \
-               f'"median":{self.median()}' \
-               f'}}'
+        return str(self.serialize())
 
     def __repr__(self):
         return self.__str__()
 
     def serialize(self) -> dict:
-        logger.debug(f'serializing: {id(self)}:{self}')
         return {
             'uid': self.uid,
             'name': self.name,
-            'pruned': self.was_pruned,
-            'workload': self.workload,
-            'data': self.data,
             'score': self.score,
-            'stats': self.stats.serialize(),
-            'trials': self._trials.serialize(),
-            'restarts': self.n_restarts,
+            'data': self.data,
+            'stats': self.__stats.serialize(),
         }
 
-    def prune(self):
-        with self._lock:
-            logger.warning(f'pruning config: {self.name} -- {id(self)}')
-            self._was_pruned = True
-            logger.debug(f'pruning config: {self.name} -- {self._was_pruned}')
-
     @property
-    def was_pruned(self):
-        with self._lock:
-            return self._was_pruned
-
-    def restore(self):
-        with self._lock:
-            self._was_pruned = False
-
-    @property
-    def n_restarts(self):
-        return self._n_restarts
-
-    def increment_restart_counter(self):
-        self._n_restarts += 1
+    def name(self):
+        return self.__name
 
     @property
     def uid(self):
         return self.trial.number
 
     @property
-    def ctx(self):
-        return self._ctx
-
-    @property
-    def trial(self):
-        return self._trial
-
-    @trial.setter
-    def trial(self, trial):
-        self._trial = trial
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
     def data(self):
-        return self._data
+        return self.__data
 
     @property
-    def score(self):
-        return self.stats.curr()
-
-    def update_score(self, value: Metric):
-        self.stats.push(value.objective())
-        self.trial.value = self.median()
+    def trial(self) -> optuna.Trial:
+        return self.__trial
 
     @property
-    def workload(self):
-        return self._workload
+    def score(self) -> float:
+        return self.__stats.curr()
 
-    @workload.setter
-    def workload(self, new_workload):
-        self._workload = new_workload
+    @score.setter
+    def score(self, value: float):
+        self.__stats.push(value)
+        self.trial.value = self.median
 
-    def mean(self):
-        return self.stats.mean()
+    @property
+    def mean(self) -> float:
+        return self.__stats.mean()
 
-    def stddev(self):
-        return self.stats.standard_deviation()
+    @property
+    def stddev(self) -> float:
+        return self.__stats.standard_deviation()
 
-    def median(self):
-        return self.stats.median()
+    @property
+    def median(self) -> float:
+        return self.__stats.median()
 
-    def iterations(self):
-        self.stats.n()
+    def final_score(self) -> float:
+        return self.median
 
 
 class DefaultConfiguration(Configuration):
-    def __init__(self, trial: optuna.trial.BaseTrial, ctx: SearchSpaceModel, trials: SmartTuningTrials,
-                 workload: str):
-        self._uid = trial.number
-        self._trial = trial
-        self._trials = trials
-        self._ctx = ctx
-        self._data = trial.params
-        self._name = hashlib.md5(bytes(str(self.data.items()), 'ascii')).hexdigest()
-        self.stats = RunningStats()
-        self._n_restarts = 0
-        self._workload = workload
-        self._was_pruned = False
-        self._lock = threading.Lock()
-        self.semaphore = threading.BoundedSemaphore(value=1)
-
-    @property
-    def data(self):
-        return self.ctx.default_structure(self._data)
+    pass
 
 
 class EmptyConfiguration(Configuration):
     def __init__(self):
-        self._uid = -1
-        self._trial = None
-        self._trials = None
-        self._ctx = None
-        self._data = {}
-        self._name = hashlib.md5(bytes(str(self.data.items()), 'ascii')).hexdigest()
-        self.stats = RunningStats()
-        self._n_restarts = 0
-        self.workload = ''
-        self._was_pruned = False
-        self._lock = threading.Lock()
-        self.semaphore = threading.BoundedSemaphore(value=1)
+        super(EmptyConfiguration, self).__init__(trial=optuna.trial.FixedTrial(params={}), data={})
 
-    def __str__(self):
-        return 'EmptyConfig'
+    @property
+    def score(self) -> float:
+        return float('inf')
 
-    def serialize(self) -> dict:
-        return {}
+    @score.setter
+    def score(self, value):
+        logger.error('cannot update score into a EmptyConfiguration')
+        # raise NotImplementedError
 
 
-class LastConfig(Configuration):
-    def __init__(self, last_config: Configuration):
-        self._uid = last_config.uid
-        self._trial = last_config.trial
-        self._trials = last_config._trials
-        self._ctx = last_config.ctx
-        self._data = last_config.data
-        self._name = last_config.name
-        self.stats = last_config.stats
-        self._n_restarts = last_config.n_restarts
-        self.workload = last_config.workload
-        self._was_pruned = False
-        self._lock = threading.Lock()
-        self.semaphore = threading.BoundedSemaphore(value=1)
+class LastConfiguration(Configuration):
+    def __init__(self, configuration: Configuration):
+        super(LastConfiguration, self).__init__(trial=configuration.trial, data=configuration.data)

@@ -5,13 +5,8 @@ metadata:
   name: tuning
 rules:
   - apiGroups: ["*"]
-    resources:
-      - configmaps
-      - services
-      - deployments
-      - searchspaces
-      - pods
-    verbs: ["get","list","watch","create","update","patch","delete"]
+    resources: ["*"]
+    verbs: ["*"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -29,9 +24,26 @@ subjects:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: smarttuning-sampling-prom-queries
+data:
+  Q_CPU: f'sum(rate(container_cpu_usage_seconds_total{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
+  Q_CPU_L: f'sum(sum_over_time(container_spec_cpu_quota{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s])) / avg(sum_over_time(container_spec_cpu_period{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
+  Q_MEM: f'sum(max_over_time(container_memory_working_set_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
+  Q_MEM_L: f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
+  Q_THRUPUT: f'sum(rate(smarttuning_http_requests_total{{code=~"[2|3]..",pod=~"{self.podname}-.*",namespace="{self.namespace}",name!~".*POD.*"}}[{self.interval}s]))'
+  Q_RESP_TIME: f'sum(rate(smarttuning_http_processtime_seconds_sum{{pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s])) / sum( rate(smarttuning_http_processtime_seconds_count{{pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s]))'
+  Q_ERRORS: f'sum(rate(smarttuning_http_requests_total{{code=~"[4|5]..",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s])) / sum( rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s]))'
+  Q_REPLICAS: f'avg_over_time(kube_deployment_spec_replicas{{namespace="{self.namespace}", deployment="{self.podname}"}}[{self.interval}s])'
+  #Q_REPLICAS: f'sum(count(count(sum(rate(container_cpu_usage_seconds_total{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",container!="",namespace="{self.namespace}"}}[{self.interval}s])) by (container,pod)) by (pod) > 1) by (pod))'
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: smarttuning-config
 data:
   # test config
+  WORKLOAD_TIMEOUT: "60"
+  FAIL_FAST: "False"
   MOCK: "False"
   PRINT_CONFIG: "True"
   # mongo config
@@ -41,8 +53,8 @@ data:
   # prometheus config
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
-  SAMPLING_METRICS_TIMEOUT: '600'
-  WAITING_TIME: '600'
+  SAMPLING_METRICS_TIMEOUT: '300'
+  WAITING_TIME: '300'
   SAMPLE_SIZE: '0.3334'
   # classification config
   K: '1'
@@ -52,25 +64,33 @@ data:
   #SEARCH_SPACE_NAME: 'acmeair-searchspace'
   BAYESIAN: 'True'
   # n_startup_jobs: # of jobs doing random search at begining of optimization
-  N_STARTUP_JOBS: '20'
+  N_STARTUP_JOBS: '10'
   # n_EI_candidades: number of config samples draw before select the best. lower number encourages exploration
   N_EI_CANDIDATES: '24'
   # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
   GAMMA: '0.25'
-  NUMBER_ITERATIONS: '55'
+  NUMBER_ITERATIONS: '80'
   ITERATIONS_BEFORE_REINFORCE: '10'
-  TRY_BEST_AT_EVERY: '10'
-  REINFORCEMENT_RATIO: '0.3334'
+  MAX_N_ITERATION_NO_IMPROVEMENT: '150'
+  TRY_BEST_AT_EVERY: '1'
+  RESTART_TRIGGER: '3' # https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule
+  REINFORCEMENT_RATIO: '0.3'
   METRIC_THRESHOLD: '0.0'
   RANDOM_SEED: '31'
   ## the objective is always to minimize
   ## 2 ** 20 transforms bytes to megabytes
   ## AWS Cost, CPU: 0.0535/vCore Memory: 0.013375/GB --> (total_cost / CPU  + total_cost / GB) / 2
   ## M5 Instance https://aws.amazon.com/ec2/pricing/on-demand/
-  OBJECTIVE: '-(throughput / ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))'
+  # avg
+  OBJECTIVE: '-(1-errors)*(1.0/(1+process_time))*(throughput / (((((memory_limit / (2**20)) * 0.013375) + (cpu_limit * 0.0535)) / 2)))'
+  #OBJECTIVE: '-(1-errors)*(1.0/(1+process_time))*(throughput / (curr_replicas*((((memory_limit / (2**20)) * 0.013375) + (cpu_limit * 0.0535)) / 2)))'
+  # sum
+  #OBJECTIVE: '-(1.0/(1+process_time))*(throughput / ((((memory_limit / (2**20)) * 0.013375) + (cpu_limit * 0.0535)) / 2))'
+  AGGREGATION_FUNCTION: 'sum'
   THROUGHPUT_THRESHOLD: '10'
   QUANTILE: '1.0'
   NAMESPACE: 'default'
+  HPA_NAME: 'acmeair-service'
   PROXY_IMAGE: 'smarttuning/proxy'
 ---
 apiVersion: apps/v1
@@ -101,19 +121,24 @@ spec:
       containers:
         - name: smarttuning
           image: quay.io/smarttuning/smarttuning:dev
+          #image: smarttuning/smarttuning:dev
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
           envFrom:
             - configMapRef:
                 name: smarttuning-config
-          volumeMounts:
-            - mountPath: /etc/smart-tuning
-              name: smarttuning-config
-      volumes:
-        - name: smarttuning-config
-          configMap:
-            name: smarttuning-config
+            - configMapRef:
+                name: smarttuning-sampling-prom-queries
+          #volumeMounts:
+          #  - mountPath: /etc/smart-tuning
+          #    name: smarttuning-config
+          securityContext:
+            privileged: true
+      #volumes:
+      #  - name: smarttuning-config
+      #    configMap:
+      #      name: smarttuning-config
   selector:
     matchLabels:
       app: smarttuning

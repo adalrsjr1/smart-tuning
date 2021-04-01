@@ -4,6 +4,7 @@ TAG := $(shell git log -1 --format=%h)
 
 build-dev:
 	@echo "building image: quay.io/smarttuning/smarttuning:dev and $(TAG)"
+	docker build -t smarttuning:$(TAG) -t quay.io/smarttuning/smarttuning:$(TAG) .
 	docker build -t smarttuning:dev -t quay.io/smarttuning/smarttuning:dev -t smarttuning:$(TAG) -t quay.io/smarttuning/smarttuning:$(TAG) .
 
 build:

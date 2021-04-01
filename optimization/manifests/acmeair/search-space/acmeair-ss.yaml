@@ -17,17 +17,17 @@ data:
   - name: acmeair-service
     tunables:
       option:
-        - name: "cpu"
-          type: "integer"
-          values:
-            - "2"
-            - "4"
-            - "8"
+#        - name: "cpu"
+#          type: "integer"
+#          values:
+#            - "2"
+#            - "4"
+#            - "8"
 #            - "16"
         - name: "memory"
           type: "integer"
           values:
-            - "512"
+#            - "512"
             - "1024"
             - "2048"
             - "4096"

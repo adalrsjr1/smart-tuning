@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    injection.smarttuning.ibm.com: "true"
+  labels:
+    app: mock
+  name: mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock
+  template:
+    metadata:
+      labels:
+        app: mock
+    spec:
+      containers:
+      - image: open-liberty:full-java11-openj9
+        imagePullPolicy: IfNotPresent
+        name: openliberty
+        ports:
+          - containerPort: 9080
+        envFrom:
+          - configMapRef:
+              name: mock-envvar
+        volumeMounts:
+          - mountPath: /config/jvm.options
+            subPath: jvm.options
+            name: mock-jvm
+        securityContext:
+          runAsUser: 0
+          privileged: true
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+        readinessProbe:
+          initialDelaySeconds: 30
+          httpGet:
+            port: 9080
+      volumes:
+        - name: mock-jvm
+          configMap:
+            name: mock-jvm

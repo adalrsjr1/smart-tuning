@@ -23,7 +23,8 @@ logger.setLevel(logging.DEBUG)
 
 
 class SearchSpaceModel:
-    def __init__(self, o, study: optuna.Study):
+    def __init__(self, o, study=None):
+        # def __init__(self, o, study: optuna.Study):
         self.study = study
         if o:
             temp = parse_manifests(o, self)
@@ -42,7 +43,7 @@ class SearchSpaceModel:
 
         return optuna.trial.FixedTrial(params)
 
-    def default_structure(self, plain_config:dict) -> dict:
+    def default_structure(self, plain_config: dict) -> dict:
         tunables = self.tunables()
         _sample = {}
         for manifest in self.manifests:
@@ -55,6 +56,20 @@ class SearchSpaceModel:
 
         return _sample
 
+    def hierarchy(self, params=None) -> dict:
+        ss = {}
+        for manifest in self.manifests:
+            name = manifest.name
+            ss.update({name: {}})
+            tunables = manifest.tunables
+            for key, tunable in tunables.items():
+                if params:
+                    ss[name][key] = params[key]
+                else:
+                    ss[name][key] = None
+
+        return ss
+
     def tunables(self) -> dict[str, BaseRangeModel]:
         manifest: BaseSearchSpaceModel
         all_tunables = {}
@@ -63,11 +78,28 @@ class SearchSpaceModel:
 
         return all_tunables
 
-    def sample(self, trial: optuna.trial.BaseTrial, full=False):
+    def tunable(self, name) -> BaseRangeModel:
+        if not name:
+            return None
+        return self.tunables().get(name, None)
+
+    def distributions(self, trial=None):
+        manifest: BaseSearchSpaceModel
+        distributions = {}
+        memo = {}
+        for manifest in self.manifests:
+            for key, tunable in manifest.tunables.items():
+                distributions.update({key: tunable.distribution(trial, memo)})
+
+        return distributions
+
+    def sample(self, trial: optuna.trial.BaseTrial, full=False) -> dict:
         """
         trial: optuna.trial.BaseTrial
         full: if true return the tunables hierarchy {'manifest-name': {'tunable-name': value}}
         otherwise return a plain list of tunables {'tunable-name': 'value'}
+
+        return a dict
         """
         tunable: BaseRangeModel
         _sample = {}
@@ -82,7 +114,6 @@ class SearchSpaceModel:
                         ss[name][key] = tunable.sample(trial, memo)
                     except:
                         logger.exception(f'{name}:{key}')
-                        exit(1)
                 _sample.update(ss)
         else:
             for key, tunable in self.tunables().items():
@@ -274,7 +305,18 @@ class ConfigMapSearhSpaceModel(BaseSearchSpaceModel):
             else:
                 keys, config_map.data = jmvoptions_to_dict(config_map.data['jvm.options'])
 
-        return {k: config_map.data[k] for k, v in self.tunables.items() if k in config_map.data}
+        result = {}
+        for k, v in self.tunables.items():
+            if k in config_map.data:
+                value = config_map.data[k]
+                if v.type == 'integer':
+                    value = int(value)
+                elif v.type == 'real':
+                    value = float(value)
+                result[k] = value
+
+        return result
+        # return {k: config_map.data[k] for k, v in self.tunables.items() if k in config_map.data}
 
     def patch(self, new_config: dict, production=False):
         if self.filename == 'jvm.options':
@@ -334,21 +376,51 @@ class BaseRangeModel:
         self.ctx = ctx
 
     @abc.abstractmethod
-    def sample(self, trial: optuna.trial.BaseTrial, memo:dict) -> Union[int, float, str]:
+    def sample(self, trial: optuna.trial.BaseTrial, memo: dict) -> Union[int, float, str]:
         return
 
     @abc.abstractmethod
     def distribution(self, trial: optuna.trial.BaseTrial, memo: dict) -> optuna.distributions.BaseDistribution:
         return
 
+    @abc.abstractmethod
+    def new_sample(self, trial: optuna.trial.BaseTrial, memo: dict):
+        return
+
 
 class NumberRangeModel(BaseRangeModel):
+    def new_sample(self, trial: optuna.trial.BaseTrial, memo: dict):
+        if self.name not in memo:
+
+            low = dep_eval(self.lower_dep, self.ctx, trial, memo) if self.lower_dep else self.lower
+            high = dep_eval(self.upper_dep, self.ctx, trial, memo) if self.upper_dep else self.upper
+
+            if low > high:
+                logger.warning(f'rescaling {self.name}.low: {low} --> {high}')
+                low = high
+
+            if high < low:
+                logger.warning(f'rescaling {self.name}.high: {high} --> {low}')
+                high = low
+
+            value = low
+            try:
+                if self.real:
+                    value = trial.suggest_float(self.name, low, high, step=self.step)
+                else:
+                    value = trial.suggest_int(self.name, low, high, step=self.step or 1)
+            except ValueError:
+                logger.exception(f'cannot sample a value for this tunable {self}')
+            memo[self.name] = value
+        return memo[self.name]
+
     def __init__(self, r, ctx: SearchSpaceModel = None):
         super(NumberRangeModel, self).__init__(r['name'], ctx)
         self.upper, self.upper_dep = self.__unpack_value(r['upper'])
         self.lower, self.lower_dep = self.__unpack_value(r['lower'])
         self.step = r.get('step', None)
         self.real = r.get('real', False)
+        self.type = 'real' if self.real else 'integer'
 
     def __unpack_value(self, item):
         if item and isinstance(item, dict):
@@ -363,6 +435,7 @@ class NumberRangeModel(BaseRangeModel):
                f'"upper": {self.upper}, ' \
                f'"upper_dep":{self.upper_dep}, ' \
                f'"real": "{self.real}", ' \
+               f'"type": "{self.type}", ' \
                f'"step": {self.step}}}'
 
     def sample(self, trial: optuna.trial.BaseTrial, memo: dict) -> Union[int, float, str]:
@@ -370,10 +443,9 @@ class NumberRangeModel(BaseRangeModel):
         if self.name in memo:
             return memo[self.name]
 
-
         step = self.get_step()
+        d = self.distribution(None, memo)
         if isinstance(trial, optuna.trial.FixedTrial):
-            d = self.distribution(None, memo)
             lower = d.low
             upper = d.high
         else:
@@ -386,8 +458,6 @@ class NumberRangeModel(BaseRangeModel):
 
             assert lower <= upper, f' {self.name}: lower[{lower}] >= upper[{upper}]'
             # print('[s]', self.name, lower, upper, step)
-
-
 
         if trial:
             if self.get_real():
@@ -413,7 +483,8 @@ class NumberRangeModel(BaseRangeModel):
                 q = d.step
 
             if self.get_real():
-                value = random.uniform(low, high) * q // q
+                value = trial.suggest_float(self.name, low, high, step=q)
+                # value = random.uniform(low, high) * q // q
             else:
                 value = random.randint(low, high) * q // q
 
@@ -485,6 +556,7 @@ class NumberRangeModel(BaseRangeModel):
             return self.real
         return strtobool(self.real)
 
+
 def dep_eval(expr, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial, memo: dict):
     expr_lst = tokenize(expr, ctx, trial, memo)
     return polish_eval(expr_lst)
@@ -548,6 +620,13 @@ def polish_eval(expr: list):
 
 
 class OptionRangeModel(BaseRangeModel):
+    def new_sample(self, trial: optuna.trial.BaseTrial, memo: dict):
+        if self.name not in memo:
+            value = trial.suggest_categorical(self.name, self.get_values())
+            memo[self.name] = value
+
+        return memo[self.name]
+
     def __init__(self, r, ctx: SearchSpaceModel = None):
         super(OptionRangeModel, self).__init__(r['name'], ctx)
         self.type = r['type']
@@ -592,7 +671,11 @@ class OptionRangeModel(BaseRangeModel):
         return -1
 
     def cast(self, values, new_type):
-        types = {'integer': int, 'real': float, 'string': str, 'bool': strtobool}
+        def _strtobool(value):
+            b = strtobool(value)
+            return bool(b)
+
+        types = {'integer': int, 'real': float, 'string': str, 'bool': _strtobool, 'boolean': _strtobool}
         to_return = [types[new_type](value) for value in values]
         return to_return
 

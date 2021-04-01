@@ -27,16 +27,16 @@ spec:
           image: smarttuning/liberty-acmeair-k8s
           resources:
             limits:
-              cpu: "2"
-              memory: "4096Mi"
+              cpu: "1"
+              memory: "512Mi"
           imagePullPolicy: IfNotPresent
           readinessProbe:
             httpGet:
               port: 9080
               path: /acmeair-webapp/
-            initialDelaySeconds: 60
-            failureThreshold: 2
-            periodSeconds: 10
+            initialDelaySeconds: 30
+#            failureThreshold: 2
+#            periodSeconds: 10
           ports:
             - containerPort: 9080
           envFrom:

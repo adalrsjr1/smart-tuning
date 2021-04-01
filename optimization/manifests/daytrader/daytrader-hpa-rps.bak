@@ -1,0 +1,38 @@
+---
+kind: HorizontalPodAutoscaler
+apiVersion: autoscaling/v2beta2
+metadata:
+  name: daytrader-service-rps
+spec:
+  scaleTargetRef:
+    # point the HPA at the sample application
+    # you created above
+    apiVersion: apps/v1
+    kind: Deployment
+    name: daytrader-service
+  # autoscale between 1 and 10 replicas
+  minReplicas: 1
+  maxReplicas: 1
+  metrics:
+  # use a "Pods" metric, which takes the average of the
+  # given metric across all pods controlled by the autoscaling target
+  - type: External
+    external:
+      metric:
+        name: smarttuning_http_requests_per_second
+        selector:
+          matchLabels:
+            # the prom metrics labels,e.g, <metric>{label1='', label='', ...}
+            training: "false"
+      target:
+        type: AverageValue
+        averageValue: 250000m
+        # 50 rps
+
+
+        # # use the metric that you used above: pods/http_requests
+        # metricName: smarttuning_http_requests
+        # # target 500 milli-requests pr second,
+        # # which is 1 request every two seconds
+        # targetAverageValue: 1
+
