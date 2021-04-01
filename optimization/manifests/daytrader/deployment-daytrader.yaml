@@ -9,7 +9,7 @@ spec:
     matchLabels:
       app: daytrader
       smarttuning: "false"
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:

@@ -236,11 +236,11 @@ class DeploymentSearchSpaceModel(BaseSearchSpaceModel):
         return name, namespace, containers
 
 
-def update_n_replicas(deployment_name, namespace, curr_n_replicas):
-    if curr_n_replicas > 1:
-        logger.info(f'updating {deployment_name} replicas to {curr_n_replicas}')
-        body = {"spec": {"replicas": curr_n_replicas}}
-        config.appsApi().patch_namespaced_deployment(name=deployment_name, namespace=namespace, body=body)
+# def update_n_replicas(deployment_name, namespace, curr_n_replicas):
+#     if curr_n_replicas > 1:
+#         logger.info(f'updating {deployment_name} replicas to {curr_n_replicas}')
+#         body = {"spec": {"replicas": curr_n_replicas}}
+#         config.appsApi().patch_namespaced_deployment(name=deployment_name, namespace=namespace, body=body)
 
 
 def get_deployment(name, namespace) -> V1Deployment:

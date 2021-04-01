@@ -42,7 +42,7 @@ def searchspace_controller(event):
 
             deployment = get_deployment(deployment_name, namespace)
             duplicate_deployment_for_training(deployment)
-            update_n_replicas(deployment_name, namespace, deployment.spec.replicas - 1)
+            # update_n_replicas(deployment_name, namespace, deployment.spec.replicas - 1)
 
             with search_space_lock:
                 logger.warning(f'initialiazing search space {name}:{deployment_name}')
@@ -93,8 +93,8 @@ def stop_tuning(ctx):
     ctx.delete_bayesian_searchspace()
     deployment = get_deployment(ctx.model.deployment, ctx.model.namespace)
     train_deployment = ctx.model.deployment + config.PROXY_TAG
-    if deployment.spec.replicas > 1:
-        update_n_replicas(ctx.model.deployment, ctx.model.namespace, deployment.spec.replicas + 1)
+    # if deployment.spec.replicas > 1:
+    #     update_n_replicas(ctx.model.deployment, ctx.model.namespace, deployment.spec.replicas + 1)
 
     logger.debug(f'search spaces names: {search_spaces.keys()}')
     logger.debug(f'search space to delete: {ctx.model.deployment}')

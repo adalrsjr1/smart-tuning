@@ -605,6 +605,7 @@ if __name__ == '__main__':
     name = 'trace-sched-2021-03-25T18 21 19'
     name = 'trace-sched-2021-03-26T16 29 38'
     name = 'trace-sched-2021-03-28T03 10 37'
+    name = 'trace-rsum-2021-03-31T21 16 20'
     data = {}
     # df = load_raw_data('./resources/' + name + '.json', service_name)
     # print(features_table(df, 'daytrader', 'config'))
@@ -625,7 +626,7 @@ if __name__ == '__main__':
 
     # plot_importance(data)
 
-    workload = 'trading-jsp'
+    workload = ''
     df = load_raw_data('./resources/' + name + '.json', service_name, workload)
     # plot(df, title=title+': '+name, objective=r'$\frac{1}{1+resp. time} \times \frac{requests}{\$}$', save=title+name, show_table=True)
     plot(df, title=title + ': ' + name + '\n' + workload,
