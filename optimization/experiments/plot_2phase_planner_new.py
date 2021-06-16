@@ -730,7 +730,7 @@ if __name__ == '__main__':
             #     continue
             df = load_raw_data('./resources/' + name + '.json', service_name, workload,
                                skip_reset=False,
-                               skip_pruned=False,
+                               skip_pruned=True,
                                skip_tuned=False,
                                show_workload_gap=False)
             empty = df[(df['pname'].str.len() > 0)]

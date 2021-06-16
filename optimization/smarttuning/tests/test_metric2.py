@@ -13,7 +13,7 @@ class MyTestCase(unittest.TestCase):
     def test_parse_json(self):
         sampler = Sampler(podname='daytrader-service',
                           namespace='default',
-                          interval=60,
+                          interval=600,
                           metric_schema_filepath=config.SAMPLER_CONFIG,
                           prom_url='http://localhost:30099')
         metric = sampler.sample()
@@ -21,12 +21,12 @@ class MyTestCase(unittest.TestCase):
     def test_evaluation(self):
         sampler = Sampler(podname='daytrader-service',
                           namespace='default',
-                          interval=60,
+                          interval=600,
                           metric_schema_filepath=config.SAMPLER_CONFIG,
                           prom_url='http://localhost:30099')
         metric = sampler.sample()
         metric_decorator = MetricDecorator(metric, sampler.objective_expr, sampler.saturation_expr)
-        print(metric_decorator.serialize())
+        print(metric_decorator.cpu)
 
 if __name__ == '__main__':
     unittest.main()

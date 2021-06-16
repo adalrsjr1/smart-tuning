@@ -12,6 +12,7 @@ from optuna.trial import TrialState
 
 from models.configuration import Configuration
 from models.instance import Instance
+from models.metric2 import Sampler
 from models.workload import Workload
 from sampler import Metric
 from smarttuning2.planner.iteration import TrainingIteration, IterationDriver, ReinforcementIteration, \
@@ -24,7 +25,7 @@ class TestIteration(TestCase):
 
     @staticmethod
     def pmock() -> Instance:
-        i = Instance('pmock', '', True, 1, MagicMock(), None)
+        i = Instance('pmock', '', True, 1, MagicMock(), True)
 
         def side_effect_patch(arg):
             print(f'patching: {arg.name}')
@@ -36,7 +37,7 @@ class TestIteration(TestCase):
 
     @staticmethod
     def tmock() -> Instance:
-        i = Instance('tmock', '', True, 1, MagicMock(), None)
+        i = Instance('tmock', '', True, 1, MagicMock(), True)
 
         def side_effect_patch(arg):
             print(f'patching: {arg.name}')

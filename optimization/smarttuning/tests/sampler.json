@@ -33,8 +33,13 @@
       "datasource": "hpa"
     },
     {
-      "name": "memory_utilization",
-      "query": "resource.current.memory.average_utilization",
+      "name": "cpu_utilization",
+      "query": "resource.current.cpu.average_utilization",
+      "datasource": "hpa"
+    },
+    {
+      "name": "max_cpu_utilization",
+      "query": "resource.target.cpu.average_utilization",
       "datasource": "hpa"
     },
     {

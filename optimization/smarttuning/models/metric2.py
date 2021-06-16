@@ -24,12 +24,13 @@ def validate_json(j: dict) -> dict:
 class Sampler:
 
     def __init__(self, podname: str, namespace: str, interval: int, metric_schema_filepath: str,
-                 prom_url: str):
+                 prom_url: str, training: bool = False):
         with open(metric_schema_filepath, 'r') as f:
             self.__raw = validate_json(json.load(f))
         self.podname = podname
         self.namespace = namespace
         self.interval = interval
+        self.training = training
         self.__prom_url = prom_url
 
     @property
@@ -49,6 +50,7 @@ class Sampler:
     def sample(self):
         metrics = {}
         for item in self.__raw['metrics']:
+
             key, value = query(self, **item)
             metrics[key] = value
 
@@ -62,6 +64,7 @@ class MetricDecorator:
         self.__ctx = {field: ctx[idx] for idx, field in enumerate(ctx._fields)}
         self.__objective_expr: str = objective_expr
         self.__saturation_expr: str = saturation_expr
+        self.__dict__.update(self.__ctx)
 
     def objective(self) -> float:
         data = dict(self.__ctx)
@@ -87,7 +90,9 @@ def query(ctx: Sampler, name: str, query: str, datasource: str) -> (str, float):
 
 
 def prom_query(ctx: Sampler, name: str, _query: str):
-    return name, float(ctx.prom().query(eval(_query, globals(), ctx.__dict__)))
+    result = ctx.prom().query(eval(_query, globals(), ctx.__dict__))
+    if len(result) <= 0: result = 0
+    return name, float(result)
 
 
 def hpa_query(ctx: Sampler, name: str, query: str):
@@ -96,7 +101,7 @@ def hpa_query(ctx: Sampler, name: str, query: str):
       max_replicas
       current_replicas
       resource.current.<name>.average_utilization
-      resource.datasource.<name>.average_utilization
+      resource.target.<name>.average_utilization
     """
 
     def interpret_query(autoscaler: V2beta2HorizontalPodAutoscaler, query: str) -> float:
@@ -111,15 +116,15 @@ def hpa_query(ctx: Sampler, name: str, query: str):
             metric: V2beta2MetricStatus
             for metric in autoscaler.status.current_metrics:
                 if resource_name == metric.resource.name:
-                    return metric.current.average_utilization
+                    return metric.resource.current.average_utilization
             return float('nan')
 
-        def resource_datasource(autoscaler: V2beta2HorizontalPodAutoscaler, query: str) -> float:
+        def resource_target(autoscaler: V2beta2HorizontalPodAutoscaler, query: str) -> float:
             resource_name = query.split('.')[2]
+            metric: V2beta2MetricSpec
             for metric in autoscaler.spec.metrics:
-                resource: V2beta2MetricSpec = metric.resource
-                if resource_name == resource.name:
-                    return metric.datasource.average_utilization
+                if resource_name == metric.resource.name:
+                    return metric.resource.target.average_utilization
             return float('nan')
 
         if 'max_replicas' == query:
@@ -128,8 +133,8 @@ def hpa_query(ctx: Sampler, name: str, query: str):
             return current_replicas(autoscaler, query)
         elif query.startswith('resource.current'):
             return resource_current(autoscaler, query)
-        elif query.startswith('resource.datasource'):
-            return resource_datasource(autoscaler, query)
+        elif query.startswith('resource.target'):
+            return resource_target(autoscaler, query)
         else:
             raise TypeError(f'can\'t process the query: {query}')
 

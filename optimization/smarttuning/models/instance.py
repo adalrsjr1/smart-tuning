@@ -9,6 +9,9 @@ from kubernetes.client import ApiException, V2beta1HorizontalPodAutoscaler
 
 import config
 from typing import TYPE_CHECKING
+
+from models.metric2 import Sampler, MetricDecorator
+
 if TYPE_CHECKING:
     from controllers.searchspace import SearchSpaceContext
 from models.configuration import Configuration, DefaultConfiguration
@@ -32,8 +35,17 @@ class Instance:
         self._is_production = is_production
         self._ctx: SearchSpaceContext = ctx
         self._default_sample_interval = sample_interval_in_secs
-        self._sampler: PrometheusSampler = \
-            PrometheusSampler(self.name, self._default_sample_interval) if sampler is None else sampler
+        # self._sampler: PrometheusSampler = \
+        #     PrometheusSampler(self.name, self._default_sample_interval) if sampler is None else sampler
+        if sampler:
+            self._sampler = sampler
+        else:
+            self._sampler = Sampler(podname=self.name,
+                                   namespace=self.namespace,
+                                   interval=self._default_sample_interval,
+                                   metric_schema_filepath=config.SAMPLER_CONFIG,
+                                   prom_url=f'http://{config.PROMETHEUS_ADDR}:{config.PROMETHEUS_PORT}',
+                                   training=not self.is_production)
         self._active = True
         self._curr_config = None
         self._last_config = None
@@ -51,12 +63,12 @@ class Instance:
         }
         return serialized
 
-    def set_default_config(self, metrics: Metric):
-        # eval option data
-        current_config = self._ctx.get_current_config()
-        strials = self._ctx.get_smarttuning_trials()
-        self.configuration = strials.add_default_config(data=current_config, metric=metrics,
-                                                        workload=self._ctx.workload)
+    # def set_default_config(self, metrics: Metric):
+    #     # eval option data
+    #     current_config = self._ctx.get_current_config()
+    #     strials = self._ctx.get_smarttuning_trials()
+    #     self.configuration = strials.add_default_config(data=current_config, metric=metrics,
+    #                                                     workload=self._ctx.workload)
 
     @property
     def name(self) -> str:
@@ -132,9 +144,9 @@ class Instance:
                     manifest.patch(value, production=self.is_production)
                     time.sleep(1)
 
-    def metrics(self) -> Metric:
-        metric = self._sampler.metric()
-        return metric
+    def metrics(self) -> MetricDecorator:
+        # metric = self._sampler.
+        return MetricDecorator(self._sampler.sample(), self._sampler.objective_expr, self._sampler.saturation_expr)
 
     # def workload(self, interval: int = 0) -> Future:
     #     if not self.active:
