@@ -452,7 +452,8 @@ class PrometheusSampler:
         if not api_url:
             api_url = f'http://{addr}:{port}'
 
-        self.client = handler.Prometheus(api_url)
+        self.url = api_url
+        self.client = handler.Prometheus(self.url)
         self.executor = executor
         self.podname = podname
         self.interval = int(interval)
@@ -470,6 +471,7 @@ class PrometheusSampler:
     def __do_sample__(self, query: str) -> Future:
         logger.debug(f'sampling:{query}')
         return self.executor.submit(self.client.query, query)
+        # return self.executor.submit(handler.Prometheus(self.url).query, query)
 
     def __do_sample_k8s__(self, fn, namespace, name) -> Future:
         logger.debug(f'sampling k8s {name}:{namespace}')
@@ -687,11 +689,11 @@ class PrometheusSampler:
         logger.debug(f'sampling in_out R at {self.podname}-.* in {self.namespace}')
         is_training = config.PROXY_TAG in self.podname
         if is_training:
-            query = f'{self.fn}(rate(in_http_requests_total{{namespace="{self.namespace}", pod=~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
-                    f'{self.fn}(rate(out_http_requests_total{{namespace="{self.namespace}", pod=~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
+            query = f'{self.fn}(rate(smarttuning_in_http_requests_total{{namespace="{self.namespace}", pod=~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
+                    f'{self.fn}(rate(smarttuning_out_http_requests_total{{namespace="{self.namespace}", pod=~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
         else:
-            query = f'{self.fn}(rate(in_http_requests_total{{namespace="{self.namespace}", pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
-                    f'{self.fn}(rate(out_http_requests_total{{namespace="{self.namespace}", pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
+            query = f'{self.fn}(rate(smarttuning_in_http_requests_total{{namespace="{self.namespace}", pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src, dst, instance, service) /' \
+                    f'{self.fn}(rate(smarttuning_out_http_requests_total{{namespace="{self.namespace}", pod!~".*{config.PROXY_TAG}.*",name!~".*POD.*"}}[{self.interval}s])) by (pod, src,  dst, instance, service) '
 
         return self.__do_sample__(query)
 
@@ -709,7 +711,8 @@ if __name__ == '__main__':
     # exit(0)
     #
     # s = PrometheusSampler(name, config.WAITING_TIME * config.SAMPLE_SIZE, aggregation_function='max')
-    s = PrometheusSampler(name, 60, aggregation_function='sum')
+    from concurrent.futures import ThreadPoolExecutor
+    s = PrometheusSampler(name, 3600, aggregation_function='sum', executor=ThreadPoolExecutor(max_workers=None))
     # s = PrometheusSampler("acmeair-flightservicesmarttuning.*", config.WAITING_TIME * config.SAMPLE_SIZE)
     timeout = 10
 
@@ -727,20 +730,20 @@ if __name__ == '__main__':
     #     f_errors=s.error(),
     # restarts=0)
 
-    # print('replicas', s.curr_replicas().result())
-    # print('cpu target', s.cpu_target_utilization().result())
-    # print('cpu target', s.cpu_curr_utilization().result())
-    # print('cpu', s.cpu().result(timeout=timeout))
-    # print('cpu_limit', s.cpu_limit().result(timeout=timeout))
-    # print('memory', s.memory().result(timeout=timeout))
-    # print('memory_limit', s.memory_limit().result(timeout=timeout))
-    # print('thruput', s.throughput().result(timeout=timeout))
-    # print('proc time', s.process_time().result(timeout=timeout))
-    # print('error', s.error().result(timeout=timeout))
-    # print('replicas', s.curr_replicas().result(timeout=timeout))
-    # print('replicas max', s.max_replicas().result(timeout=timeout))
-    # print('replicas desired', s.desired_replicas().result(timeout=timeout))
-    # print(s.workload().result(timeout=timeout))
-    # print(s.in_out().result(timeout=timeout))
+    print('replicas', s.curr_replicas().result())
+    print('cpu target', s.cpu_target_utilization().result())
+    print('cpu target', s.cpu_curr_utilization().result())
+    print('cpu', s.cpu().result(timeout=timeout))
+    print('cpu_limit', s.cpu_limit().result(timeout=timeout))
+    print('memory', s.memory().result(timeout=timeout))
+    print('memory_limit', s.memory_limit().result(timeout=timeout))
+    print('thruput', s.throughput().result(timeout=timeout))
+    print('proc time', s.process_time().result(timeout=timeout))
+    print('error', s.error().result(timeout=timeout))
+    print('replicas', s.curr_replicas().result(timeout=timeout))
+    print('replicas max', s.max_replicas().result(timeout=timeout))
+    print('replicas desired', s.desired_replicas().result(timeout=timeout))
+    print(s.workload().result(timeout=timeout))
+    print(s.in_out().result(timeout=timeout))
 
     print(s.metric(to_eval='desired_replicas').throughput())

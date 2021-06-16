@@ -40,9 +40,68 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: smarttuning-sampler-config
+data:
+  sampler.json: |
+    {
+      "objective": "-(saturation)*(1.0/(1+process_time))*(throughput/(((memory_limit / (2**20)) * 0.013375) + (cpu_limit * 0.0535)) / 2)",
+      "saturation": "(1-errors) * (1/curr_replicas)",
+      "metrics": [
+        {
+          "name": "cpu",
+          "query": "f'sum(rate(container_cpu_usage_seconds_total{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
+        {
+          "name": "cpu_limit",
+          "query": "f'sum(sum_over_time(container_spec_cpu_quota{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s])) / avg(sum_over_time(container_spec_cpu_period{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
+        {
+          "name": "memory",
+          "query": "f'sum(max_over_time(container_memory_working_set_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
+        {
+          "name": "memory_limit",
+          "query": "f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
+        {
+          "name": "throughput",
+          "query": "f'sum(rate(smarttuning_http_requests_total{{code=~\"...\",pod=~\"{podname}-.*\",namespace=\"{namespace}\",name!~\".*POD.*\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
+        {
+          "name": "process_time",
+          "query": "f'sum(rate(smarttuning_http_processtime_seconds_sum{{pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\"}}[{interval}s])) / sum(rate(smarttuning_http_processtime_seconds_count{{pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
+        {
+          "name": "errors",
+          "query": "f'sum(rate(smarttuning_http_requests_total{{code=~\"5..\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\"}}[{interval}s])) / sum( rate(smarttuning_http_requests_total{{pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
+        {
+          "name": "curr_replicas",
+          "query": "f'avg_over_time(kube_deployment_spec_replicas{{namespace=\"{namespace}\", deployment=\"{podname}\"}}[{interval}s])'",
+          "datasource": "prom"
+        },
+        {
+          "name": "max_replicas",
+          "query": "4",
+          "datasource": "scalar"
+        }
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: smarttuning-config
 data:
   # test config
+  SAMPLER_CONFIG: "/etc/sampler-config/sampler.json"
   TWO_SERVICES: "1"
   WORKLOAD_TIMEOUT: "60"
   WORKLOAD_CLASSIFIER: "RPS" #HPA or RPS
@@ -137,15 +196,19 @@ spec:
                 name: smarttuning-config
             - configMapRef:
                 name: smarttuning-sampling-prom-queries
-          #volumeMounts:
-          #  - mountPath: /etc/smart-tuning
-          #    name: smarttuning-config
+          volumeMounts:
+            - mountPath: /etc/sampler-config
+              name: sampler-config
+              readOnly: true
           securityContext:
             privileged: true
-      #volumes:
-      #  - name: smarttuning-config
-      #    configMap:
-      #      name: smarttuning-config
+      volumes:
+        - name: sampler-config
+          configMap:
+            name: smarttuning-sampler-config
+            items:
+              - key: "sampler.json"
+                path: "sampler.json"
   selector:
     matchLabels:
       app: smarttuning

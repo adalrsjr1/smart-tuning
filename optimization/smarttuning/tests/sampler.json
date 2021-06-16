@@ -1,0 +1,46 @@
+{
+  "objective": "replicas/saturation",
+  "saturation": "replicas/max_replicas",
+  "metrics": [
+    {
+      "name": "cpu",
+      "query": "f'sum(rate(container_cpu_usage_seconds_total{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+      "datasource": "prom"
+    },
+    {
+      "name": "cpu_limit",
+      "query": "f'sum(sum_over_time(container_spec_cpu_quota{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s])) / avg(sum_over_time(container_spec_cpu_period{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+      "datasource": "prom"
+    },
+    {
+      "name": "memory",
+      "query": "f'sum(max_over_time(container_memory_working_set_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+      "datasource": "prom"
+    },
+    {
+      "name": "memory_limit",
+      "query": "f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+      "datasource": "prom"
+    },
+    {
+      "name": "replicas",
+      "query": "current_replicas",
+      "datasource": "hpa"
+    },
+    {
+      "name": "max_replicas",
+      "query": "max_replicas",
+      "datasource": "hpa"
+    },
+    {
+      "name": "memory_utilization",
+      "query": "resource.current.memory.average_utilization",
+      "datasource": "hpa"
+    },
+    {
+      "name": "traffic",
+      "query": "0.2",
+      "datasource": "scalar"
+    }
+  ]
+}

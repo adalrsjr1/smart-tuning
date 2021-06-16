@@ -24,11 +24,11 @@ def print_config(toPrint=False):
 # K8S_HOST = 'trxrhel7perf-1'
 # LOCALHOST = '9.26.100.254'
 
-# K8S_HOST = 'trinity01'
-# LOCALHOST = '127.0.0.1'
+K8S_HOST = 'trinity01'
+LOCALHOST = '127.0.0.1'
 
-K8S_HOST = 'localhost'
-LOCALHOST = 'localhost'
+# K8S_HOST = 'localhost'
+# LOCALHOST = 'localhost'
 
 # K8S_CONF = f'{os.environ.get("HOME")}/.kube/trxrhel7perf-1/config'
 K8S_CONF = f'{os.environ.get("HOME")}/.kube/trinity01/config'
@@ -80,6 +80,7 @@ WORKLOAD_LOGGER = 'workload.smarttuning.ibm'
 
 # debug config
 # timeout before update workload
+SAMPLER_CONFIG = os.environ.get('SAMPLER_CONFIG', default='sampler.json')
 TWO_SERVICES = int(os.environ.get('TWO_SERVICES', default='1'))
 WORKLOAD_TIMEOUT = int(os.environ.get('WORKLOAD_TIMEOUT', default='1'))
 WORKLOAD_CLASSIFIER = os.environ.get('WORKLOAD_CLASSIFIER', default='RPS')
@@ -163,34 +164,34 @@ Q_CPU_L = os.environ.get('Q_CPU_L', default='f\'sum(sum_over_time(container_spec
                                             'self.interval}s]))\'')
 
 Q_MEM = os.environ.get('Q_MEM', default='f\'sum(max_over_time(container_memory_working_set_bytes{{id=~".*kubepods.*",'
-                                       'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",'
-                                       'container=""}}[{self.interval}s]))\'')
+                                        'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",'
+                                        'container=""}}[{self.interval}s]))\'')
 
-Q_MEM_L = os.environ.get('Q_MEM_L', default='f\'sum(max_over_time(container_spec_memory_limit_bytes{{id=~".*kubepods.*",'
-                                         'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",'
-                                         'container=""}}[{self.interval}s]))\'')
+Q_MEM_L = os.environ.get('Q_MEM_L',
+                         default='f\'sum(max_over_time(container_spec_memory_limit_bytes{{id=~".*kubepods.*",'
+                                 'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",'
+                                 'container=""}}[{self.interval}s]))\'')
 
 Q_THRUPUT = os.environ.get('Q_THRUPUT', default='f\'sum(rate(smarttuning_http_requests_total{{code=~"[2|3]..",'
-                                           'pod=~"{self.podname}-.*",namespace="{self.namespace}",name!~".*POD.*"}}'
-                                           '[{self.interval}s]))\'')
+                                                'pod=~"{self.podname}-.*",namespace="{self.namespace}",name!~".*POD.*"}}'
+                                                '[{self.interval}s]))\'')
 
 Q_RESP_TIME = os.environ.get('Q_RESP_TIME', default='f\'sum(rate(smarttuning_http_processtime_seconds_sum{{pod=~"'
-                                             '{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}'
-                                             '[{self.interval}s])) / sum( rate('
-                                             'smarttuning_http_processtime_seconds_count{{pod=~"{self.podname}-.*",'
-                                             'name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s]))\'')
+                                                    '{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}'
+                                                    '[{self.interval}s])) / sum( rate('
+                                                    'smarttuning_http_processtime_seconds_count{{pod=~"{self.podname}-.*",'
+                                                    'name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s]))\'')
 
 Q_ERRORS = os.environ.get('Q_ERRORS', default='f\'sum(rate(smarttuning_http_requests_total{{code=~"[4|5]..",'
-                                          'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}['
-                                          '{self.interval}s])) / sum( rate(smarttuning_http_requests_total{{pod=~"{'
-                                          'self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{'
-                                          'self.interval}s]))\'')
+                                              'pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}['
+                                              '{self.interval}s])) / sum( rate(smarttuning_http_requests_total{{pod=~"{'
+                                              'self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{'
+                                              'self.interval}s]))\'')
 
 Q_REPLICAS = os.environ.get('Q_REPLICAS', default='f\'sum(count(count(sum(rate(container_cpu_usage_seconds_total{{'
-                                            'id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",container!="",'
-                                            'namespace="{self.namespace}"}}[{self.interval}s])) by (container,pod)) by (pod) > 1) '
-                                            'by (pod))\'')
-
+                                                  'id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",container!="",'
+                                                  'namespace="{self.namespace}"}}[{self.interval}s])) by (container,pod)) by (pod) > 1) '
+                                                  'by (pod))\'')
 
 # ------------------------------
 
@@ -239,10 +240,10 @@ def hpaApi() -> kubernetes.client.api.autoscaling_v2beta2_api.AutoscalingV2beta2
     return __hpaApi
 
 
-def executor() -> ThreadPoolExecutor:
+def executor(max_workers: int = None) -> ThreadPoolExecutor:
     global _executor
     if not _executor:
-        _executor = ThreadPoolExecutor()
+        _executor = ThreadPoolExecutor(max_workers=max_workers)
     return _executor
 
 
