@@ -40,12 +40,9 @@ class Instance:
         if sampler:
             self._sampler = sampler
         else:
-            self._sampler = Sampler(podname=self.name,
-                                   namespace=self.namespace,
-                                   interval=self._default_sample_interval,
-                                   metric_schema_filepath=config.SAMPLER_CONFIG,
-                                   prom_url=f'http://{config.PROMETHEUS_ADDR}:{config.PROMETHEUS_PORT}',
-                                   training=not self.is_production)
+            self._sampler = Sampler(instance=self, interval=self._default_sample_interval,
+                                    metric_schema_filepath=config.SAMPLER_CONFIG,
+                                    prom_url=f'http://{config.PROMETHEUS_ADDR}:{config.PROMETHEUS_PORT}')
         self._active = True
         self._curr_config = None
         self._last_config = None
@@ -84,7 +81,7 @@ class Instance:
 
     @property
     def default_sample_interval(self) -> int:
-        return self._default_sample_interval
+        return round(self._default_sample_interval)
 
     @property
     def configuration(self) -> Configuration:

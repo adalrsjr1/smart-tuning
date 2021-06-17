@@ -45,7 +45,7 @@ data:
   sampler.json: |
     {
       "objective": "-(saturation)*(1.0/(1+process_time))*(throughput/(((memory_limit / (2**20)) * 0.013375) + (cpu_limit * 0.0535)) / 2)",
-      "saturation": "(1-errors) * (1/curr_replicas) * (1/(1+waiting_time))",
+      "saturation": "(1-errors) * (1/curr_replicas) * (1/(1+waiting_time)) * xmx/(1+abs(xmx-memory_limit))",
       "metrics": [
         {
           "name": "waiting_time",
@@ -96,6 +96,101 @@ data:
           "name": "max_replicas",
           "query": "4",
           "datasource": "scalar"
+        },
+        {
+          "name": "MAX_THREADS",
+          "query": "daytrader-config-app.MAX_THREADS",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jdbc_max_conn",
+          "query": "daytrader-config-app.CONMGR1_MAX_POOL_SIZE",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jdbc_min_conn",
+          "query": "daytrader-config-app.CONMGR1_MIN_POOL_SIZE",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jdbc_conn_timeout",
+          "query": "daytrader-config-app.CONMGR1_TIMEOUT",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jdbc_conn_aged_timeout",
+          "query": "daytrader-config-app.CONMGR1_AGED_TIMEOUT",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jdbc_conn_idle",
+          "query": "daytrader-config-app.CONMGR1_MAX_IDLE_TIMEOUT",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jdbc_conn_reap_time",
+          "query": "daytrader-config-app.CONMGR1_REAP_TIME",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jms_max_conn",
+          "query": "daytrader-config-app.CONMGR4_MAX_POOL_SIZE",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jms_min_conn",
+          "query": "daytrader-config-app.CONMGR4_MIN_POOL_SIZE",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jms_conn_timeout",
+          "query": "daytrader-config-app.CONMGR4_TIMEOUT",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jms_conn_aged_timeout",
+          "query": "daytrader-config-app.CONMGR4_AGED_TIMEOUT",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jms_conn_idle_timeout",
+          "query": "daytrader-config-app.CONMGR4_MAX_IDLE_TIMEOUT",
+          "datasource": "cfg"
+        },
+        {
+          "name": "jms_conn_reap_time",
+          "query": "daytrader-config-app.CONMGR4_REAP_TIME",
+          "datasource": "cfg"
+        },
+        {
+          "name": "http_keep_alive",
+          "query": "daytrader-config-app.HTTP_MAX_KEEP_ALIVE_REQUESTS",
+          "datasource": "cfg"
+        },
+        {
+          "name": "http_persist_timeout",
+          "query": "daytrader-config-app.HTTP_PERSIST_TIMEOUT",
+          "datasource": "cfg"
+        },
+        {
+          "name": "xms",
+          "query": "daytrader-config-jvm.-Xms",
+          "datasource": "cfg"
+        },
+        {
+          "name": "xmx",
+          "query": "daytrader-config-jvm.-Xmx",
+          "datasource": "cfg"
+        },
+        {
+          "name": "xmn",
+          "query": "daytrader-config-jvm.-Xmn",
+          "datasource": "cfg"
+        },
+        {
+          "name": "xscmx",
+          "query": "daytrader-config-jvm.-Xscmx",
+          "datasource": "cfg"
         }
       ]
     }

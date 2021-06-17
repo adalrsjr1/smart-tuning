@@ -51,6 +51,11 @@
       "name": "traffic",
       "query": "0.2",
       "datasource": "scalar"
+    },
+    {
+      "name": "jdbc_connections",
+      "query": "daytrader-config-app.CONMGR1_MAX_POOL_SIZE",
+      "datasource": "cfg"
     }
   ]
 }
