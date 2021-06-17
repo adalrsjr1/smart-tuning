@@ -3,6 +3,11 @@
   "saturation": "replicas/max_replicas",
   "metrics": [
     {
+      "name": "waiting_time",
+      "query": "f'avg(deriv(vendor_connectionpool_waitTime_total_seconds{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s])) /avg(rate(vendor_connectionpool_queuedRequests_total{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s]))'",
+      "datasource": "prom"
+    },
+    {
       "name": "cpu",
       "query": "f'sum(rate(container_cpu_usage_seconds_total{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
       "datasource": "prom"

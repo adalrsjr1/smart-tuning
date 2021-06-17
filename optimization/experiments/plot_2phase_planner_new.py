@@ -721,6 +721,7 @@ if __name__ == '__main__':
     name = 'trace-2021-06-09T23 10 11 735500'
     name = 'trace-2021-06-11T13 52 07 453913'
     name = 'trace-2021-06-15T13 45 14 783402'
+    name = 'trace-2021-06-16T23 59 12 120766'
     # plot_importance(data)
 
     for workload in [''] + [f'workload_{i}' for i in range(0, 5)]:
@@ -730,7 +731,7 @@ if __name__ == '__main__':
             #     continue
             df = load_raw_data('./resources/' + name + '.json', service_name, workload,
                                skip_reset=False,
-                               skip_pruned=True,
+                               skip_pruned=False,
                                skip_tuned=False,
                                show_workload_gap=False)
             empty = df[(df['pname'].str.len() > 0)]

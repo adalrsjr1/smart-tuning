@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 from collections import namedtuple
 
 from kubernetes.client import AutoscalingV2beta2Api, V2beta2HorizontalPodAutoscaler, V2beta2MetricSpec, \
@@ -29,7 +30,7 @@ class Sampler:
             self.__raw = validate_json(json.load(f))
         self.podname = podname
         self.namespace = namespace
-        self.interval = interval
+        self.interval = round(interval)
         self.training = training
         self.__prom_url = prom_url
 
@@ -91,7 +92,7 @@ def query(ctx: Sampler, name: str, query: str, datasource: str) -> (str, float):
 
 def prom_query(ctx: Sampler, name: str, _query: str):
     result = ctx.prom().query(eval(_query, globals(), ctx.__dict__))
-    if len(result) <= 0: result = 0
+    if len(result) <= 0 or math.isnan(result): result = 0
     return name, float(result)
 
 

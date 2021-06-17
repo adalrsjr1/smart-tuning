@@ -21,12 +21,12 @@ class MyTestCase(unittest.TestCase):
     def test_evaluation(self):
         sampler = Sampler(podname='daytrader-service',
                           namespace='default',
-                          interval=600,
+                          interval=100.2,
                           metric_schema_filepath=config.SAMPLER_CONFIG,
                           prom_url='http://localhost:30099')
         metric = sampler.sample()
         metric_decorator = MetricDecorator(metric, sampler.objective_expr, sampler.saturation_expr)
-        print(metric_decorator.cpu)
+        print(metric_decorator.waiting_time)
 
 if __name__ == '__main__':
     unittest.main()

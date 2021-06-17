@@ -4,9 +4,9 @@ kind: ClusterRole
 metadata:
   name: tuning
 rules:
-  - apiGroups: ["*"]
-    resources: ["*"]
-    verbs: ["*"]
+  - apiGroups: [ "*" ]
+    resources: [ "*" ]
+    verbs: [ "*" ]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -45,8 +45,13 @@ data:
   sampler.json: |
     {
       "objective": "-(saturation)*(1.0/(1+process_time))*(throughput/(((memory_limit / (2**20)) * 0.013375) + (cpu_limit * 0.0535)) / 2)",
-      "saturation": "(1-errors) * (1/curr_replicas)",
+      "saturation": "(1-errors) * (1/curr_replicas) * (1/(1+waiting_time))",
       "metrics": [
+        {
+          "name": "waiting_time",
+          "query": "f'avg(deriv(vendor_connectionpool_waitTime_total_seconds{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s])) /avg(rate(vendor_connectionpool_queuedRequests_total{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
         {
           "name": "cpu",
           "query": "f'sum(rate(container_cpu_usage_seconds_total{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
