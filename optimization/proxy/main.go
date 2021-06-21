@@ -43,6 +43,7 @@ var (
 	writeTimeout, _ = strconv.Atoi(getEnvOrDefault("WRITE_TIMEOUT", "30"))
 	connDuration, _ = strconv.Atoi(getEnvOrDefault("MAX_IDLE_CONNECTION_DURATION", "60"))
 	connTimeout, _  = strconv.Atoi(getEnvOrDefault("MAX_CONNECTION_TIMEOUT", "30"))
+	callAttempts, _ = strconv.Atoi(getEnvOrDefault("MAX_IDEMPONENT_CALL_ATTEMPTS", "5"))
 
 	proxyClient = &fasthttp.HostClient{
 		Addr:                          upstreamAddr,
@@ -55,6 +56,7 @@ var (
 		MaxIdleConnDuration:           time.Second * time.Duration(connDuration),
 		MaxConnWaitTimeout:            time.Second * time.Duration(connTimeout),
 		DisableHeaderNamesNormalizing: true, // If you set the case on your headers correctly you can enable this.
+		MaxIdemponentCallAttempts: 	   callAttempts,
 	}
 
 	countingRequests, _          = strconv.ParseBool(getEnvOrDefault("COUNT_REQUESTS", "true"))

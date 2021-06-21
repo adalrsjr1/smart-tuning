@@ -23,3 +23,4 @@ data:
   COUNT_OUT_REQ: "true"
   COUNT_ACTIVE_CONNS: "true"
   INSTRUMENTING: "false"
+  MAX_IDEMPONENT_CALL_ATTEMPTS: "1" # single attempt before failing
