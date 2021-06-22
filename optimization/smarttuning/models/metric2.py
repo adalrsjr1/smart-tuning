@@ -165,7 +165,17 @@ def cfg_query(ctx: Sampler, name: str, query: str):
         # get an empty dict to avoid fatal errors
         value = value.get(level, {})
 
-    if not isinstance(value, Number):
+    s: str = ''
+
+    def is_number(value):
+        import re
+        if isinstance(value, str):
+            if re.compile(r"[-+]?\d*\d+|\.\d+").match(value):
+                return True
+            return False
+        return isinstance(value, Number)
+
+    if not is_number(value):
         print(f'query: {query} returns {value} that isn\'t a number')
         # logger.warning(f'query: {query} returns {value} that isn\'t a number')
         return name, float('nan')

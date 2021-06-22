@@ -575,7 +575,7 @@ def eval_token(token, ctx: SearchSpaceModel, trial: optuna.trial.BaseTrial, memo
     if token in memo:
         return memo[token]
 
-    if re.compile(r"[-+]?\d*\.\d+|\d+").match(token):
+    if re.compile(r"[-+]?\d*\d+|\.\d+").match(token):
         return float(token)
     else:
         if token in ['+', '-', '*', '/']:
