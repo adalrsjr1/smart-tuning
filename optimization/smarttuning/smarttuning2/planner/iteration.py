@@ -19,7 +19,6 @@ from controllers.searchspacemodel import SearchSpaceModel
 from models.configuration import Configuration
 from models.instance import Instance
 from models.workload import Workload
-from sampler import Metric
 from util import prommetrics
 from util.stats import RunningStats
 
@@ -399,45 +398,15 @@ class IterationDriver:
 
         self.__global_iteration += 1
 
+        self.expose_prom_metrics()
         self.save_trace()
 
         return self.__curr_iteration
 
     def rollback(self):
-        return
-
-        def rollback_cursor(cursor_position: int):
-            if cursor_position > 0:
-                return cursor_position - 1
-            return 0
-
-        if isinstance(self.curr_iteration, TrainingIteration):
-            phase = TrainingIteration.__name__
-            new_cursor_position = rollback_cursor(self.local_iteration)
-            cursor_position = self.local_iteration
-            self.__local_iteration = rollback_cursor(self.local_iteration)
-
-        elif isinstance(self.curr_iteration, ReinforcementIteration):
-            phase = ReinforcementIteration.__name__
-            cursor_position = self.reinforcement_iteration
-            new_cursor_position = rollback_cursor(self.reinforcement_iteration)
-            self.__reinforcement_iteration = rollback_cursor(self.reinforcement_iteration)
-
-        elif isinstance(self.curr_iteration, ProbationIteration):
-            phase = ProbationIteration.__name__
-            cursor_position = self.probation_iteration
-            new_cursor_position = rollback_cursor(self.probation_iteration)
-            self.__probation_iteration = rollback_cursor(self.probation_iteration)
-
-        else:
-            phase = TunedIteration.__name__
-            cursor_position = self.global_iteration
-            new_cursor_position = rollback_cursor(self.global_iteration)
-            self.__global_iteration = rollback_cursor(self.global_iteration)
-
-        self.__lookahead = self.prev_lookahead
-        self.__curr_iteration = self.__last_iteration
-        self.logger.info(f'rolling back {phase}: from:{cursor_position} to {new_cursor_position}')
+        self.logger.debug(f'add last score to cancel this wrong measurement')
+        self.training.configuration.score = self.training.configuration.last_score
+        self.production.configuration.score = self.production.configuration.last_score
 
     def handle_training(self):
         self.logger.info(f'training {self.local_iteration}/{self.max_local_iterations}/{self.global_iteration}')
@@ -778,11 +747,12 @@ class Iteration(ABC):
         # safety checking for logging subinterval
         assert 0 <= self.logging_subinterval <= 1
 
-        t_metric = Metric.zero()
-        p_metric = Metric.zero()
         self.logger.debug(f' *** waiting {(self.sampling_interval * self.n_sampling_subintervals):.2f}s *** ')
         t_running_stats = RunningStats()
         p_running_stats = RunningStats()
+
+        t_metric = self.__training.metrics()
+        p_metric = self.__production.metrics()
         for i in range(self.n_sampling_subintervals):
             self.logger.info(f'[{i}] waiting {self.sampling_interval:.2f}s before sampling metrics')
             elapsed = timedelta()

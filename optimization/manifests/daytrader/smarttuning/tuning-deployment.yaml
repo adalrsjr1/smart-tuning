@@ -44,8 +44,8 @@ metadata:
 data:
   sampler.json: |
     {
-      "objective": "-(saturation)*(1.0/(1+process_time))*(throughput/((memory_limit * 0.013375) + (cpu_limit * 0.0535)) / 2)",
-      "saturation": "(1-errors) * (memory_limit/(memory_limit+abs(xmx-memory_limit)))",
+      "objective": "-(penalization)*(1.0/(1+process_time))*(throughput/((memory_limit * 0.013375) + (cpu_limit * 0.0535)) / 2)",
+      "penalization": "(1-errors) * (memory_limit/(memory_limit+abs(xmx-memory_limit)))",
       "metrics": [
         {
           "name": "waiting_time",

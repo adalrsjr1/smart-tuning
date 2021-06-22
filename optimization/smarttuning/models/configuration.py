@@ -148,6 +148,10 @@ class Configuration:
         return self.__trial
 
     @property
+    def last_score(self) -> float:
+        return self.__stats.last()
+
+    @property
     def score(self) -> float:
         return self.__stats.curr()
 

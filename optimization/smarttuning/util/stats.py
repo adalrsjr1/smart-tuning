@@ -199,8 +199,8 @@ class RunningStats:
             'min': self.min(),
             'max': self.max(),
             'n': self.n(),
-            'debug': self._heap,
+            'debug': heapq.nlargest(len(self._heap), self._heap),
         }
 
     def debug(self) -> list[float]:
-        return copy.deepcopy(self._heap)
+        return copy.deepcopy(heapq.nlargest(len(self._heap), self._heap))
