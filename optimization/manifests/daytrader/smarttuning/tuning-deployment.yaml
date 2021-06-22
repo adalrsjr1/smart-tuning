@@ -28,8 +28,8 @@ metadata:
 data:
   Q_CPU: f'sum(rate(container_cpu_usage_seconds_total{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
   Q_CPU_L: f'sum(sum_over_time(container_spec_cpu_quota{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s])) / avg(sum_over_time(container_spec_cpu_period{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
-  Q_MEM: f'sum(max_over_time(container_memory_working_set_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
-  Q_MEM_L: f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
+  Q_MEM: f'sum(max_over_time(container_memory_working_set_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))/(2^20)'
+  Q_MEM_L: f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))/(2^20)'
   Q_THRUPUT: f'sum(rate(smarttuning_http_requests_total{{code=~"...",pod=~"{self.podname}-.*",namespace="{self.namespace}",name!~".*POD.*"}}[{self.interval}s]))'
   Q_RESP_TIME: f'sum(rate(smarttuning_http_processtime_seconds_sum{{pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s])) / sum( rate(smarttuning_http_processtime_seconds_count{{pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s]))'
   Q_ERRORS: f'sum(rate(smarttuning_http_requests_total{{code=~"5..",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s])) / sum( rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s]))'
@@ -44,8 +44,8 @@ metadata:
 data:
   sampler.json: |
     {
-      "objective": "-(saturation)*(1.0/(1+process_time))*(throughput/(((memory_limit / (2**20)) * 0.013375) + (cpu_limit * 0.0535)) / 2)",
-      "saturation": "(1-errors) * (1/curr_replicas) * (1/(1+waiting_time)) * xmx/(1+abs(xmx-memory_limit))",
+      "objective": "-(saturation)*(1.0/(1+process_time))*(throughput/((memory_limit * 0.013375) + (cpu_limit * 0.0535)) / 2)",
+      "saturation": "(1-errors) * (memory_limit/(memory_limit+abs(xmx-memory_limit)))",
       "metrics": [
         {
           "name": "waiting_time",
@@ -64,12 +64,12 @@ data:
         },
         {
           "name": "memory",
-          "query": "f'sum(max_over_time(container_memory_working_set_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+          "query": "f'sum(max_over_time(container_memory_working_set_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))/(2^20)'",
           "datasource": "prom"
         },
         {
           "name": "memory_limit",
-          "query": "f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+          "query": "f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))/(2^20)'",
           "datasource": "prom"
         },
         {

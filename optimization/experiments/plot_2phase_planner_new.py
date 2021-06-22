@@ -39,7 +39,7 @@ reset_seeds()
 
 
 def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=False, skip_pruned=False,
-                  skip_tuned=True, show_workload_gap=True) -> pd.DataFrame:
+                  skip_tuned=True, show_workload_gap=True, to_gib=False) -> pd.DataFrame:
     raw_data = []
 
     def name(data):
@@ -120,6 +120,10 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
                 #     # delete_training(record['training'])
                 continue
 
+            mem_scale = 1
+            if to_gib:
+                mem_scale = 2 ** 20
+
             raw_data.append(Iteration(
                 # pruned=record['curr_workload']['name'] != record['ctx_workload']['name'],
                 pruned=record['pruned'],
@@ -135,10 +139,10 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
                 pstddev=record['production']['curr_config']['stats']['stddev'] or 0,
                 ptruput=record['production']['metric']['throughput'],
                 pproctime=record['production']['metric']['process_time'],
-                pmem=(record['production']['metric']['memory'] or 0) / 2 ** 20,
+                pmem=(record['production']['metric']['memory'] or 0) / mem_scale,
                 pmem_lim=(record['production']['metric'].get('memory_limit',
                                                              (record['production']['curr_config']['data'][service_name][
-                                                                  'memory'] or 0) * 2 ** 20) or 0) / 2 ** 20,
+                                                                  'memory'] or 0) * mem_scale) or 0) / mem_scale,
                 preplicas=math.ceil(record['production']['metric'].get('curr_replicas', 1)),
                 pparams=Param(record['production']['curr_config']['data'] or {},
                               math.fabs(record['production']['curr_config']['score'] or 0)),
@@ -152,10 +156,10 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
                 tstddev=record['training']['curr_config']['stats']['stddev'],
                 ttruput=record['training']['metric']['throughput'],
                 tproctime=record['training']['metric']['process_time'],
-                tmem=(record['training']['metric']['memory'] or 0) / 2 ** 20,
+                tmem=(record['training']['metric']['memory'] or 0) / mem_scale,
                 tmem_lim=(record['training']['metric'].get('memory_limit',
                                                            (record['training']['curr_config']['data'][service_name][
-                                                                'memory'] or 0) * 2 ** 20) or 0) / 2 ** 20,
+                                                                'memory'] or 0) * mem_scale) or 0) / mem_scale,
                 treplicas=math.ceil(record['training']['metric'].get('curr_replicas', 1)),
                 tparams=Param(record['training']['curr_config']['data'],
                               math.fabs(record['training']['curr_config']['score'] or 0)),
@@ -722,6 +726,8 @@ if __name__ == '__main__':
     name = 'trace-2021-06-11T13 52 07 453913'
     name = 'trace-2021-06-15T13 45 14 783402'
     name = 'trace-2021-06-16T23 59 12 120766'
+    name = 'trace-2021-06-17T17 56 43 366635'
+    name = 'trace-2021-06-21T16 17 42 784677'
     # plot_importance(data)
 
     for workload in [''] + [f'workload_{i}' for i in range(0, 5)]:
@@ -733,7 +739,8 @@ if __name__ == '__main__':
                                skip_reset=False,
                                skip_pruned=False,
                                skip_tuned=False,
-                               show_workload_gap=False)
+                               show_workload_gap=False,
+                               to_gib=False)
             empty = df[(df['pname'].str.len() > 0)]
             if empty.empty:
                 print(f'skiping {workload}')
