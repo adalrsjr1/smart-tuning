@@ -106,6 +106,7 @@ MONGO_ADDR = os.environ.get('MONGO_ADDR', default=LOCALHOST)
 MONGO_PORT = int(os.environ.get('MONGO_PORT', default='30027'))
 MONGO_DB = os.environ.get('MONGO_DB', default='smarttuning')
 # prometheus config
+ST_METRICS_PORT = int(os.environ.get('ST_METRICS_PORT', default='8000'))
 PROMETHEUS_ADDR = os.environ.get('PROMETHEUS_ADDR', default=LOCALHOST)
 PROMETHEUS_PORT = os.environ.get('PROMETHEUS_PORT', default='30099')
 SAMPLING_METRICS_TIMEOUT = int(os.environ.get('SAMPLING_METRICS_TIMEOUT', default=5))

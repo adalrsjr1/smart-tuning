@@ -187,7 +187,10 @@ def main():
 # repactor injector using this approach
 
 if __name__ == '__main__':
+    import prometheus_client
     try:
+        logger.debug('initializing metrics server')
+        prometheus_client.start_http_server(config.ST_METRICS_PORT)
         main()
     except Exception:
         logger.exception('main loop error')

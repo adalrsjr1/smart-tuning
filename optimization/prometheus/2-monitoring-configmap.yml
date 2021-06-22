@@ -198,4 +198,64 @@ data:
             target_label: endpoint
             replacement: ${1}
             action: replace
+      - job_name: 'smarttuning-metrics'
+        metrics_path: /
+        scheme: http
+        kubernetes_sd_configs:
+          - role: endpoints
+            #namespaces:
+            #  names:
+            #    - default # change this for further applications
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app]
+            separator: ;
+            regex: (.*)
+            replacement: $1
+            action: keep
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            separator: ;
+            regex: smarttuning
+            replacement: $1
+            action: keep
+          - source_labels: [__meta_kubernetes_namespace]
+            separator: ;
+            regex: (.*)
+            target_label: namespace
+            replacement: $1
+            action: replace
+          - source_labels: [__meta_kubernetes_pod_uid]
+            separator: ;
+            regex: (.*)
+            target_label: pod_id
+            replacement: $1
+            action: replace
+          - source_labels: [__meta_kubernetes_pod_name]
+            separator: ;
+            regex: (.*)
+            target_label: pod
+            replacement: $1
+            action: replace
+          - source_labels: [__meta_kubernetes_pod_host_ip]
+            separator: ;
+            regex: (.*)
+            target_label: host_ip
+            replacement: $1
+            action: replace
+          - source_labels: [__meta_kubernetes_service_name]
+            separator: ;
+            regex: (.*)
+            target_label: service
+            replacement: $1
+            action: replace
+          - source_labels: [__meta_kubernetes_service_name]
+            separator: ;
+            regex: (.*)
+            target_label: job
+            replacement: ${1}
+            action: replace
+          - separator: ;
+            regex: (.*)
+            target_label: endpoint
+            replacement: ${1}
+            action: replace
 ---
