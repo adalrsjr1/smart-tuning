@@ -143,7 +143,7 @@ class Instance:
 
     def metrics(self) -> MetricDecorator:
         # metric = self._sampler.
-        return MetricDecorator(self._sampler.sample(), self._sampler.objective_expr, self._sampler.saturation_expr)
+        return MetricDecorator(self._sampler.sample(), self._sampler.objective_expr, self._sampler.penalization_expr)
 
     # def workload(self, interval: int = 0) -> Future:
     #     if not self.active:

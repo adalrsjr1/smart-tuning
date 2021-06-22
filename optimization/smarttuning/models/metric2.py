@@ -18,10 +18,10 @@ if TYPE_CHECKING:
 
 
 def validate_json(j: dict) -> dict:
-    expected = {'objective', 'saturation', 'metrics'}
+    expected = {'objective', 'penalization', 'metrics'}
     keys = set(j.keys())
 
-    assert expected == keys, f"must have all these three keys: 'objective', 'saturation', 'metrics'"
+    assert expected == keys, f"must have all these three keys: 'objective', 'penalization', 'metrics'"
     assert len(j['metrics']) > 0, f"must have at least one metric"
 
     return j
@@ -46,8 +46,8 @@ class Sampler:
         return self.__raw['objective']
 
     @property
-    def saturation_expr(self):
-        return self.__raw['saturation']
+    def penalization_expr(self):
+        return self.__raw['penalization']
 
     def prom(self) -> handler.Prometheus:
         return handler.Prometheus(self.__prom_url)
@@ -70,23 +70,23 @@ class Sampler:
 
 
 class MetricDecorator:
-    def __init__(self, ctx, objective_expr: str, saturation_expr: str):
+    def __init__(self, ctx, objective_expr: str, penalization_expr: str):
         self.__ctx = {field: ctx[idx] for idx, field in enumerate(ctx._fields)}
         self.__objective_expr: str = objective_expr
-        self.__saturation_expr: str = saturation_expr
+        self.__penalization_expr: str = penalization_expr
         self.__dict__.update(self.__ctx)
 
     def objective(self) -> float:
         data = dict(self.__ctx)
-        data.update({'saturation': self.saturation()})
+        data.update({'penalization': self.penalization()})
         return eval(self.__objective_expr, globals(), data)
 
-    def saturation(self) -> float:
-        return eval(self.__saturation_expr, globals(), self.__ctx)
+    def penalization(self) -> float:
+        return eval(self.__penalization_expr, globals(), self.__ctx)
 
     def serialize(self) -> dict:
         data = dict(self.__ctx)
-        data.update({'objective': self.objective(), 'saturation': self.saturation()})
+        data.update({'objective': self.objective(), 'penalization': self.penalization()})
         return data
 
 

@@ -1,6 +1,6 @@
 {
   "objective": "replicas/saturation",
-  "saturation": "replicas/max_replicas",
+  "penalization": "replicas/max_replicas",
   "metrics": [
     {
       "name": "waiting_time",

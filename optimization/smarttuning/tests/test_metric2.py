@@ -27,7 +27,7 @@ class MyTestCase(unittest.TestCase):
         sampler = Sampler(instance, interval=100.2, metric_schema_filepath=config.SAMPLER_CONFIG,
                           prom_url='http://localhost:30099')
         metric = sampler.sample()
-        metric_decorator = MetricDecorator(metric, sampler.objective_expr, sampler.saturation_expr)
+        metric_decorator = MetricDecorator(metric, sampler.objective_expr, sampler.penalization_expr)
         self.assertEqual(100, sampler.interval)
         print(metric_decorator.waiting_time)
 
