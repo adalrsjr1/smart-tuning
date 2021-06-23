@@ -67,7 +67,6 @@ class Sampler:
             key, value = query(self, **item)
             prommetrics.gauge_metric({
                 'app': self.__instance.name,
-                'cfg': self.__instance.configuration.name,
                 'metric': key,
             }, f'smarttuning_metric', 'metric', value)
             metrics[key] = value

@@ -71,7 +71,7 @@ spec:
           #image: https://quay.io/repository/app-sre/grafana:7.0.1
           env:
             - name: GF_INSTALL_PLUGINS
-              value: "jdbranham-diagram-panel,grafana-simple-json-datasource,natel-discrete-panel"
+              value: "jdbranham-diagram-panel,grafana-simple-json-datasource,natel-discrete-panel,snuids-radar-panel"
           ports:
             - containerPort: 3000
           resources:

@@ -505,76 +505,25 @@ class IterationDriver:
         self.__curr_iteration = it
 
     def expose_prom_metrics(self):
-        base_labels = {
-            'app': self.production.name,
-            'ctx_workload': self.workload().name,
-            'pruned': str(self.curr_workload().name != self.workload().name).lower(),
-        }
-
-        # current state
-        prommetrics.enum_metric(base_labels, 'smarttuning_state', 'smarttuning state',
-                                [TrainingIteration.__name__,
-                                 ReinforcementIteration.__name__,
-                                 ProbationIteration.__name__,
-                                 TunedIteration.__name__], type(self.__curr_iteration).__name__, )
-
-        # current iteration
-        state_labels = dict(base_labels)
-        state_labels['state'] = type(self.__curr_iteration).__name__
-        if isinstance(self.__curr_iteration, TrainingIteration):
-            prommetrics.gauge_metric(state_labels, 'smarttuning_state_iteration', 'smarttuning state it',
-                                     self.local_iteration)
-        elif isinstance(self.__curr_iteration, ReinforcementIteration):
-            prommetrics.gauge_metric(state_labels, 'smarttuning_state_iteration', 'smarttuning state it',
-                                     self.reinforcement_iteration)
-        elif isinstance(self.__curr_iteration, ProbationIteration):
-            prommetrics.gauge_metric(state_labels, 'smarttuning_state_iteration', 'smarttuning state it',
-                                     self.probation_iteration)
-        else:
-            prommetrics.gauge_metric(state_labels, 'smarttuning_state_iteration', 'smarttuning state it',
-                                     self.__extra_it)
-
-        # current config
-        config_labels = dict(base_labels)
-        config_labels.update({
-            'training': 'false',
-            'config': self.production.configuration.name,
-            'best': self.curr_best.name,
-            'ctx_workload': self.workload().name,
-            'pruned': str(self.curr_workload().name != self.workload().name).lower(),
-        })
-        prommetrics.counter_metric(config_labels, 'smarttuning_config', 'smarttuning config tick')
-        prommetrics.gauge_metric(config_labels, 'smarttuning_config_score', 'smarttuning config score',
-                                 self.production.configuration.score)
-        config_labels['training'] = 'true'
-        config_labels['config'] = self.training.configuration.name,
-        prommetrics.counter_metric(config_labels, 'smarttuning_config', 'smarttuning config tick')
-        prommetrics.gauge_metric(config_labels, 'smarttuning_config_score', 'smarttuning config score',
-                                 self.training.configuration.score)
-
         # objective metric
         prommetrics.gauge_metric({
             'app': self.production.name,
-            'cfg': self.production.configuration.name,
             'metric': 'objective',
         }, f'smarttuning_metric', 'metric', self.production.metrics().objective())
 
         prommetrics.gauge_metric({
             'app': self.training.name,
-            'cfg': self.training.configuration.name,
             'metric': 'objective',
         }, f'smarttuning_metric', 'metric', self.training.metrics().objective())
 
         # penalization metric
         prommetrics.gauge_metric({
             'app': self.production.name,
-            'cfg': self.production.configuration.name,
             'metric': 'penalization',
         }, f'smarttuning_metric', 'metric', self.production.metrics().penalization())
 
         prommetrics.gauge_metric({
             'app': self.training.name,
-            'cfg': self.training.configuration.name,
             'metric': 'penalization',
         }, f'smarttuning_metric', 'metric', self.training.metrics().penalization())
 
@@ -582,10 +531,7 @@ class IterationDriver:
 
         def expose_config_knobs(instance: Instance):
             c = instance.configuration
-            name = c.name
-            knobs_labels = dict(base_labels)
-            knobs_labels['config'] = name
-            knobs_labels['best'] = self.curr_best.name
+            knobs_labels = dict()
             knobs_labels['app'] = instance.name
             for key, knobs_list in c.data.items():
                 knobs_labels['manifest'] = key
@@ -602,6 +548,17 @@ class IterationDriver:
 
         expose_config_knobs(self.production)
         expose_config_knobs(self.training)
+
+        # config score
+        prommetrics.gauge_metric({
+            'app': self.training.name,
+            'cfg': self.training.configuration.name,
+        }, f'smarttuning_config_score', 'configuration score', self.training.configuration.score)
+
+        prommetrics.gauge_metric({
+            'app': self.production.name,
+            'cfg': self.production.configuration.name,
+        }, f'smarttuning_config_score', 'configuration score', self.production.configuration.score)
 
     def save_trace(self, reset=False):
         self.expose_prom_metrics()
