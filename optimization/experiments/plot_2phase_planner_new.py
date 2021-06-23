@@ -728,6 +728,7 @@ if __name__ == '__main__':
     name = 'trace-2021-06-16T23 59 12 120766'
     name = 'trace-2021-06-17T17 56 43 366635'
     name = 'trace-2021-06-21T16 17 42 784677'
+    name = 'trace-2021-06-22T23 41 42 770140'
     # plot_importance(data)
 
     for workload in [''] + [f'workload_{i}' for i in range(0, 5)]:

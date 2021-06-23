@@ -13,6 +13,8 @@ from prometheus_pandas import query as handler
 import config
 from typing import TYPE_CHECKING
 
+from util import prommetrics
+
 if TYPE_CHECKING:
     from models.instance import Instance
 
@@ -60,8 +62,14 @@ class Sampler:
 
     def sample(self):
         metrics = {}
+
         for item in self.__raw['metrics']:
             key, value = query(self, **item)
+            prommetrics.gauge_metric({
+                'app': self.__instance.name,
+                'cfg': self.__instance.configuration.name,
+                'metric': key,
+            }, f'smarttuning_metric', 'metric', value)
             metrics[key] = value
 
         Metric2 = namedtuple('Metric2', list(metrics.keys()))
@@ -79,10 +87,16 @@ class MetricDecorator:
     def objective(self) -> float:
         data = dict(self.__ctx)
         data.update({'penalization': self.penalization()})
-        return eval(self.__objective_expr, globals(), data)
+        try:
+            return eval(self.__objective_expr, globals(), data)
+        except ZeroDivisionError:
+            return float('inf')
 
     def penalization(self) -> float:
-        return eval(self.__penalization_expr, globals(), self.__ctx)
+        try:
+            return eval(self.__penalization_expr, globals(), self.__ctx)
+        except ZeroDivisionError:
+            return float('inf')
 
     def serialize(self) -> dict:
         data = dict(self.__ctx)
