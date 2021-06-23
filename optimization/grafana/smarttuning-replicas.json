@@ -16,9 +16,95 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1622065680839,
+  "iteration": 1624400726351,
   "links": [],
   "panels": [
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "hiddenSeries": false,
+      "id": 35,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Panel Title",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
     {
       "collapsed": false,
       "datasource": null,
@@ -26,7 +112,121 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 8
+      },
+      "id": 33,
+      "panels": [],
+      "title": "Smart Tuning",
+      "type": "row"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 30,
+      "options": {
+        "displayMode": "lcd",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "pluginVersion": "7.0.1",
+      "targets": [
+        {
+          "expr": "max(max_over_time(smarttuning_knob_value{app=\"$prod_podname\"}[1m])) by (knob)",
+          "interval": "",
+          "legendFormat": "{{knob}}",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Prod Config",
+      "type": "bargauge"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "yellow",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 31,
+      "options": {
+        "displayMode": "lcd",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "pluginVersion": "7.0.1",
+      "targets": [
+        {
+          "expr": "max(max_over_time(smarttuning_knob_value{app=\"$train_podname\"}[1m])) by (knob)",
+          "interval": "",
+          "legendFormat": "{{knob}}",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Train Config",
+      "type": "bargauge"
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
       },
       "id": 26,
       "panels": [],
@@ -51,7 +251,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 1
+        "y": 19
       },
       "hiddenSeries": false,
       "id": 20,
@@ -166,7 +366,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 24
       },
       "hiddenSeries": false,
       "id": 18,
@@ -278,7 +478,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 30
       },
       "hiddenSeries": false,
       "id": 16,
@@ -395,7 +595,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 36
       },
       "hiddenSeries": false,
       "id": 14,
@@ -497,7 +697,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 23
+        "y": 41
       },
       "id": 24,
       "panels": [],
@@ -522,7 +722,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 28,
@@ -653,7 +853,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 49
       },
       "hiddenSeries": false,
       "id": 6,
@@ -782,7 +982,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 56
       },
       "hiddenSeries": false,
       "id": 22,
@@ -897,7 +1097,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 45
+        "y": 63
       },
       "hiddenSeries": false,
       "id": 8,
@@ -1014,7 +1214,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 54
+        "y": 72
       },
       "hiddenSeries": false,
       "id": 21,
@@ -1133,7 +1333,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 54
+        "y": 72
       },
       "hiddenSeries": false,
       "id": 4,
@@ -1250,7 +1450,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 62
+        "y": 80
       },
       "hiddenSeries": false,
       "id": 2,
@@ -1396,7 +1596,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 62
+        "y": 80
       },
       "hiddenSeries": false,
       "id": 10,
@@ -1491,7 +1691,7 @@
       }
     }
   ],
-  "refresh": "5s",
+  "refresh": "10s",
   "schemaVersion": 25,
   "style": "dark",
   "tags": [],
@@ -1688,7 +1888,7 @@
     ]
   },
   "time": {
-    "from": "2021-05-28T06:06:43.000Z",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -1709,5 +1909,5 @@
   "timezone": "utc",
   "title": "smarttuning-replicas",
   "uid": "8RkJTIzGa",
-  "version": 3
+  "version": 2
 }

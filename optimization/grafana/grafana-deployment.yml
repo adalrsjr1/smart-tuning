@@ -66,11 +66,12 @@ spec:
                       - kind-control-plane
       containers:
         - name: grafana
-          image: grafana/grafana:7.0.1
+          #image: grafana/grafana:7.0.1
+          image: grafana/grafana:7.5.8
           #image: https://quay.io/repository/app-sre/grafana:7.0.1
           env:
             - name: GF_INSTALL_PLUGINS
-              value: "jdbranham-diagram-panel,grafana-simple-json-datasource"
+              value: "jdbranham-diagram-panel,grafana-simple-json-datasource,natel-discrete-panel"
           ports:
             - containerPort: 3000
           resources:
