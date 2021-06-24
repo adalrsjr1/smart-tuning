@@ -107,11 +107,9 @@ class Instance:
     def set_initial_configuration(self, configuration: Configuration, driver):
         self.__configuration(configuration)
         driver.session().study.add_trial(configuration.trial)
-        # doens't save initial config in nursery to avoid hang with it
+        # doens't save initial config in nursery to avoid ST discard reasonable configs because they are
+        # slight worse than the intial config
         # heapq.heappush(driver.session().nursery, configuration)
-
-    # def update_configuration_score(self, metric: Metric):
-    #     self.configuration.update_score(metric)
 
     @property
     def last_config(self) -> Configuration:
