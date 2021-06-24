@@ -16,11 +16,11 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1624472845054,
+  "iteration": 1624546514564,
   "links": [],
   "panels": [
     {
-      "collapsed": false,
+      "collapsed": true,
       "datasource": null,
       "gridPos": {
         "h": 1,
@@ -29,111 +29,167 @@
         "y": 0
       },
       "id": 33,
-      "panels": [],
+      "panels": [
+        {
+          "bgColor": null,
+          "datasource": "prometheus",
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 26,
+            "w": 24,
+            "x": 0,
+            "y": 1
+          },
+          "id": 37,
+          "pluginVersion": "7.5.8",
+          "radarSettings": {
+            "animationDurationMs": "0",
+            "aspectRatio": 2,
+            "autoScale": true,
+            "drawTicksBackground": true,
+            "fontColor": "gray",
+            "fontSize": "8",
+            "gridColor": "gray",
+            "ignoreTimeInfluxDB": false,
+            "legendType": "right",
+            "limitAspectRatio": true,
+            "scaleMax": 0,
+            "scaleMin": 0,
+            "scaleStep": 0,
+            "seriesAlias": ""
+          },
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "sum(last_over_time(smarttuning_knob_value{app=\"$prod_podname\", manifest=\"$manifest\"}[$time_interval_m])) by (knob)",
+              "interval": "",
+              "legendFormat": "{{knob}}",
+              "queryType": "randomWalk",
+              "refId": "A"
+            },
+            {
+              "exemplar": true,
+              "expr": "sum(last_over_time(smarttuning_knob_value{app=\"$train_podname\", manifest=\"$manifest\"}[$time_interval_m])) by (knob)",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "{{knob}}",
+              "queryType": "randomWalk",
+              "refId": "B"
+            }
+          ],
+          "title": "Configs",
+          "type": "snuids-radar-panel"
+        },
+        {
+          "datasource": "prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 12,
+            "x": 0,
+            "y": 27
+          },
+          "id": 30,
+          "options": {
+            "displayMode": "lcd",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "last"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true,
+            "text": {}
+          },
+          "pluginVersion": "7.5.8",
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "last_over_time(smarttuning_knob_value{app=\"$prod_podname\"}[$time_interval_m])",
+              "interval": "",
+              "legendFormat": "{{knob}}",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Prod Config",
+          "type": "bargauge"
+        },
+        {
+          "datasource": "prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "yellow",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 12,
+            "x": 12,
+            "y": 27
+          },
+          "id": 31,
+          "options": {
+            "displayMode": "lcd",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "last"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true,
+            "text": {}
+          },
+          "pluginVersion": "7.5.8",
+          "targets": [
+            {
+              "exemplar": true,
+              "expr": "last_over_time(smarttuning_knob_value{app=\"$train_podname\"}[$time_interval_m])",
+              "interval": "",
+              "legendFormat": "{{knob}}",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Train Config",
+          "type": "bargauge"
+        }
+      ],
       "title": "Smart Tuning",
       "type": "row"
-    },
-    {
-      "datasource": "prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 0,
-        "y": 1
-      },
-      "id": 30,
-      "options": {
-        "displayMode": "lcd",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "text": {}
-      },
-      "pluginVersion": "7.5.8",
-      "targets": [
-        {
-          "expr": "max(max_over_time(smarttuning_knob_value{app=\"$prod_podname\"}[1m])) by (knob)",
-          "interval": "",
-          "legendFormat": "{{knob}}",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Prod Config",
-      "type": "bargauge"
-    },
-    {
-      "datasource": "prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "yellow",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 1
-      },
-      "id": 31,
-      "options": {
-        "displayMode": "lcd",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "text": {}
-      },
-      "pluginVersion": "7.5.8",
-      "targets": [
-        {
-          "expr": "max(max_over_time(smarttuning_knob_value{app=\"$train_podname\"}[1m])) by (knob)",
-          "interval": "",
-          "legendFormat": "{{knob}}",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Train Config",
-      "type": "bargauge"
     },
     {
       "collapsed": true,
@@ -142,7 +198,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 1
       },
       "id": 26,
       "panels": [
@@ -618,7 +674,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 2
       },
       "id": 24,
       "panels": [],
@@ -643,7 +699,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 3
       },
       "hiddenSeries": false,
       "id": 28,
@@ -775,7 +831,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 10
       },
       "hiddenSeries": false,
       "id": 6,
@@ -819,6 +875,14 @@
           "interval": "",
           "legendFormat": "{{app}} -- {{metric}}",
           "refId": "B"
+        },
+        {
+          "exemplar": true,
+          "expr": "smarttuning_metric{metric=\"throughput\", app=\"$prod_podname\"} / scalar(smarttuning_metric{metric=\"curr_replicas\", app=\"$prod_podname\"})",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "{{app}} -- {{metric}}",
+          "refId": "C"
         }
       ],
       "thresholds": [],
@@ -882,7 +946,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 17
       },
       "hiddenSeries": false,
       "id": 22,
@@ -990,7 +1054,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 24
       },
       "hiddenSeries": false,
       "id": 35,
@@ -1100,7 +1164,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 39
+        "y": 30
       },
       "hiddenSeries": false,
       "id": 8,
@@ -1208,7 +1272,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 39
       },
       "hiddenSeries": false,
       "id": 10,
@@ -1329,7 +1393,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 56
+        "y": 47
       },
       "hiddenSeries": false,
       "id": 4,
@@ -1453,7 +1517,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 64
+        "y": 55
       },
       "hiddenSeries": false,
       "id": 2,
@@ -1771,11 +1835,42 @@
         "tagsQuery": "",
         "type": "query",
         "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "daytrader-config-app",
+          "value": "daytrader-config-app"
+        },
+        "datasource": "prometheus",
+        "definition": "smarttuning_knob_value",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": null,
+        "multi": false,
+        "name": "manifest",
+        "options": [],
+        "query": {
+          "query": "smarttuning_knob_value",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "/.*manifest=\"([\\w-]*).*/",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       }
     ]
   },
   "time": {
-    "from": "2021-06-23T20:56:25.000Z",
+    "from": "2021-06-24T16:15:26.000Z",
     "to": "now"
   },
   "timepicker": {
@@ -1796,5 +1891,5 @@
   "timezone": "utc",
   "title": "smarttuning-replicas",
   "uid": "8RkJTIzGa",
-  "version": 1
+  "version": 6
 }
