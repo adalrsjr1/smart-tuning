@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 1,
-  "iteration": 1624546514564,
+  "iteration": 1624546514582,
   "links": [],
   "panels": [
     {
@@ -1477,7 +1477,7 @@
       "yaxes": [
         {
           "$$hashKey": "object:195",
-          "format": "decmbytes",
+          "format": "mbytes",
           "label": "",
           "logBase": 2,
           "max": null,
@@ -1870,7 +1870,7 @@
     ]
   },
   "time": {
-    "from": "2021-06-24T16:15:26.000Z",
+    "from": "2021-06-24T17:46:06.000Z",
     "to": "now"
   },
   "timepicker": {
@@ -1891,5 +1891,5 @@
   "timezone": "utc",
   "title": "smarttuning-replicas",
   "uid": "8RkJTIzGa",
-  "version": 6
+  "version": 7
 }
