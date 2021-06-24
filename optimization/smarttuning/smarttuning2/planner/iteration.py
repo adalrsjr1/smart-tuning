@@ -553,11 +553,13 @@ class IterationDriver:
         prommetrics.gauge_metric({
             'app': self.training.name,
             'cfg': self.training.configuration.name,
+            'workload': self.curr_workload()
         }, f'smarttuning_config_score', 'configuration score', self.training.configuration.score)
 
         prommetrics.gauge_metric({
             'app': self.production.name,
             'cfg': self.production.configuration.name,
+            'workload': self.curr_workload(),
         }, f'smarttuning_config_score', 'configuration score', self.production.configuration.score)
 
     def save_trace(self, reset=False):
