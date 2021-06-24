@@ -729,6 +729,7 @@ if __name__ == '__main__':
     name = 'trace-2021-06-17T17 56 43 366635'
     name = 'trace-2021-06-21T16 17 42 784677'
     name = 'trace-2021-06-22T23 41 42 770140'
+    name = 'trace-2021-06-23T21 47 45 693264'
     # name = 'trace-2021-06-23T16 57 46 496701'
     # plot_importance(data)
 
