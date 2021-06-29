@@ -1,7 +1,7 @@
 import logging
+import math
 import threading
 import time
-import math
 
 from kubernetes.client import ApiException, V2beta2HorizontalPodAutoscaler, V2beta2HorizontalPodAutoscalerSpec, \
     V2beta2CrossVersionObjectReference
@@ -9,9 +9,8 @@ from kubernetes.watch import Watch
 
 import config
 from controllers.k8seventloop import EventLoop, ListToWatch
-from models.metric2 import Sampler
+from models import metric2
 from models.workload import Workload
-from sampler import PrometheusSampler
 
 logger = logging.getLogger(config.WORKLOAD_LOGGER)
 logger.setLevel(logging.INFO)
@@ -43,10 +42,9 @@ def init(loop: EventLoop):
     t.start()
 
     e.wait()
-    namespace = config.NAMESPACE
     loop.register('workload-controller',
                   ListToWatch(func=hpa.list_namespaced_horizontal_pod_autoscaler,
-                              namespace=namespace), workload_controller_wrapper(name))
+                              namespace=namespace()), workload_controller_wrapper(name))
 
 
 __lock = threading.Event()
@@ -56,6 +54,10 @@ __app_name = ''
 
 def app_name() -> str:
     return __app_name
+
+
+def namespace() -> str:
+    return config.NAMESPACE
 
 
 def wait():
@@ -115,7 +117,7 @@ def new_replica_based_workload() -> Workload:
     try:
         client = config.hpaApi()
         hpa = client.read_namespaced_horizontal_pod_autoscaler(name=config.HPA_NAME,
-                                                               namespace=config.NAMESPACE)
+                                                               namespace=namespace())
         status = hpa.status
         # add +1 due to training replica
         n_replicas = status.current_replicas
@@ -148,14 +150,15 @@ def new_rps_based_workload() -> Workload:
     try:
         # classification based on both training and production truput
         # TODO: update this to use metric2
-        ps_prod = PrometheusSampler(app_name(), config.WAITING_TIME * config.SAMPLE_SIZE, aggregation_function='sum')
+        ps_prod = metric2.standalone_sampler(app_name(), namespace(), config.WAITING_TIME * config.SAMPLE_SIZE)
+        # ps_prod = PrometheusSampler(app_name(), config.WAITING_TIME * config.SAMPLE_SIZE, aggregation_function='sum')
         # ps_train = PrometheusSampler(app_name()+config.PROXY_TAG, config.WAITING_TIME * config.SAMPLE_SIZE, aggregation_function='sum')
         # truput = ps_prod.metric().throughput() + ps_train.metric().throughput()
         truput = ps_prod.metric().throughput()
         workload = Workload(f'workload_{classify_truput(truput, config.WORKLOAD_BANDS)}',
                             data=truput)
     except Exception:
-        logger.exception('cannot sample rps')
+        logger.exception(f'cannot sample rps from {app_name()}')
     finally:
         logger.debug(f'sampling workload: {workload}')
         return workload
