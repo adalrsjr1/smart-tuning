@@ -40,165 +40,6 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: smarttuning-sampler-config
-data:
-  # ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2)
-  sampler.json: |
-    {
-      "objective": "-(penalization)*(throughput/(((memory_limit * 0.013375) + (cpu_limit * 0.0535) ) / 2))",
-      "penalization": "(1-errors)*(1/(1+process_time))*(memory_limit/(memory_limit + abs(xmx-memory_limit)))",
-      "metrics": [
-        {
-          "name": "waiting_time",
-          "query": "f'avg(deriv(vendor_connectionpool_waitTime_total_seconds{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s])) /avg(rate(vendor_connectionpool_queuedRequests_total{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s]))'",
-          "datasource": "prom"
-        },
-        {
-          "name": "cpu",
-          "query": "f'sum(rate(container_cpu_usage_seconds_total{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
-          "datasource": "prom"
-        },
-        {
-          "name": "cpu_limit",
-          "query": "f'sum(sum_over_time(container_spec_cpu_quota{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s])) / avg(sum_over_time(container_spec_cpu_period{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
-          "datasource": "prom"
-        },
-        {
-          "name": "memory",
-          "query": "f'sum(max_over_time(container_memory_working_set_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))/(2^20)'",
-          "datasource": "prom"
-        },
-        {
-          "name": "memory_limit",
-          "query": "f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))/(2^20)'",
-          "datasource": "prom"
-        },
-        {
-          "name": "throughput",
-          "query": "f'sum(rate(vendor_servlet_request_total{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*\"}}[{interval}s]))'",
-          "datasource": "prom"
-        },
-        {
-          "name": "process_time",
-          "query": "f'sum(deriv(vendor_servlet_responseTime_total_seconds{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*\"}}[{interval}s]))'",
-          "datasource": "prom"
-        },
-        {
-          "name": "errors",
-          "query": "0",
-          "datasource": "scalar"
-        },
-        {
-          "name": "curr_replicas",
-          "query": "f'avg_over_time(kube_deployment_spec_replicas{{namespace=\"{namespace}\", deployment=\"{podname}\"}}[{interval}s])'",
-          "datasource": "prom"
-        },
-        {
-          "name": "max_replicas",
-          "query": "4",
-          "datasource": "scalar"
-        },
-        {
-          "name": "MAX_THREADS",
-          "query": "daytrader-config-app.MAX_THREADS",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jdbc_max_conn",
-          "query": "daytrader-config-app.CONMGR1_MAX_POOL_SIZE",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jdbc_min_conn",
-          "query": "daytrader-config-app.CONMGR1_MIN_POOL_SIZE",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jdbc_conn_timeout",
-          "query": "daytrader-config-app.CONMGR1_TIMEOUT",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jdbc_conn_aged_timeout",
-          "query": "daytrader-config-app.CONMGR1_AGED_TIMEOUT",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jdbc_conn_idle",
-          "query": "daytrader-config-app.CONMGR1_MAX_IDLE_TIMEOUT",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jdbc_conn_reap_time",
-          "query": "daytrader-config-app.CONMGR1_REAP_TIME",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jms_max_conn",
-          "query": "daytrader-config-app.CONMGR4_MAX_POOL_SIZE",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jms_min_conn",
-          "query": "daytrader-config-app.CONMGR4_MIN_POOL_SIZE",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jms_conn_timeout",
-          "query": "daytrader-config-app.CONMGR4_TIMEOUT",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jms_conn_aged_timeout",
-          "query": "daytrader-config-app.CONMGR4_AGED_TIMEOUT",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jms_conn_idle_timeout",
-          "query": "daytrader-config-app.CONMGR4_MAX_IDLE_TIMEOUT",
-          "datasource": "cfg"
-        },
-        {
-          "name": "jms_conn_reap_time",
-          "query": "daytrader-config-app.CONMGR4_REAP_TIME",
-          "datasource": "cfg"
-        },
-        {
-          "name": "http_keep_alive",
-          "query": "daytrader-config-app.HTTP_MAX_KEEP_ALIVE_REQUESTS",
-          "datasource": "cfg"
-        },
-        {
-          "name": "http_persist_timeout",
-          "query": "daytrader-config-app.HTTP_PERSIST_TIMEOUT",
-          "datasource": "cfg"
-        },
-        {
-          "name": "xms",
-          "query": "daytrader-config-jvm.-Xms",
-          "datasource": "cfg"
-        },
-        {
-          "name": "xmx",
-          "query": "daytrader-config-jvm.-Xmx",
-          "datasource": "cfg"
-        },
-        {
-          "name": "xmn",
-          "query": "daytrader-config-jvm.-Xmn",
-          "datasource": "cfg"
-        },
-        {
-          "name": "xscmx",
-          "query": "daytrader-config-jvm.-Xscmx",
-          "datasource": "cfg"
-        }
-      ]
-    }
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: smarttuning-config
 data:
   # test config
@@ -268,29 +109,16 @@ metadata:
   name: smarttuning
   labels:
     app: smarttuning
-    config: "0"
 spec:
-  replicas: 1
   template:
     metadata:
       name: smarttuning
       labels:
         app: smarttuning
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values:
-                      - kind-worker
-                      - docker-desktop
       containers:
         - name: smarttuning
           image: quay.io/smarttuning/smarttuning:dev
-          #image: smarttuning/smarttuning:dev
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9090
@@ -332,5 +160,4 @@ spec:
   selector:
     app: smarttuning
   type: NodePort
-status:
-  loadBalancer: {}
+---
