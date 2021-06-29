@@ -67,6 +67,10 @@ class Instance:
     #                                                     workload=self._ctx.workload)
 
     @property
+    def sampler(self) -> Sampler:
+        return self._sampler
+
+    @property
     def name(self) -> str:
         return self._name
 

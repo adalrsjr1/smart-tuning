@@ -77,6 +77,7 @@ BAYESIAN_LOGGER = 'bayesian.smarttuning.ibm'
 SEARCH_SPACE_LOGGER = 'searchspace.smarttuning.ibm'
 EVENT_LOOP_LOGGER = 'eventloop.smarttuning.ibm'
 WORKLOAD_LOGGER = 'workload.smarttuning.ibm'
+METRIC_LOGGER = 'metric.smarttuning.ibm'
 
 # debug config
 # timeout before update workload

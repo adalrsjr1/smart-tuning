@@ -1,10 +1,8 @@
-# TODO: delete Saturation.py HPASampler.py Sampler.py
 from __future__ import annotations
 
 import json
 import logging
 import math
-import traceback
 from collections import namedtuple
 from numbers import Number
 
@@ -20,17 +18,26 @@ from util import prommetrics
 if TYPE_CHECKING:
     from models.instance import Instance
 
-logger = logging.getLogger(config.INJECTOR_LOGGER)
-logger.setLevel(logging.WARNING)
+logger = logging.getLogger(config.METRIC_LOGGER)
+
 
 def validate_json(j: dict) -> dict:
     expected = {'objective', 'penalization', 'metrics'}
     keys = set(j.keys())
 
-    assert expected == keys, f"must have all these three keys: 'objective', 'penalization', 'metrics'"
+    assert expected == keys, f"monitoring expresssions must be one of these three types: " \
+                             f"'objective', 'penalization', 'metrics'"
     assert len(j['metrics']) > 0, f"must have at least one metric"
 
     return j
+
+
+def standalone_sampler(app_name: str, namespace: str, sample_interval: int, ):
+    instance = Instance(name=app_name, namespace=namespace, is_production=True,
+                        sample_interval_in_secs=sample_interval,
+                        ctx=None)
+
+    return instance.sampler
 
 
 class Sampler:
@@ -111,6 +118,7 @@ class MetricDecorator:
 def query(ctx: Sampler, name: str, query: str, datasource: str) -> (str, float):
     assert datasource in ['prom', 'hpa', 'cfg',
                           'scalar'], f'datasource must be either "prom", "hpa", "cfg", or "scalar", not "{datasource}"'
+
     if 'prom' == datasource:
         return prom_query(ctx, name, query)
     elif 'hpa' == datasource:
@@ -122,8 +130,11 @@ def query(ctx: Sampler, name: str, query: str, datasource: str) -> (str, float):
 
 
 def prom_query(ctx: Sampler, name: str, _query: str):
-    result = ctx.prom().query(eval(_query, globals(), ctx.__dict__))
+    _query = eval(_query, globals(), ctx.__dict__)
+    result = ctx.prom().query(_query)
     if len(result) <= 0 or math.isnan(result): result = 0
+    logger.debug(f'prom: {_query}')
+    logger.debug(f'prom: {name} = {result}')
     return name, float(result)
 
 
@@ -172,7 +183,10 @@ def hpa_query(ctx: Sampler, name: str, query: str):
 
     raw: V2beta2HorizontalPodAutoscaler = ctx.hpa().read_namespaced_horizontal_pod_autoscaler(name=ctx.podname,
                                                                                               namespace=ctx.namespace)
-    return name, interpret_query(raw, query)
+    result = interpret_query(raw, query)
+    logger.debug(f'hpa: {query}')
+    logger.debug(f'hpa: {name} = {result}')
+    return name, result
 
 
 def cfg_query(ctx: Sampler, name: str, query: str):
@@ -194,12 +208,14 @@ def cfg_query(ctx: Sampler, name: str, query: str):
         return isinstance(value, Number)
 
     if not is_number(value):
-        print(f'query: {query} returns {value} that isn\'t a number')
-        # logger.warning(f'query: {query} returns {value} that isn\'t a number')
+        logger.warning(f'query: {query} returns {value} that isn\'t a number')
         return name, float('nan')
 
+    logger.debug(f'cfg: {query}')
+    logger.debug(f'cfg: {name} = {value}')
     return name, float(value)
 
 
 def scalar_query(ctx: Sampler, name: str, query: str):
+    logger.debug(f'scalar: {name} = {query}')
     return name, float(query)
