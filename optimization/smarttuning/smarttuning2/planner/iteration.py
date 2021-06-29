@@ -765,6 +765,7 @@ class Iteration(ABC):
             if self.fail_fast:
                 # self.logger.warning('FAIL FAST is not implemented yet')
                 # TODO: fail fast disabled for mocking workload classification
+                # TODO: reorganize this order, workload checking must be evaluated before than i==0
                 if i == 0:
                     continue
 

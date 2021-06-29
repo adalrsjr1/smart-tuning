@@ -44,7 +44,7 @@ metadata:
 data:
   # test config
   SAMPLER_CONFIG: "/etc/sampler-config/sampler.json"
-  TWO_SERVICES: "1"
+  TWO_SERVICES: "True"
   WORKLOAD_TIMEOUT: "60"
   WORKLOAD_CLASSIFIER: "RPS" #HPA or RPS
   WORKLOAD_BANDS: "80,400,800"
