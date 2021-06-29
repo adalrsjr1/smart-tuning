@@ -40,8 +40,7 @@ class Instance:
         if sampler:
             self._sampler = sampler
         else:
-            self._sampler = Sampler(instance=self, interval=self._default_sample_interval,
-                                    metric_schema_filepath=config.SAMPLER_CONFIG,
+            self._sampler = Sampler(instance=self, metric_schema_filepath=config.SAMPLER_CONFIG,
                                     prom_url=f'http://{config.PROMETHEUS_ADDR}:{config.PROMETHEUS_PORT}')
         self._active = True
         self._curr_config = None

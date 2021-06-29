@@ -91,16 +91,20 @@ def inject_proxy_into_service(event: dict):
         "targetPort": config.METRICS_PORT
     }
 
+    spec = {}
+    if not config.NO_PROXY:
+        spec = {
+            "selector": {config.PROXY_TAG: 'false'},
+            "ports": ports
+        }
+
     ports.append(port)
     config.coreApi().patch_namespaced_pod
     patch_body = {
         "kind": service.kind,
         "apiVersion": service.api_version,
         "metadata": {"labels": {"has_proxy": "true", config.PROXY_TAG: "false"}},
-        "spec": {
-            "selector": {config.PROXY_TAG: 'false'},
-            "ports": ports
-        }
+        "spec": spec
     }
 
     config.init_k8s(config.K8S_HOST)
@@ -220,6 +224,13 @@ def inject_proxy_to_deployment(event):
             service_port=service_port,
         ))
 
+    spec = {}
+    if not config.NO_PROXY:
+        spec = {
+            "initContainers": [init_proxy_container(proxy_port=config.PROXY_PORT, service_port=service_port)],
+            "containers": containers
+        }
+
     patch_body = {
         "kind": deployment.kind,
         "apiVersion": deployment.api_version,
@@ -236,10 +247,7 @@ def inject_proxy_to_deployment(event):
                 "metadata": {
                     "labels": {config.PROXY_TAG: "false"}
                 },
-                "spec": {
-                    "initContainers": [init_proxy_container(proxy_port=config.PROXY_PORT, service_port=service_port)],
-                    "containers": containers
-                }
+                "spec": spec
             },
             # https://github.com/kubernetes/client-go/issues/508
             # "selector": {

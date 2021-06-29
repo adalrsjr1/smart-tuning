@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
+import traceback
 from collections import namedtuple
 from numbers import Number
 
@@ -18,6 +20,8 @@ from util import prommetrics
 if TYPE_CHECKING:
     from models.instance import Instance
 
+logger = logging.getLogger(config.INJECTOR_LOGGER)
+logger.setLevel(logging.WARNING)
 
 def validate_json(j: dict) -> dict:
     expected = {'objective', 'penalization', 'metrics'}
@@ -31,9 +35,10 @@ def validate_json(j: dict) -> dict:
 
 class Sampler:
 
-    def __init__(self, instance: Instance, interval: int, metric_schema_filepath: str, prom_url: str):
+    def __init__(self, instance: Instance, metric_schema_filepath: str, prom_url: str):
         with open(metric_schema_filepath, 'r') as f:
             self.__raw = validate_json(json.load(f))
+
         self.__instance = instance
         self.__prom_url = prom_url
 

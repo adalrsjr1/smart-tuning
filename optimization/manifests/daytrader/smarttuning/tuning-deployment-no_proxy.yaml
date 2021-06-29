@@ -30,9 +30,9 @@ data:
   Q_CPU_L: f'sum(sum_over_time(container_spec_cpu_quota{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s])) / avg(sum_over_time(container_spec_cpu_period{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
   Q_MEM: f'sum(max_over_time(container_memory_working_set_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))/(2^20)'
   Q_MEM_L: f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))/(2^20)'
-  Q_THRUPUT: f'sum(rate(smarttuning_http_requests_total{{code=~"...",pod=~"{self.podname}-.*",namespace="{self.namespace}",name!~".*POD.*"}}[{self.interval}s]))'
-  Q_RESP_TIME: f'sum(rate(smarttuning_http_processtime_seconds_sum{{pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s])) / sum( rate(smarttuning_http_processtime_seconds_count{{pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s]))'
-  Q_ERRORS: f'sum(rate(smarttuning_http_requests_total{{code=~"5..",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s])) / sum( rate(smarttuning_http_requests_total{{pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}"}}[{self.interval}s]))'
+  Q_THRUPUT: f'sum(rate(vendor_servlet_request_total{{pod=~"{self.podname}-.*",servlet!~"com_ibm_ws_microprofile.*"}}[{self.interval}s]))'
+  Q_RESP_TIME: f'avg(deriv(vendor_servlet_responseTime_total_seconds{{pod=~"{self.podname}-.*",servlet!~"com_ibm_ws_microprofile.*"}}[{self.interval}s]))'
+  Q_ERRORS: f'0'
   Q_REPLICAS: f'avg_over_time(kube_deployment_spec_replicas{{namespace="{self.namespace}", deployment="{self.podname}"}}[{self.interval}s])'
   #Q_REPLICAS: f'sum(count(count(sum(rate(container_cpu_usage_seconds_total{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",container!="",namespace="{self.namespace}"}}[{self.interval}s])) by (container,pod)) by (pod) > 1) by (pod))'
   Q_CONNS: f'sum(rate(smarttuning_active_conns{{pod=~"{self.podname}-*",name!~".*POD.*", state="new"}}[{self.interval}s]))'
@@ -75,18 +75,18 @@ data:
         },
         {
           "name": "throughput",
-          "query": "f'sum(rate(smarttuning_http_requests_total{{code=~\"...\",pod=~\"{podname}-.*\",namespace=\"{namespace}\",name!~\".*POD.*\"}}[{interval}s]))'",
+          "query": "f'sum(rate(vendor_servlet_request_total{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*\"}}[{interval}s]))'",
           "datasource": "prom"
         },
         {
           "name": "process_time",
-          "query": "f'sum(rate(smarttuning_http_processtime_seconds_sum{{pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\"}}[{interval}s])) / sum(rate(smarttuning_http_processtime_seconds_count{{pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\"}}[{interval}s]))'",
+          "query": "f'sum(deriv(vendor_servlet_responseTime_total_seconds{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*\"}}[{interval}s]))'",
           "datasource": "prom"
         },
         {
           "name": "errors",
-          "query": "f'sum(rate(smarttuning_http_requests_total{{code=~\"5..\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\"}}[{interval}s])) / sum( rate(smarttuning_http_requests_total{{pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\"}}[{interval}s]))'",
-          "datasource": "prom"
+          "query": "0",
+          "datasource": "scalar"
         },
         {
           "name": "curr_replicas",
@@ -202,11 +202,12 @@ metadata:
   name: smarttuning-config
 data:
   # test config
+  NO_PROXY: "True"
   SAMPLER_CONFIG: "/etc/sampler-config/sampler.json"
   TWO_SERVICES: "1"
   WORKLOAD_TIMEOUT: "60"
   WORKLOAD_CLASSIFIER: "RPS" #HPA or RPS
-  WORKLOAD_BANDS: "80,400,800"
+  WORKLOAD_BANDS: ""
   WORKLOAD_BAND_WIDTH: '500'
   WORKLOAD_BAND_DEV: '250'
   FAIL_FAST: "True"
@@ -220,8 +221,8 @@ data:
   ST_METRICS_PORT: '9090'
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
-  SAMPLING_METRICS_TIMEOUT: '300'
-  WAITING_TIME: '300'
+  SAMPLING_METRICS_TIMEOUT: '1200'
+  WAITING_TIME: '1200'
   SAMPLE_SIZE: '0.3334'
   # classification config
   K: '1'

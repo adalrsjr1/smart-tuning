@@ -20,7 +20,7 @@ data:
     -Xgcpolicy:gencon
     -Xtune:virtualized
     -Xms32m
-    -Xmx512m
+    -Xmx384m
     #-XX:InitialRAMPercentage=25
     #-XX:MaxRAMPercentage=75
     -Xmn24m

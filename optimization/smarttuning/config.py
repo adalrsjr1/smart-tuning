@@ -80,6 +80,7 @@ WORKLOAD_LOGGER = 'workload.smarttuning.ibm'
 
 # debug config
 # timeout before update workload
+NO_PROXY = eval(os.environ.get('NO_PROXY', default='False'))
 SAMPLER_CONFIG = os.environ.get('SAMPLER_CONFIG', default='sampler.json')
 TWO_SERVICES = int(os.environ.get('TWO_SERVICES', default='1'))
 WORKLOAD_TIMEOUT = int(os.environ.get('WORKLOAD_TIMEOUT', default='1'))

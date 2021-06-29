@@ -109,10 +109,6 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 15
 #            # force restart
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 9080
 #          livenessProbe:
 #            exec:
 #              # /opt/liveness_probe.sh <interval> <rqps threshold>

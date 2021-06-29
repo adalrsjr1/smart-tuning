@@ -9,6 +9,7 @@ from kubernetes.watch import Watch
 
 import config
 from controllers.k8seventloop import EventLoop, ListToWatch
+from models.metric2 import Sampler
 from models.workload import Workload
 from sampler import PrometheusSampler
 
@@ -131,15 +132,8 @@ def new_rps_based_workload() -> Workload:
     workload = None
 
     def classify_truput(truput: float, bands: None):
-        if not bands:
+        if not bands or (len(bands) == 1 and bands[0] == ''):
             bands = []
-        # if truput % band_width < deviation:
-        #     classification = str(int(truput // band_width))
-        # else:
-        #     classification = str(int((truput // band_width) + 1))
-        # return classification
-
-        # bands = [200, 600, 1500]
 
         min_d = float('inf')
         min_b = 0
@@ -153,6 +147,7 @@ def new_rps_based_workload() -> Workload:
 
     try:
         # classification based on both training and production truput
+        # TODO: update this to use metric2
         ps_prod = PrometheusSampler(app_name(), config.WAITING_TIME * config.SAMPLE_SIZE, aggregation_function='sum')
         # ps_train = PrometheusSampler(app_name()+config.PROXY_TAG, config.WAITING_TIME * config.SAMPLE_SIZE, aggregation_function='sum')
         # truput = ps_prod.metric().throughput() + ps_train.metric().throughput()

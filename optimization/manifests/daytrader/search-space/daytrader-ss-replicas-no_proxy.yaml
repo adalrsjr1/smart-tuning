@@ -20,16 +20,17 @@ data:
         - name: "cpu"
           type: "integer"
           values:
+            - "1"
             - "2"
+            - "3"
             - "4"
-            - "5"
         - name: "memory"
           type: "integer"
           values:
+            - "512"
             - "1024"
             - "2048"
             - "4096"
-            - "8192"
   - name: daytrader-config-app
     # https://www.ibm.com/support/pages/tuning-connection-pool-properties-websphere-application-server
     # https://openliberty.io/docs/20.0.0.9/reference/config/connectionManager.html
@@ -172,7 +173,7 @@ data:
             value: 16
           upper:
             value: 8192
-            dependsOn: "memory 0.4 *"
+            dependsOn: "memory 0.8 *"
           step: 16
           real: False
         - name: "-Xmn"
