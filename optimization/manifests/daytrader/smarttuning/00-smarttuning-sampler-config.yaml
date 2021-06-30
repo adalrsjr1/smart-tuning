@@ -151,6 +151,16 @@ data:
           "datasource": "cfg"
         },
         {
+          "name": "xmns",
+          "query": "daytrader-config-jvm.-Xmns",
+          "datasource": "cfg"
+        },
+        {
+          "name": "xmnx",
+          "query": "daytrader-config-jvm.-Xmnx",
+          "datasource": "cfg"
+        },
+        {
           "name": "xscmx",
           "query": "daytrader-config-jvm.-Xscmx",
           "datasource": "cfg"
