@@ -69,7 +69,7 @@ spec:
   # cluster supports at most 24 cores
   minReplicas: 1
   # 9 prod + 1 train
-  maxReplicas: 1 # 10 replicas of 2 cores
+  maxReplicas: 8 # 10 replicas of 2 cores
   metrics:
   # use a "Pods" metric, which takes the average of the
   # given metric across all pods controlled by the autoscaling target
@@ -79,6 +79,12 @@ spec:
          target:
            type: Utilization
            averageUtilization: 80
+     - type: Resource
+       resource:
+         name: memory
+         target:
+           type: Utilization
+           averageUtilization: 90
            #  behavior:
            #    scaleDown:
            #      stabilizationWindowSeconds: 60

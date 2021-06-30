@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from models.instance import Instance
 
 logger = logging.getLogger(config.METRIC_LOGGER)
+logger.setLevel(logging.INFO)
 
 
 def validate_json(j: dict) -> dict:
@@ -32,7 +33,8 @@ def validate_json(j: dict) -> dict:
     return j
 
 
-def standalone_sampler(app_name: str, namespace: str, sample_interval: int, ):
+def standalone_sampler(app_name: str, namespace: str, sample_interval: int, ) -> Sampler:
+    from models.instance import Instance
     instance = Instance(name=app_name, namespace=namespace, is_production=True,
                         sample_interval_in_secs=sample_interval,
                         ctx=None)
@@ -208,7 +210,7 @@ def cfg_query(ctx: Sampler, name: str, query: str):
         return isinstance(value, Number)
 
     if not is_number(value):
-        logger.warning(f'query: {query} returns {value} that isn\'t a number')
+        logger.warning(f'query: {query} returns {value} that isn\'t a number, using {float("nan")} instead')
         return name, float('nan')
 
     logger.debug(f'cfg: {query}')

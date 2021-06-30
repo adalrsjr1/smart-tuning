@@ -12,4 +12,5 @@ kubectl --kubeconfig=$HOME/.kube/trinity01/config delete -f ./jmeter-manifests/w
 
 kubectl --kubeconfig=$HOME/.kube/trinity01/config delete -f ./jmeter-manifests/workloads/
 kubectl --kubeconfig=$HOME/.kube/trinity01/config delete -f ./smarttuning
+kubectl --kubeconfig=$HOME/.kube/trinity01/config delete svc daytrader-smarttuning
 

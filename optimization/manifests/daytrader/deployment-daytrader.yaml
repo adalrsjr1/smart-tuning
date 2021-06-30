@@ -89,7 +89,7 @@ spec:
           # avoid to send requests if it already restarted
           readinessProbe:
             httpGet:
-              path: /health
+              path: /daytrader
               port: 9080
             initialDelaySeconds: 30
             periodSeconds: 15
@@ -110,6 +110,9 @@ spec:
             periodSeconds: 15
 #            # force restart
 #          livenessProbe:
+#            httpGet:
+#              port: 9080
+#              path: /health
 #            exec:
 #              # /opt/liveness_probe.sh <interval> <rqps threshold>
 #              command:
@@ -142,9 +145,9 @@ spec:
         - name: daytrader-config-app
           configMap:
             name: daytrader-config-app
-        - name: daytrader-config-fake
-          configMap:
-            name: daytrader-config-fake
+        #- name: daytrader-config-fake
+            #configMap:
+            #name: daytrader-config-fake
         - name: daytrader-config-jvm
           configMap:
             name: daytrader-config-jvm
