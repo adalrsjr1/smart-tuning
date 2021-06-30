@@ -708,6 +708,10 @@ def jmvoptions_to_dict(jvm_options):
             params['-XX:InitialRAMPercentage'] = int(item.split('-XX:InitialRAMPercentage=')[1])
         elif item.startswith('-XX:MaxRAMPercentage'):
             params['-XX:MaxRAMPercentage'] = int(item.split('-XX:MaxRAMPercentage=')[1])
+        elif item.startswith('-Xmns'):
+            params['-Xmns'] = int(item.split('-Xmns')[1].split('m')[0])
+        elif item.startswithh('-Xmnx'):
+            params['-Xmnx'] = int(item.split('-Xmnx')[1].split('m')[0])
         elif item.startswith('-Xmn'):
             params['-Xmn'] = int(item.split('-Xmn')[1].split('m')[0])
         elif item.startswith('-Xms'):
@@ -739,6 +743,14 @@ def dict_to_jvmoptions(data):
     if '-XX:MaxRAMPercentage' in data:
         params.append('-XX:MaxRAMPercentage=' + str(data['-XX:MaxRAMPercentage']))
         del data['-XX:MaxRAMPercentage']
+
+    if '-Xmns' in data:
+        params.append('-Xmns' + str(data['-Xmns']) + 'm')
+        del data['-Xmns']
+
+    if '-Xmnx' in data:
+        params.append('-Xmnx' + str(data['-Xmns']) + 'm')
+        del data['-Xmnx']
 
     if '-Xmn' in data:
         params.append('-Xmn' + str(data['-Xmn']) + 'm')

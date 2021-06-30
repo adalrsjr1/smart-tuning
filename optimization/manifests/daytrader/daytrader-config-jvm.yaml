@@ -15,15 +15,18 @@ data:
     #-Dcom.sun.management.jmxremote.rmi.port=1099
     #-Djava.rmi.server.hostname=127.0.0.1
     -XX:+UseContainerSupport
-    #-xms512m
-    #-xmx512m
     -Xgcpolicy:gencon
     -Xtune:virtualized
-    -Xms32m
+    # Xms: https://www.eclipse.org/openj9/docs/openj9_defaults/
+    -Xms8m
     -Xmx384m
     #-XX:InitialRAMPercentage=25
     #-XX:MaxRAMPercentage=75
-    -Xmn24m
+    # Xmn: https://www.eclipse.org/openj9/docs/xmn/
+    # default 25% Xmx
+    #-Xmn96m
+    -Xmns2m
+    -Xmnx96m
     -XX:SharedCacheHardLimit=32m
     -Xscmx=16m
     #-verbose:gc

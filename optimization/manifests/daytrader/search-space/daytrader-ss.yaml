@@ -176,15 +176,32 @@ data:
             dependsOn: "memory 0.4 *"
           step: 16
           real: False
-        - name: "-Xmn"
+        - name: "-Xmns"
           lower:
             value: 8
           upper:
-            value: 896
-            # https://www.ibm.com/support/pages/maximo-75-64-bit-application-won%E2%80%99t-start-after-automated-installation
+            value: 8192
             dependsOn: "-Xms 0.8 *"
-          step: 8
+          step: 32
           real: False
+        - name: "-Xmnx"
+          lower:
+            value: 8
+            dependsOn: "-Xmns"
+          upper:
+            value: 8192
+            dependsOn: "-Xmx 0.8 *"
+          step: 32
+          real: False
+          #- name: "-Xmn"
+          #  lower:
+          #    value: 8
+          #  upper:
+          #    value: 896
+          #    # https://www.ibm.com/support/pages/maximo-75-64-bit-application-won%E2%80%99t-start-after-automated-installation
+          #    dependsOn: "-Xms 0.8 *"
+          #  step: 8
+          #  real: False
         - name: "-Xscmx"
           lower:
             value: 16
