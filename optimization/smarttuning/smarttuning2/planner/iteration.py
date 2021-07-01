@@ -470,7 +470,6 @@ class IterationDriver:
             self.logger.debug(f'aborting {it}')
             return
         self.__last_iteration = self.curr_iteration
-        it.iterate()
         self.__curr_iteration = it
         self.__probation_iteration += 1
         self.lookahead = ProbationIteration
