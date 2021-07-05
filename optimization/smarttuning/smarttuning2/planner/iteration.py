@@ -6,13 +6,11 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from numbers import Number
-from typing import Union
+from typing import Union, Optional
 
 import optuna
-from kubernetes.client import ApiException
 from optuna.samplers import TPESampler, RandomSampler
 from optuna.trial import BaseTrial
-from prometheus_client import Info, Gauge
 
 import config
 from controllers import workloadctrl
@@ -165,6 +163,8 @@ class DriverSession:
 
 
 class IterationDriver:
+    __all_sessions: dict[str, DriverSession] = {}
+
     def __init__(self, workload: Workload, search_space: SearchSpaceModel, production: Instance, training: Instance,
                  max_global_iterations: int = 50, max_local_iterations: int = 10, max_reinforcement_iterations: int = 3,
                  max_probation_iterations: int = 3, sampling_interval: float = 60, n_sampling_subintervals: int = 3,
@@ -185,6 +185,8 @@ class IterationDriver:
                                                       n_ei_candidates=n_ei_candidates,
                                                       seed=seed)
 
+        IterationDriver.__all_sessions[self.__session.workload.name] == self.__session
+
         self.__max_global_iterations = max_global_iterations
         self.__max_local_iterations = max_local_iterations
         assert self.max_local_iterations > 0, f'max_local_iterations must be > 0'
@@ -201,8 +203,8 @@ class IterationDriver:
         self.__logging_subinterval = logging_subinterval
         self.__fail_fast = fail_fast
 
-        self.__curr_iteration: Iteration = None
-        self.__last_iteration: Iteration = None
+        self.__curr_iteration: Optional[Iteration] = None
+        self.__last_iteration: Optional[Iteration] = None
         self.__lookahead = TrainingIteration
         self.__prev_lookahead = TrainingIteration
 
@@ -323,7 +325,9 @@ class IterationDriver:
     def curr_best(self, configuration: Configuration):
         self.__curr_best = configuration
 
-    def session(self) -> DriverSession:
+    def session(self, workload: Optional[Workload] = None) -> DriverSession:
+        if workload:
+            return IterationDriver.__all_sessions[workload.name]
         return self.__session
 
     def new_training_it(self, configuration: Configuration = None) -> TrainingIteration:
@@ -601,12 +605,12 @@ class IterationDriver:
         trace_to_save = {
             'reset': reset,
             'date': datetime.utcnow().isoformat(),
-            'pruned': self.curr_workload().name != self.workload().name,
+            'pruned': self.curr_workload() != self.__curr_iteration.most_workload(),
             'status': type(self.__curr_iteration).__name__,
             'global_iteration': self.global_iteration,
             'iteration': local_iteration.get(type(self.__curr_iteration), -1),
             'ctx_workload': self.workload().serialize(),
-            'curr_workload': self.curr_workload().serialize(),
+            'curr_workload': self.__curr_iteration.most_workload().serialize(),
             'best': self.curr_best.serialize(),
             'production': self.production.serialize(),
             'training': self.training.serialize(),
@@ -644,11 +648,21 @@ class Iteration(ABC):
 
         self._curr_config: Configuration = curr_configuration
 
+        self.__workload_counter = 0
+
         self.logger = logging.getLogger(f'{self.workload()}.{type(self).__name__}.smarttuning.ibm')
         self.logger.setLevel(logging.DEBUG)
 
     def __str__(self):
         return type(self).__name__
+
+    @property
+    def workload_counter(self) -> int:
+        return self.__workload_counter
+
+    @workload_counter.setter
+    def workload_counter(self, value: int):
+        self.__workload_counter = int(value)
 
     @property
     def driver(self):
@@ -701,7 +715,10 @@ class Iteration(ABC):
         return self.driver.curr_workload()
 
     def most_workload(self):
-        return self.workload()
+        if self.workload_counter > 0:
+            return self.workload()
+        else:
+            return self.curr_workload()
 
     def sample(self, trial: BaseTrial) -> Configuration:
         # sample return the correct hierarchy for ConfigMaps
@@ -761,6 +778,11 @@ class Iteration(ABC):
                 f'\t \\- train_mean:{t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f} '
                 f'train_median: {t_running_stats.median():.2f}')
 
+            if self.curr_workload() == self.workload():
+                self.workload_counter += 1
+            else:
+                self.workload_counter += -1
+
             if self.fail_fast:
                 # self.logger.warning('FAIL FAST is not implemented yet')
                 # TODO: fail fast disabled for mocking workload classification
@@ -796,7 +818,7 @@ class Iteration(ABC):
 
     def progressing(self) -> bool:
         session = self.driver.session()
-        if self.curr_workload() == self.most_workload():
+        if self.workload() == self.most_workload():
             session.tell(self.configuration, status=self.status())
             return True
         else:
@@ -804,9 +826,18 @@ class Iteration(ABC):
             self.logger.debug(f'enqueue config {self.configuration.name}')
             session.tell(self.configuration, status=self.status(),
                          state=optuna.trial.TrialState.PRUNED)
-            # if curr_stage == TrainingIteration:
-            #     session.enqueue(self.configuration)
             return False
+
+        # session = self.driver.session()
+        # if self.curr_workload() == self.workload():
+        #     session.tell(self.configuration, status=self.status())
+        #     return True
+        # else:
+        #     self.logger.debug(f'ctx_workload: {self.workload()} curr_workload: {self.curr_workload()}')
+        #     self.logger.debug(f'enqueue config {self.configuration.name}')
+        #     session.tell(self.configuration, status=self.status(),
+        #                  state=optuna.trial.TrialState.PRUNED)
+        #     return False
 
     @abstractmethod
     def iterate(self, best_config=False, reuse_config=False, config_to_reuse=None) -> bool:
