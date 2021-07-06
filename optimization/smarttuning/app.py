@@ -10,7 +10,7 @@ from controllers.k8seventloop import EventLoop
 from controllers.searchspace import SearchSpaceContext
 from models.configuration import Configuration
 from models.instance import Instance
-from smarttuning2.planner.iteration import IterationDriver, Iteration, TunedIteration
+from smarttuning2.planner.iteration import IterationDriver
 
 logger = logging.getLogger(config.APP_LOGGER)
 logger.setLevel('DEBUG')
@@ -131,7 +131,8 @@ def create_context(production_microservice, training_microservice):
             except Exception:
                 logger.exception('fail to update training pod before iteration')
 
-            it: Iteration = next(driver)
+            next(driver)
+            # it: Iteration = next(driver)
 
             try:
                 driver.production.patch_current_config()
@@ -143,6 +144,7 @@ def create_context(production_microservice, training_microservice):
             except Exception:
                 logger.exception('fail to update training pod after iteration')
 
+            # last_config = driver.production.configuration
             # if isinstance(it, TunedIteration):
             #     try:
             #         if driver.training.active:
@@ -188,6 +190,7 @@ def main():
 
 if __name__ == '__main__':
     import prometheus_client
+
     try:
         logger.debug('initializing metrics server')
         prometheus_client.start_http_server(config.ST_METRICS_PORT)

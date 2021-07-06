@@ -85,7 +85,8 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
             row = re.sub(r'{"_id":{"\$oid":"[a-z0-9]+"},', '{', row)
             record = json.loads(row)
 
-            if workload != '' and record['ctx_workload']['name'] != workload:
+            # if workload != '' and record['ctx_workload']['name'] != workload:
+            if workload != '' and record['curr_workload']['name'] != workload:
                 if show_workload_gap:
                     raw_data.append(Iteration().__dict__)
                 continue
@@ -334,6 +335,8 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     # paint full column
     interval = ax.xaxis.get_data_interval()
     interval = np.linspace(interval[0], interval[1], len(reduced_table))
+    xf = 0
+    i = 0
     for i, pos in enumerate(interval[:-1]):
         delta = interval[i + 1] - pos
         if i == 0:
@@ -737,18 +740,25 @@ if __name__ == '__main__':
     name = 'trace-2021-06-28T17 52 33 563082'
     name = 'trace-2021-06-29T00 14 37 499064'
     name = 'trace-2021-06-29T20 55 50 017595'
+    name = 'trace-2021-06-30T19 52 07 300889'
+    name = 'trace-2021-07-01T00 19 29 949359'  # <-- hpa(mem, cpu)
+    name = 'trace-2021-07-01T22 13 58 727514'  # <-- hpa(cpu)
+    name = 'trace-2021-07-02T17 20 59 844732'
+    name = 'trace-2021-07-03T02 04 27 360317' # <-- 800 rps only/ tuning ok
+    name = 'trace-2021-07-04T23 42 59 410391'
+    name = 'trace-2021-07-05T17 52 08 663076'
     # plot_importance(data)
 
-    for workload in [''] + [f'workload_{i}' for i in range(0, 5)]:
+    for workload in [''] + [f'workload_{i}' for i in range(0, 3)]:
         try:
             print(workload)
             # if 'workload_4' != workload:
             #     continue
             df = load_raw_data('./resources/' + name + '.json', service_name, workload,
                                skip_reset=False,
-                               skip_pruned=True,
-                               skip_tuned=True,
-                               show_workload_gap=False,
+                               skip_pruned=False,
+                               skip_tuned=False,
+                               show_workload_gap=True,
                                to_gib=False)
             empty = df[(df['pname'].str.len() > 0)]
             if empty.empty:

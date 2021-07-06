@@ -152,14 +152,14 @@ class TestIteration(TestCase):
         return_value1 = 4
         driver = TestIteration.training_driver()
         it = driver.new_training_it()
-        it.workload = MagicMock(return_value=Workload('workload'))
+        it.mostly_workload = MagicMock(return_value=Workload('workload'))
         it.waiting_for_metrics = MagicMock(
             return_value=(Metric(to_eval=str(return_value1)), Metric(to_eval=str(return_value1))))
         it.iterate()
 
         p_it = driver.new_probation_it(it.driver.session().best())
         return_value2 = 2
-        p_it.workload = MagicMock(return_value=Workload('workload'))
+        p_it.mostly_workload = MagicMock(return_value=Workload('workload'))
         p_it.waiting_for_metrics = MagicMock(
             return_value=(Metric(to_eval=str(return_value2)), Metric(to_eval=str(return_value2))))
         p_it.iterate()
@@ -208,7 +208,7 @@ class TestIteration(TestCase):
         driver = TestIteration.training_driver()
 
         it = driver.new_training_it()
-        it.most_workload = MagicMock(return_value=Workload('workload1'))
+        it.mostly_workload = MagicMock(return_value=Workload('workload1'))
         it.workload = MagicMock(return_value=Workload('workload'))
         it.waiting_for_metrics = MagicMock(
             return_value=(Metric(to_eval=str(return_value1)), Metric(to_eval=str(return_value1))))
@@ -220,7 +220,7 @@ class TestIteration(TestCase):
                              [t.state for t in it.driver.session().study.trials])
 
         it = driver.new_training_it()
-        it.most_workload = MagicMock(return_value=Workload('workload1'))
+        it.mostly_workload = MagicMock(return_value=Workload('workload1'))
         it.workload = MagicMock(return_value=Workload('workload'))
         it.waiting_for_metrics = MagicMock(
             return_value=(Metric(to_eval=str(return_value1)), Metric(to_eval=str(return_value1))))
@@ -229,7 +229,7 @@ class TestIteration(TestCase):
                              [t.state for t in it.driver.session().study.trials])
 
         it = driver.new_training_it()
-        it.most_workload = MagicMock(return_value=Workload('workload'))
+        it.mostly_workload = MagicMock(return_value=Workload('workload'))
         it.workload = MagicMock(return_value=Workload('workload'))
         it.waiting_for_metrics = MagicMock(
             return_value=(Metric(to_eval=str(return_value1)), Metric(to_eval=str(return_value1))))
@@ -256,7 +256,7 @@ class TestIteration(TestCase):
 
     def test_driver_session_best(self):
         def fn(n):
-            session = DriverSession(workload=Workload('test'), search_space=MockSearchSpace.new())
+            session = DriverSession(workload=Workload('test'), driver=MagicMock(), search_space=MockSearchSpace.new())
             last = 0
             for _ in range(n):
                 c = session.ask()
@@ -276,7 +276,7 @@ class TestIteration(TestCase):
 
         def test_driver_session_promote_nursery(self):
             def fn(n):
-                session = DriverSession(workload=Workload('test'), search_space=MockSearchSpace.new())
+                session = DriverSession(workload=Workload('test'), driver=MagicMock(), search_space=MockSearchSpace.new())
                 last = 0
                 for _ in range(n):
                     c = session.ask()

@@ -2,6 +2,8 @@ import logging
 import threading
 import time
 import math
+from collections import Counter, defaultdict
+from typing import Optional
 
 from kubernetes.client import ApiException, V2beta2HorizontalPodAutoscaler, V2beta2HorizontalPodAutoscalerSpec, \
     V2beta2CrossVersionObjectReference
@@ -72,6 +74,38 @@ def release():
         __lock.set()
 
 
+__workload_counter: dict[Workload, list[int]] = defaultdict(list)
+
+def workload_counter(workload: Workload, offset: Optional[int] = 0) -> int:
+    if offset is None:
+        offset = 0
+
+    for key, value in __workload_counter.items():
+        if workload == key:
+            __workload_counter[key].append(1)
+        else:
+            __workload_counter[key].append(-1)
+
+    return sum(__workload_counter[workload][-int(offset):])
+
+
+def get_workload_counter_value(workload_name: str, offset: Optional[int] = 0) -> int:
+    if offset is None:
+        offset = 0
+
+    projection = {key: value for key, value in __workload_counter.items() if key.name == workload_name}
+
+    return sum(projection.get(workload_name, [-1])[-int(offset):])
+
+
+def get_mostly_workload(offset: Optional[int] = 0) -> (Workload, int):
+    counter_reduced = {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
+    return next(iter(sorted(counter_reduced.items(), key=lambda item: item[1], reverse=True)), (workload(), 0))
+
+
+def list_workloads(offset: Optional[int] = None) -> dict:
+    return {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
+
 def workload() -> Workload:
     with __rlock:
         if 'RPS' == config.WORKLOAD_CLASSIFIER:
@@ -135,7 +169,7 @@ def new_replica_based_workload() -> Workload:
 def new_rps_based_workload() -> Workload:
     workload = None
 
-    def classify_truput(truput: float, bands: None):
+    def classify_truput(truput: float, bands: Optional[list]):
         if not bands or (len(bands) == 1 and bands[0] == ''):
             bands = []
 

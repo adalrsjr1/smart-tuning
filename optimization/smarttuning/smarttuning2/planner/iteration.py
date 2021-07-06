@@ -23,12 +23,14 @@ from util.stats import RunningStats
 
 
 class DriverSession:
-    def __init__(self, workload: Workload, search_space: SearchSpaceModel, bayesian: bool = True,
+    def __init__(self, workload: Workload, driver: IterationDriver, search_space: SearchSpaceModel,
+                 bayesian: bool = True,
                  n_startup_trial: int = 10, n_ei_candidates: int = 24, seed: int = 0):
         self.__workload: Workload = workload
         self.__search_space: SearchSpaceModel = search_space
         self.__nursery = []
         self.__tenured = []
+        self.__driver = driver
 
         if bayesian:
             sampler = TPESampler(
@@ -41,8 +43,49 @@ class DriverSession:
 
         self.__study: optuna.Study = optuna.create_study(sampler=sampler, study_name=self.workload.name)
 
+        self.__global_iteration = 0
+        self.__local_iteration = 0
+        self.__reinforcement_iteration = 0
+        self.__probation_iteration = 0
+
         self.logger = logging.getLogger(f'{type(self).__name__}.smarttuning.ibm')
         self.logger.setLevel(logging.INFO)
+
+    @property
+    def driver(self) -> IterationDriver:
+        return self.__driver
+
+    @property
+    def global_iteration(self) -> int:
+        return self.__global_iteration
+
+    @global_iteration.setter
+    def global_iteration(self, value: int):
+        self.__global_iteration = value
+
+    @property
+    def local_iteration(self) -> int:
+        return self.__local_iteration
+
+    @local_iteration.setter
+    def local_iteration(self, value: int):
+        self.__local_iteration = value
+
+    @property
+    def reinforcement_iteration(self) -> int:
+        return self.__reinforcement_iteration
+
+    @reinforcement_iteration.setter
+    def reinforcement_iteration(self, value: int):
+        self.__reinforcement_iteration = value
+
+    @property
+    def probation_iteration(self) -> int:
+        return self.__probation_iteration
+
+    @probation_iteration.setter
+    def probation_iteration(self, value: int):
+        self.__probation_iteration = value
 
     @property
     def study(self):
@@ -161,6 +204,17 @@ class DriverSession:
         else:
             heapq.heappush(heap, configuration)
 
+    def mock_progress(self):
+        curr_iteration = self.driver.curr_iteration
+        if isinstance(curr_iteration, TrainingIteration):
+            self.local_iteration += 1
+        elif isinstance(curr_iteration, ReinforcementIteration):
+            self.reinforcement_iteration += 1
+        elif isinstance(curr_iteration, ProbationIteration):
+            self.probation_iteration += 1
+
+        self.global_iteration += 1
+
 
 class IterationDriver:
     __all_sessions: dict[str, DriverSession] = {}
@@ -179,13 +233,14 @@ class IterationDriver:
         self.__training = training
 
         self.__session: DriverSession = DriverSession(workload=workload,
+                                                      driver=self,
                                                       search_space=self.search_space,
                                                       bayesian=bayesian,
                                                       n_startup_trial=n_startup_trial,
                                                       n_ei_candidates=n_ei_candidates,
                                                       seed=seed)
 
-        IterationDriver.__all_sessions[self.__session.workload.name] == self.__session
+        IterationDriver.__all_sessions[self.__session.workload.name] = self.__session
 
         self.__max_global_iterations = max_global_iterations
         self.__max_local_iterations = max_local_iterations
@@ -221,20 +276,36 @@ class IterationDriver:
         return self.__uid
 
     @property
-    def global_iteration(self):
-        return self.__global_iteration
+    def global_iteration(self) -> int:
+        return self.session().global_iteration
+
+    @global_iteration.setter
+    def global_iteration(self, value: int):
+        self.session().global_iteration = value
 
     @property
-    def local_iteration(self):
-        return self.__local_iteration
+    def local_iteration(self) -> int:
+        return self.session().local_iteration
+
+    @local_iteration.setter
+    def local_iteration(self, value: int):
+        self.session().local_iteration = value
 
     @property
-    def reinforcement_iteration(self):
-        return self.__reinforcement_iteration
+    def reinforcement_iteration(self) -> int:
+        return self.session().reinforcement_iteration
+
+    @reinforcement_iteration.setter
+    def reinforcement_iteration(self, value: int):
+        self.session().reinforcement_iteration = value
 
     @property
-    def probation_iteration(self):
-        return self.__probation_iteration
+    def probation_iteration(self) -> int:
+        return self.session().probation_iteration
+
+    @probation_iteration.setter
+    def probation_iteration(self, value: int):
+        self.session().probation_iteration = value
 
     @property
     def max_global_iterations(self):
@@ -327,7 +398,8 @@ class IterationDriver:
 
     def session(self, workload: Optional[Workload] = None) -> DriverSession:
         if workload:
-            return IterationDriver.__all_sessions[workload.name]
+            print(IterationDriver.__all_sessions.keys())
+            return IterationDriver.__all_sessions.get(workload.name)
         return self.__session
 
     def new_training_it(self, configuration: Configuration = None) -> TrainingIteration:
@@ -401,7 +473,7 @@ class IterationDriver:
                 self.__extra_it += 1
                 return self.__next__()
 
-        self.__global_iteration += 1
+        self.global_iteration += 1
 
         self.save_trace()
 
@@ -422,7 +494,7 @@ class IterationDriver:
         self.__last_iteration = self.curr_iteration
 
         self.__curr_iteration = it
-        self.__local_iteration += 1
+        self.local_iteration += 1
 
         curr_best = self.session().best_nursery()
         if curr_best is Configuration.empty_config():
@@ -454,7 +526,7 @@ class IterationDriver:
 
         self.__curr_iteration = it
 
-        self.__reinforcement_iteration += 1
+        self.reinforcement_iteration += 1
         self.__last_prod = self.production.configuration
 
         if self.reinforcement_iteration < self.max_reinforcement_iterations:
@@ -475,7 +547,7 @@ class IterationDriver:
             return
         self.__last_iteration = self.curr_iteration
         self.__curr_iteration = it
-        self.__probation_iteration += 1
+        self.probation_iteration += 1
         self.lookahead = ProbationIteration
 
         if self.probation_iteration < self.max_probation_iterations:
@@ -494,9 +566,9 @@ class IterationDriver:
 
             self.logger.info(f'reseting counters {self.global_iteration}/{self.max_global_iterations}')
         self.lookahead = TrainingIteration
-        self.__local_iteration = 0
-        self.__reinforcement_iteration = 0
-        self.__probation_iteration = 0
+        self.local_iteration = 0
+        self.reinforcement_iteration = 0
+        self.probation_iteration = 0
         self.save_trace(reset=True)
         return self.__next__()
 
@@ -605,12 +677,14 @@ class IterationDriver:
         trace_to_save = {
             'reset': reset,
             'date': datetime.utcnow().isoformat(),
-            'pruned': self.curr_workload() != self.__curr_iteration.most_workload(),
+            'pruned': self.curr_workload() != self.__curr_iteration.mostly_workload(),
             'status': type(self.__curr_iteration).__name__,
             'global_iteration': self.global_iteration,
             'iteration': local_iteration.get(type(self.__curr_iteration), -1),
             'ctx_workload': self.workload().serialize(),
-            'curr_workload': self.__curr_iteration.most_workload().serialize(),
+            'curr_workload': self.curr_workload().serialize(),
+            'mostly_workload': self.__curr_iteration.mostly_workload().serialize(),
+            'workload_counter': {key.name: value for key, value in workloadctrl.list_workloads()},
             'best': self.curr_best.serialize(),
             'production': self.production.serialize(),
             'training': self.training.serialize(),
@@ -648,7 +722,7 @@ class Iteration(ABC):
 
         self._curr_config: Configuration = curr_configuration
 
-        self.__workload_counter = 0
+        # self.__workload_counter = 0
 
         self.logger = logging.getLogger(f'{self.workload()}.{type(self).__name__}.smarttuning.ibm')
         self.logger.setLevel(logging.DEBUG)
@@ -656,13 +730,13 @@ class Iteration(ABC):
     def __str__(self):
         return type(self).__name__
 
-    @property
-    def workload_counter(self) -> int:
-        return self.__workload_counter
-
-    @workload_counter.setter
-    def workload_counter(self, value: int):
-        self.__workload_counter = int(value)
+    # @property
+    # def workload_counter(self) -> int:
+    #     return self.__workload_counter
+    #
+    # @workload_counter.setter
+    # def workload_counter(self, value: int):
+    #     self.__workload_counter = int(value)
 
     @property
     def driver(self):
@@ -714,11 +788,18 @@ class Iteration(ABC):
     def curr_workload(self):
         return self.driver.curr_workload()
 
-    def most_workload(self):
-        if self.workload_counter > 0:
-            return self.workload()
-        else:
-            return self.curr_workload()
+    def count_curr_workload(self):
+        workloadctrl.workload_counter(self.curr_workload(), offset=1)
+
+    def mostly_workload(self) -> Workload:
+        w, c = workloadctrl.get_mostly_workload(offset=self.n_sampling_subintervals)
+
+        return w
+        #
+        # if self.workload_counter > 0:
+        #     return self.workload()
+        # else:
+        #     return self.curr_workload()
 
     def sample(self, trial: BaseTrial) -> Configuration:
         # sample return the correct hierarchy for ConfigMaps
@@ -778,10 +859,11 @@ class Iteration(ABC):
                 f'\t \\- train_mean:{t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f} '
                 f'train_median: {t_running_stats.median():.2f}')
 
-            if self.curr_workload() == self.workload():
-                self.workload_counter += 1
-            else:
-                self.workload_counter += -1
+            self.count_curr_workload()
+            # if self.curr_workload() == self.workload():
+            #     self.workload_counter += 1
+            # else:
+            #     self.workload_counter += -1
 
             if self.fail_fast:
                 # self.logger.warning('FAIL FAST is not implemented yet')
@@ -791,8 +873,8 @@ class Iteration(ABC):
                     continue
 
                 # TODO: Is this fail fast working as expected?
-                if self.curr_workload() != self.most_workload():
-                    self.logger.warning(f'\t |- [W] fail fast -- {self.most_workload()} -> {self.curr_workload()}')
+                if self.curr_workload() != self.mostly_workload():
+                    self.logger.warning(f'\t |- [W] fail fast -- {self.mostly_workload()} -> {self.curr_workload()}')
                     self.logger.warning(f'\t # ')
                     break
 
@@ -818,14 +900,20 @@ class Iteration(ABC):
 
     def progressing(self) -> bool:
         session = self.driver.session()
-        if self.workload() == self.most_workload():
+        mostly_workload = self.mostly_workload()
+        if self.workload() == mostly_workload:
             session.tell(self.configuration, status=self.status())
             return True
         else:
-            self.logger.debug(f'ctx_workload: {self.workload()} curr_workload: {self.curr_workload()}')
+            self.logger.debug(f'ctx_workload: {self.workload()} curr_workload: {mostly_workload}')
             self.logger.debug(f'enqueue config {self.configuration.name}')
             session.tell(self.configuration, status=self.status(),
                          state=optuna.trial.TrialState.PRUNED)
+
+            another_session = self.driver.session(mostly_workload)
+            if another_session:
+                self.driver.session(mostly_workload).add(self.configuration)
+                self.driver.session(mostly_workload).mock_progress()
             return False
 
         # session = self.driver.session()
@@ -927,6 +1015,6 @@ class TunedIteration(Iteration):
         tmetrics, pmetrics = self.waiting_for_metrics()
         self.production.configuration.score = pmetrics.objective()
 
-        if self.curr_workload() != self.most_workload():
+        if self.curr_workload() != self.mostly_workload():
             return False
         return True

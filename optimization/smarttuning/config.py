@@ -86,6 +86,7 @@ TWO_SERVICES = eval(os.environ.get('TWO_SERVICES', default='True'))
 # WORKLOAD_TIMEOUT = int(os.environ.get('WORKLOAD_TIMEOUT', default='1'))
 WORKLOAD_CLASSIFIER = os.environ.get('WORKLOAD_CLASSIFIER', default='RPS')
 WORKLOAD_BANDS = os.environ.get('WORKLOAD_BANDS', default='').split(',')  # no bands
+RESTART_IF_CFG_DOESNT_CHANGE = eval(os.environ.get('RESTART_IF_CFG_DOESNT_CHANGE', default='False'))
 # WORKLOAD_BAND_WIDTH = int(os.environ.get('WORKLOAD_BAND_WIDTH', default='100'))
 # WORKLOAD_BAND_DEV = int(os.environ.get('WORKLOAD_BAND_DEV', default='50'))
 # MOCK_WORKLOADS = os.environ.get('MOCK_WORKLOADS', default='jsf,jsp,browsing-jsp,trading-jsp').split(',')
