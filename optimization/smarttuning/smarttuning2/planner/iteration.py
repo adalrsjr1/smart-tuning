@@ -205,13 +205,10 @@ class DriverSession:
             heapq.heappush(heap, configuration)
 
     def mock_progress(self):
+        """progress only if training"""
         curr_iteration = self.driver.curr_iteration
         if isinstance(curr_iteration, TrainingIteration):
             self.local_iteration += 1
-        elif isinstance(curr_iteration, ReinforcementIteration):
-            self.reinforcement_iteration += 1
-        elif isinstance(curr_iteration, ProbationIteration):
-            self.probation_iteration += 1
 
         self.global_iteration += 1
 
