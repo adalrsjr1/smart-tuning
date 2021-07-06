@@ -50,7 +50,7 @@ def create_context(production_microservice, training_microservice):
     stoped = False
 
     drivers = {}
-    uid = datetime.utcnow().isoformat()
+    uid = datetime.utcnow().isoformat(timespec='seconds')
     while not stoped:
         try:
             # get event from search space deployment
