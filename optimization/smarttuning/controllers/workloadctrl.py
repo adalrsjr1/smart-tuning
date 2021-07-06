@@ -103,7 +103,7 @@ def get_mostly_workload(offset: Optional[int] = 0) -> (Workload, int):
     return next(iter(sorted(counter_reduced.items(), key=lambda item: item[1], reverse=True)), (workload(), 0))
 
 
-def list_workloads(offset: Optional[int] = None) -> dict:
+def list_workloads(offset: Optional[int] = 0) -> dict:
     return {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
 
 def workload() -> Workload:
