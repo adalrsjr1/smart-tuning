@@ -198,7 +198,7 @@ class Instance:
                 'kind': 'HorizontalPodAutoScaler',
                 'spec': {'maxReplicas': value}
             }
-            logger.debug(f'increate the max number of replicas of {name}.{self.namespace} to {value}')
+            logger.debug(f'increase the max number of replicas of {name}.{self.namespace} to {value}')
             config.hpaApi().patch_namespaced_horizontal_pod_autoscaler(name, self.namespace, body=body)
         except ApiException:
             logger.exception(f'error when assigning a new number of replicas for {name}.{self.namespace}')

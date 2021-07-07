@@ -712,13 +712,13 @@ class IterationDriver:
                         for c in heapq.nsmallest(len(self.session().tenured), self.session().tenured)],
             'all_trials': {name:[{'uid': c.number, 'value': c.value, 'state': c.state.name}
                                  for c in session.study.trials]
-                           for name, session in self.__all_sessions},
+                           for name, session in self.all_sessions.items()},
             'all_nursery': {name:[{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
                                   for c in heapq.nsmallest(len(session.nursery), self.session().nursery)]
-                            for name, session in self.__all_sessions},
+                            for name, session in self.all_sessions.items()},
             'all_tenured': {name:[{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
                                   for c in heapq.nsmallest(len(session.tenured), self.session().tenured)]
-                            for name, session in self.__all_sessions},
+                            for name, session in self.all_sessions.items()},
 
         }
 
