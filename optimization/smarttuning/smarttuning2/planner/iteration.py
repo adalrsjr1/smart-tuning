@@ -271,6 +271,10 @@ class IterationDriver:
         self.__uid = uid
 
     @property
+    def all_sessions(self) -> dict:
+        return IterationDriver.__all_sessions
+
+    @property
     def uid(self):
         return self.__uid
 
@@ -636,6 +640,20 @@ class IterationDriver:
             'workload': self.curr_workload(),
         }, f'smarttuning_config_score', 'configuration score', self.production.configuration.score)
 
+        prommetrics.counter_metric({
+            'app': self.production.name,
+            'cfg': self.production.configuration.name,
+            'workload': self.session(),
+        }, f'smarttuning_prod_cfg_timeline', 'configuration timeline')
+
+        prommetrics.counter_metric({
+            'app': self.training.name,
+            'cfg': self.training.configuration.name,
+            'workload': self.session().workload,
+        }, f'smarttuning_train_cfg_timeline', 'configuration timeline')
+
+
+
     def save_trace(self, reset=False):
         self.expose_prom_metrics()
 
@@ -854,6 +872,12 @@ class Iteration(ABC):
                 self.logger.info(
                     f'\t|- elapsed:{elapsed.total_seconds()} < sleeptime:{self.sampling_interval:.2f} '
                     f'origin_workload:{self.workload()} curr_workload:{self.curr_workload()}')
+
+                for name, session in self.driver.all_sessions.items():
+                    prommetrics.gauge_metric({
+                        'app': self.production.name,
+                        'workload': session.workload,
+                    }, f'smarttuning_workload_timeline', 'workload timeline', int(self.curr_workload() == session.workload))
 
             t_metric = self.__training.metrics()
             p_metric = self.__production.metrics()
