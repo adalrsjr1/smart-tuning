@@ -812,6 +812,37 @@ class TestIteration(TestCase):
                           TrainingIteration, ReinforcementIteration, TrainingIteration, TunedIteration],
                    pscore=pscore_gen, tscore=tscore_gen, use_driver=True)
 
+    def test_interleaved_workload(self):
+        driver1 = TestIteration.training_driver(max_global_iterations=3,
+                                               max_local_iterations=1,
+                                               max_reinforcement_iterations=1,
+                                               max_probation_iterations=1)
+
+        driver2 = TestIteration.training_driver(max_global_iterations=3,
+                                               max_local_iterations=1,
+                                               max_reinforcement_iterations=1,
+                                               max_probation_iterations=1)
+
+        c1 = driver1.session().ask()
+        c1.final_score = lambda: 0
+        driver1.session().tell(c1)
+
+        c2 = driver1.session().ask()
+        c2.final_score = lambda: -10
+        driver1.session().tell(c2)
+
+        c3 = driver1.session().ask()
+        c3.final_score = lambda: -100
+        driver2.session().add(c3)
+
+        _c3 = driver2.session().best_nursery(3)[0]
+        self.assertEqual(c3.name, _c3.name)
+        self.assertIsNot(c3, _c3)
+        self.assertNotEqual(c3.trial.number, _c3.trial.number)
+        self.assertEqual(c3.trial.number, len(driver1.session().study.trials)-1)
+        self.assertEqual(_c3.trial.number, len(driver2.session().study.trials)-1)
+
+
 
 if __name__ == '__main__':
     unittest.main()

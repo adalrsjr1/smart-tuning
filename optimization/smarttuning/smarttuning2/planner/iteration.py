@@ -49,7 +49,7 @@ class DriverSession:
         self.__probation_iteration = 0
 
         self.logger = logging.getLogger(f'{type(self).__name__}.smarttuning.ibm')
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
 
     @property
     def driver(self) -> IterationDriver:
@@ -183,7 +183,9 @@ class DriverSession:
             state=optuna.trial.TrialState.COMPLETE
         )
         self.study.add_trial(trial)
-        self.update_heap(self.__nursery, configuration)
+        from copy import deepcopy
+        new_cfg = Configuration(self.study.trials[-1], data=deepcopy(configuration.data))
+        self.update_heap(self.__nursery, new_cfg)
 
     def enqueue(self, configuration: Configuration):
         """
@@ -681,7 +683,7 @@ class IterationDriver:
             'ctx_workload': self.workload().serialize(),
             'curr_workload': self.curr_workload().serialize(),
             'mostly_workload': self.__curr_iteration.mostly_workload().serialize(),
-            'workload_counter': {key.name: value for key, value in workloadctrl.list_workloads()},
+            'workload_counter': {key.name: value for key, value in workloadctrl.list_workloads(self.n_sampling_subintervals).items()},
             'best': self.curr_best.serialize(),
             'production': self.production.serialize(),
             'training': self.training.serialize(),
@@ -690,6 +692,16 @@ class IterationDriver:
                         for c in heapq.nsmallest(len(self.session().nursery), self.session().nursery)],
             'tenured': [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
                         for c in heapq.nsmallest(len(self.session().tenured), self.session().tenured)],
+            'all_trials': {name:[{'uid': c.number, 'value': c.value, 'state': c.state.name}
+                                 for c in session.study.trials]
+                           for name, session in self.__all_sessions},
+            'all_nursery': {name:[{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
+                                  for c in heapq.nsmallest(len(session.nursery), self.session().nursery)]
+                            for name, session in self.__all_sessions},
+            'all_tenured': {name:[{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
+                                  for c in heapq.nsmallest(len(session.tenured), self.session().tenured)]
+                            for name, session in self.__all_sessions},
+
         }
 
         try:
