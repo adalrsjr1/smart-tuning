@@ -664,7 +664,7 @@ class IterationDriver:
         return {
             'reset': False,
             'date': datetime.utcnow().isoformat(),
-            'pruned': self.curr_workload() != self.__curr_iteration.mostly_workload() if self.__curr_iteration else True,
+            'pruned': self.workload() != self.__curr_iteration.mostly_workload() if self.__curr_iteration else True,
             'status': type(self.__curr_iteration).__name__ if self.__curr_iteration else None,
             'global_iteration': self.global_iteration,
             'iteration': local_iteration.get(type(self.__curr_iteration), -1),
