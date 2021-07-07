@@ -842,6 +842,11 @@ class TestIteration(TestCase):
         self.assertEqual(c3.trial.number, len(driver1.session().study.trials)-1)
         self.assertEqual(_c3.trial.number, len(driver2.session().study.trials)-1)
 
+    def test_driver_serialize(self):
+        TestIteration.training_driver(max_global_iterations=3,
+                                      max_local_iterations=1,
+                                      max_reinforcement_iterations=1,
+                                      max_probation_iterations=1).serialize()
 
 
 if __name__ == '__main__':

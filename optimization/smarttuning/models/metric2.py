@@ -91,7 +91,7 @@ class Sampler:
 
 
 class MetricDecorator:
-    def __init__(self, ctx, objective_expr: str, penalization_expr: str):
+    def __init__(self, ctx, objective_expr: str, penalization_expr: str = '0'):
         self.__ctx = {field: ctx[idx] for idx, field in enumerate(ctx._fields)}
         self.__objective_expr: str = objective_expr
         self.__penalization_expr: str = penalization_expr
@@ -103,13 +103,21 @@ class MetricDecorator:
         try:
             return eval(self.__objective_expr, globals(), data)
         except ZeroDivisionError:
+            logger.warning(f'division by zero when eval objective: {self.__objective_expr}')
             return float('inf')
+        except TypeError:
+            logger.warning(f'cannot eval objective: {self.__objective_expr}')
+            return float('nan')
 
     def penalization(self) -> float:
         try:
             return eval(self.__penalization_expr, globals(), self.__ctx)
         except ZeroDivisionError:
+            logger.warning(f'division by zero when eval penalization: {self.__objective_expr}')
             return float('inf')
+        except TypeError:
+            logger.warning(f'cannot eval penalization: {self.__objective_expr}')
+            return float('nan')
 
     def serialize(self) -> dict:
         data = dict(self.__ctx)

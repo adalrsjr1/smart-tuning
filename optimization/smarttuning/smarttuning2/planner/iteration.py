@@ -652,7 +652,46 @@ class IterationDriver:
             'workload': self.session().workload,
         }, f'smarttuning_train_cfg_timeline', 'configuration timeline')
 
+    def serialize(self) -> dict:
+        local_iteration = {
+            TrainingIteration: self.local_iteration,
+            ReinforcementIteration: self.reinforcement_iteration,
+            ProbationIteration: self.probation_iteration,
+            TunedIteration: self.__extra_it,
+            None: -1
+        }
 
+        return {
+            'reset': False,
+            'date': datetime.utcnow().isoformat(),
+            'pruned': self.curr_workload() != self.__curr_iteration.mostly_workload() if self.__curr_iteration else True,
+            'status': type(self.__curr_iteration).__name__ if self.__curr_iteration else None,
+            'global_iteration': self.global_iteration,
+            'iteration': local_iteration.get(type(self.__curr_iteration), -1),
+            'ctx_workload': self.workload().serialize(),
+            'curr_workload': self.curr_workload().serialize(),
+            'mostly_workload': self.__curr_iteration.mostly_workload().serialize() if self.__curr_iteration else None,
+            'workload_counter': {key.name: value for key, value in
+                                 workloadctrl.list_workloads(self.n_sampling_subintervals).items()},
+            'best': self.curr_best.serialize(),
+            'production': self.production.serialize(),
+            'training': self.training.serialize(),
+            'trials': [{'uid': c.number, 'value': c.value, 'state': c.state.name} for c in self.session().study.trials],
+            'nursery': [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
+                        for c in heapq.nsmallest(len(self.session().nursery), self.session().nursery)],
+            'tenured': [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
+                        for c in heapq.nsmallest(len(self.session().tenured), self.session().tenured)],
+            'all_trials': {name: [{'uid': c.number, 'value': c.value, 'state': c.state.name}
+                                  for c in session.study.trials]
+                           for name, session in self.all_sessions.items()},
+            'all_nursery': {name: [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
+                                   for c in heapq.nsmallest(len(session.nursery), self.session().nursery)]
+                            for name, session in self.all_sessions.items()},
+            'all_tenured': {name: [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
+                                   for c in heapq.nsmallest(len(session.tenured), self.session().tenured)]
+                            for name, session in self.all_sessions.items()},
+
+        }
 
     def save_trace(self, reset=False):
         self.expose_prom_metrics()
@@ -683,44 +722,8 @@ class IterationDriver:
         db = config.mongo()[config.MONGO_DB]
         collection = db[f'trace-{self.uid}']
 
-        local_iteration = {
-            TrainingIteration: self.local_iteration,
-            ReinforcementIteration: self.reinforcement_iteration,
-            ProbationIteration: self.probation_iteration,
-            TunedIteration: self.__extra_it,
-            None: -1
-        }
-
-        trace_to_save = {
-            'reset': reset,
-            'date': datetime.utcnow().isoformat(),
-            'pruned': self.curr_workload() != self.__curr_iteration.mostly_workload(),
-            'status': type(self.__curr_iteration).__name__,
-            'global_iteration': self.global_iteration,
-            'iteration': local_iteration.get(type(self.__curr_iteration), -1),
-            'ctx_workload': self.workload().serialize(),
-            'curr_workload': self.curr_workload().serialize(),
-            'mostly_workload': self.__curr_iteration.mostly_workload().serialize(),
-            'workload_counter': {key.name: value for key, value in workloadctrl.list_workloads(self.n_sampling_subintervals).items()},
-            'best': self.curr_best.serialize(),
-            'production': self.production.serialize(),
-            'training': self.training.serialize(),
-            'trials': [{'uid': c.number, 'value': c.value, 'state': c.state.name} for c in self.session().study.trials],
-            'nursery': [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
-                        for c in heapq.nsmallest(len(self.session().nursery), self.session().nursery)],
-            'tenured': [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
-                        for c in heapq.nsmallest(len(self.session().tenured), self.session().tenured)],
-            'all_trials': {name:[{'uid': c.number, 'value': c.value, 'state': c.state.name}
-                                 for c in session.study.trials]
-                           for name, session in self.all_sessions.items()},
-            'all_nursery': {name:[{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
-                                  for c in heapq.nsmallest(len(session.nursery), self.session().nursery)]
-                            for name, session in self.all_sessions.items()},
-            'all_tenured': {name:[{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
-                                  for c in heapq.nsmallest(len(session.tenured), self.session().tenured)]
-                            for name, session in self.all_sessions.items()},
-
-        }
+        trace_to_save = self.serialize()
+        trace_to_save['reset'] = reset
 
         try:
             self.logger.info(f'saving trace of {self.global_iteration}/{self.max_global_iterations}')
@@ -877,7 +880,8 @@ class Iteration(ABC):
                     prommetrics.gauge_metric({
                         'app': self.production.name,
                         'workload': session.workload,
-                    }, f'smarttuning_workload_timeline', 'workload timeline', int(self.curr_workload() == session.workload))
+                    }, f'smarttuning_workload_timeline', 'workload timeline',
+                        int(self.curr_workload() == session.workload))
 
             t_metric = self.__training.metrics()
             p_metric = self.__production.metrics()
