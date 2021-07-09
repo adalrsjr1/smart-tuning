@@ -247,16 +247,20 @@ class TestIteration(TestCase):
 
         driver.production.metrics = lambda : Mock(objective=lambda : 0)
         driver.training.metrics = lambda : Mock(objective=lambda : 0)
-
-        now = datetime.utcnow()
-        tm, pm = it.waiting_for_metrics()
         it.iterate()
+        now = datetime.utcnow()
+        # assert it.training is not None
+        # assert it.training.configuration is not None
+        # assert it.production is not None
+        # assert it.production.configuration is not None
+        tm, pm = it.waiting_for_metrics()
         self.assertGreaterEqual((datetime.utcnow() - now).total_seconds(),
                                 it.sampling_interval * it.n_sampling_subintervals)
 
     def test_driver_session_best(self):
         def fn(n):
-            session = DriverSession(workload=Workload('test'), driver=MagicMock(), search_space=MockSearchSpace.new())
+            session = DriverSession(workload=Workload('test'), driver=MagicMock(), search_space=MockSearchSpace.new(),
+                                    production=self.pmock(), training=self.tmock())
             last = 0
             for _ in range(n):
                 c = session.ask()
@@ -843,10 +847,12 @@ class TestIteration(TestCase):
         self.assertEqual(_c3.trial.number, len(driver2.session().study.trials)-1)
 
     def test_driver_serialize(self):
-        TestIteration.training_driver(max_global_iterations=3,
+        driver = TestIteration.training_driver(max_global_iterations=1,
                                       max_local_iterations=1,
                                       max_reinforcement_iterations=1,
-                                      max_probation_iterations=1).serialize()
+                                      max_probation_iterations=1)
+
+        driver.serialize(driver.session())
 
 
 if __name__ == '__main__':

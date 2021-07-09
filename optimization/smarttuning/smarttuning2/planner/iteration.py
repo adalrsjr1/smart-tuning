@@ -6,7 +6,7 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from numbers import Number
-from typing import Union, Optional
+from typing import Union, Optional, Type
 
 import optuna
 from optuna.samplers import TPESampler, RandomSampler
@@ -24,6 +24,7 @@ from util.stats import RunningStats
 
 class DriverSession:
     def __init__(self, workload: Workload, driver: IterationDriver, search_space: SearchSpaceModel,
+                 production: Instance, training: Instance,
                  bayesian: bool = True,
                  n_startup_trial: int = 10, n_ei_candidates: int = 24, seed: int = 0):
         self.__workload: Workload = workload
@@ -43,13 +44,71 @@ class DriverSession:
 
         self.__study: optuna.Study = optuna.create_study(sampler=sampler, study_name=self.workload.name)
 
+        self.__production = production
+        assert self.__production is not None
+        self.__training = training
+        assert self.__training is not None
+
         self.__global_iteration = 0
         self.__local_iteration = 0
         self.__reinforcement_iteration = 0
         self.__probation_iteration = 0
 
+        self.__curr_iteration: Optional[Iteration] = None
+        self.__last_iteration: Optional[Iteration] = None
+        self.__lookahead = TrainingIteration
+        self.__prev_lookahead = TrainingIteration
+
         self.logger = logging.getLogger(f'{type(self).__name__}.smarttuning.ibm')
         self.logger.setLevel(logging.DEBUG)
+
+    @property
+    def production(self) -> Instance:
+        return self.__production
+
+    @production.setter
+    def production(self, production: Instance):
+        self.__production = production
+
+    @property
+    def training(self) -> Instance:
+        return self.__training
+
+    @training.setter
+    def training(self, training: Instance):
+        self.__training = training
+
+    @property
+    def curr_iteration(self) -> Optional[Iteration]:
+        return self.__curr_iteration
+
+    @curr_iteration.setter
+    def curr_iteration(self, curr_iteration: Optional[Iteration]):
+        self.__curr_iteration = curr_iteration
+
+    @property
+    def last_iteration(self) -> Optional[Iteration]:
+        return self.__last_iteration
+
+    @last_iteration.setter
+    def last_iteration(self, last_iteration: Optional[Iteration]):
+        self.__last_iteration = last_iteration
+
+    @property
+    def lookahead(self) -> Type[Iteration]:
+        return self.__lookahead
+
+    @lookahead.setter
+    def lookahead(self, lookahead: Type[Iteration]):
+        self.__lookahead = lookahead
+
+    @property
+    def prev_lookahead(self) -> Type[Iteration]:
+        return self.__prev_lookahead
+
+    @prev_lookahead.setter
+    def prev_lookahead(self, prev_lookahead: Type[Iteration]):
+        self.__prev_lookahead = prev_lookahead
 
     @property
     def driver(self) -> IterationDriver:
@@ -228,12 +287,14 @@ class IterationDriver:
         self.__workload = workload
         self.__search_space = search_space
 
-        self.__production = production
-        self.__training = training
+        # self.__production = production
+        # self.__training = training
 
         self.__session: DriverSession = DriverSession(workload=workload,
                                                       driver=self,
                                                       search_space=self.search_space,
+                                                      production=production,
+                                                      training=training,
                                                       bayesian=bayesian,
                                                       n_startup_trial=n_startup_trial,
                                                       n_ei_candidates=n_ei_candidates,
@@ -257,10 +318,11 @@ class IterationDriver:
         self.__logging_subinterval = logging_subinterval
         self.__fail_fast = fail_fast
 
-        self.__curr_iteration: Optional[Iteration] = None
-        self.__last_iteration: Optional[Iteration] = None
-        self.__lookahead = TrainingIteration
-        self.__prev_lookahead = TrainingIteration
+        # moved to driver session
+        # self.curr_iteration: Optional[Iteration] = None
+        # self.last_iteration: Optional[Iteration] = None
+        # self.lookahead = TrainingIteration
+        # self.prev_lookahead = TrainingIteration
 
         self.__extra_it = 0
         self.__last_prod: Configuration = self.production.configuration
@@ -344,11 +406,11 @@ class IterationDriver:
 
     @property
     def production(self) -> Instance:
-        return self.__production
+        return self.session().production
 
     @property
     def training(self) -> Instance:
-        return self.__training
+        return self.session().training
 
     @property
     def search_space(self):
@@ -356,20 +418,28 @@ class IterationDriver:
 
     @property
     def curr_iteration(self) -> Iteration:
-        return self.__curr_iteration
+        return self.session().curr_iteration
+
+    @curr_iteration.setter
+    def curr_iteration(self, curr_iteration: Iteration):
+        self.session().curr_iteration = curr_iteration
 
     @property
-    def lookahead(self):
-        return self.__lookahead
+    def lookahead(self) -> Type[Iteration]:
+        return self.session().lookahead
 
     @lookahead.setter
-    def lookahead(self, next_it_type):
-        self.__prev_lookahead = self.lookahead
-        self.__lookahead = next_it_type
+    def lookahead(self, next_it_type: Type[Iteration]):
+        self.prev_lookahead = self.lookahead
+        self.session().lookahead = next_it_type
 
     @property
-    def prev_lookahead(self):
-        return self.__prev_lookahead
+    def prev_lookahead(self) -> Type[Iteration]:
+        return self.session().prev_lookahead
+
+    @prev_lookahead.setter
+    def prev_lookahead(self, prev_lookahead: Type[Iteration]):
+        self.session().prev_lookahead = prev_lookahead
 
     def workload(self) -> Workload:
         return self.__workload
@@ -401,7 +471,6 @@ class IterationDriver:
 
     def session(self, workload: Optional[Workload] = None) -> DriverSession:
         if workload:
-            print(IterationDriver.__all_sessions.keys())
             return IterationDriver.__all_sessions.get(workload.name)
         return self.__session
 
@@ -455,6 +524,7 @@ class IterationDriver:
             self.logger.exception(f'[t] error to update trial {configuration.trial.number} into {configuration}')
 
     def __next__(self):
+
         if self.global_iteration < self.max_global_iterations + self.session().n_pruned() + self.__extra_it:
 
             if self.lookahead == TrainingIteration:
@@ -470,7 +540,7 @@ class IterationDriver:
                 return self.handle_reset()
 
         else:
-            if type(self.__curr_iteration) not in [ReinforcementIteration, ProbationIteration]:
+            if type(self.curr_iteration) not in [ReinforcementIteration, ProbationIteration]:
                 self.handle_tuned()
             else:
                 self.__extra_it += 1
@@ -478,9 +548,21 @@ class IterationDriver:
 
         self.global_iteration += 1
 
-        self.save_trace()
+        self.save_trace(self.session())
 
-        return self.__curr_iteration
+        prommetrics.gauge_metric({
+            'app': self.production.name,
+            'cfg': self.production.configuration.name,
+            'workload': self.session(),
+        }, f'smarttuning_cfg_timeline', 'configuration timeline', 0)
+
+        prommetrics.gauge_metric({
+            'app': self.training.name,
+            'cfg': self.training.configuration.name,
+            'workload': self.session().workload.name,
+        }, f'smarttuning_cfg_timeline', 'configuration timeline', 0)
+
+        return self.curr_iteration
 
     def rollback(self):
         self.logger.debug(f'add last score to cancel this wrong measurement')
@@ -494,9 +576,9 @@ class IterationDriver:
             self.logger.debug(f'aborting {it}')
             return
 
-        self.__last_iteration = self.curr_iteration
+        self.last_iteration = self.curr_iteration
 
-        self.__curr_iteration = it
+        self.curr_iteration = it
         self.local_iteration += 1
 
         curr_best = self.session().best_nursery()
@@ -525,9 +607,9 @@ class IterationDriver:
             self.logger.debug(f'aborting {it}')
             return
 
-        self.__last_iteration = self.curr_iteration
+        self.last_iteration = self.curr_iteration
 
-        self.__curr_iteration = it
+        self.curr_iteration = it
 
         self.reinforcement_iteration += 1
         self.__last_prod = self.production.configuration
@@ -548,8 +630,8 @@ class IterationDriver:
         if not it.iterate():
             self.logger.debug(f'aborting {it}')
             return
-        self.__last_iteration = self.curr_iteration
-        self.__curr_iteration = it
+        self.last_iteration = self.curr_iteration
+        self.curr_iteration = it
         self.probation_iteration += 1
         self.lookahead = ProbationIteration
 
@@ -572,15 +654,15 @@ class IterationDriver:
         self.local_iteration = 0
         self.reinforcement_iteration = 0
         self.probation_iteration = 0
-        self.save_trace(reset=True)
+        self.save_trace(self.session(), reset=True)
         return self.__next__()
 
     def handle_tuned(self):
         it = self.new_tuned_it(self.session().best())
         if not it.iterate():
             return
-        self.__last_iteration = self.__curr_iteration
-        self.__curr_iteration = it
+        self.last_iteration = self.curr_iteration
+        self.curr_iteration = it
 
     def expose_prom_metrics(self):
         # objective metric
@@ -640,19 +722,7 @@ class IterationDriver:
             'workload': self.curr_workload(),
         }, f'smarttuning_config_score', 'configuration score', self.production.configuration.score)
 
-        prommetrics.counter_metric({
-            'app': self.production.name,
-            'cfg': self.production.configuration.name,
-            'workload': self.session(),
-        }, f'smarttuning_prod_cfg_timeline', 'configuration timeline')
-
-        prommetrics.counter_metric({
-            'app': self.training.name,
-            'cfg': self.training.configuration.name,
-            'workload': self.session().workload,
-        }, f'smarttuning_train_cfg_timeline', 'configuration timeline')
-
-    def serialize(self) -> dict:
+    def serialize(self, curr_session: DriverSession) -> dict:
         local_iteration = {
             TrainingIteration: self.local_iteration,
             ReinforcementIteration: self.reinforcement_iteration,
@@ -664,36 +734,36 @@ class IterationDriver:
         return {
             'reset': False,
             'date': datetime.utcnow().isoformat(),
-            'pruned': self.workload() != self.__curr_iteration.mostly_workload() if self.__curr_iteration else True,
-            'status': type(self.__curr_iteration).__name__ if self.__curr_iteration else None,
+            'pruned': self.workload() != curr_session.curr_iteration.mostly_workload() if curr_session.curr_iteration else True,
+            'another_session': self.session() is curr_session,
+            'status': type(curr_session.curr_iteration).__name__ if curr_session.curr_iteration else None,
             'global_iteration': self.global_iteration,
-            'iteration': local_iteration.get(type(self.__curr_iteration), -1),
-            'ctx_workload': self.workload().serialize(),
+            'iteration': local_iteration.get(type(curr_session.curr_iteration), -1),
+            'ctx_workload': curr_session.workload.serialize(),
             'curr_workload': self.curr_workload().serialize(),
-            'mostly_workload': self.__curr_iteration.mostly_workload().serialize() if self.__curr_iteration else None,
+            'mostly_workload': curr_session.curr_iteration.mostly_workload().serialize() if curr_session.curr_iteration else None,
             'workload_counter': {key.name: value for key, value in
                                  workloadctrl.list_workloads(self.n_sampling_subintervals).items()},
-            'best': self.curr_best.serialize(),
-            'production': self.production.serialize(),
-            'training': self.training.serialize(),
-            'trials': [{'uid': c.number, 'value': c.value, 'state': c.state.name} for c in self.session().study.trials],
+            'production': curr_session.production.serialize(),
+            'training': curr_session.training.serialize(),
+            'trials': [{'uid': c.number, 'value': c.value, 'state': c.state.name} for c in curr_session.study.trials],
             'nursery': [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
-                        for c in heapq.nsmallest(len(self.session().nursery), self.session().nursery)],
+                        for c in heapq.nsmallest(len(curr_session.nursery), curr_session.nursery)],
             'tenured': [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
-                        for c in heapq.nsmallest(len(self.session().tenured), self.session().tenured)],
+                        for c in heapq.nsmallest(len(curr_session.tenured), curr_session.tenured)],
             'all_trials': {name: [{'uid': c.number, 'value': c.value, 'state': c.state.name}
                                   for c in session.study.trials]
                            for name, session in self.all_sessions.items()},
             'all_nursery': {name: [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
-                                   for c in heapq.nsmallest(len(session.nursery), self.session().nursery)]
+                                   for c in heapq.nsmallest(len(session.nursery), session.nursery)]
                             for name, session in self.all_sessions.items()},
             'all_tenured': {name: [{'name': c.name, 'uid': c.trial.number, 'value': c.trial.value}
-                                   for c in heapq.nsmallest(len(session.tenured), self.session().tenured)]
+                                   for c in heapq.nsmallest(len(session.tenured), session.tenured)]
                             for name, session in self.all_sessions.items()},
 
         }
 
-    def save_trace(self, reset=False):
+    def save_trace(self, session: DriverSession, reset=False):
         self.expose_prom_metrics()
 
         def sanitize_document(document):
@@ -722,7 +792,7 @@ class IterationDriver:
         db = config.mongo()[config.MONGO_DB]
         collection = db[f'trace-{self.uid}']
 
-        trace_to_save = self.serialize()
+        trace_to_save = self.serialize(session)
         trace_to_save['reset'] = reset
 
         try:
@@ -804,7 +874,7 @@ class Iteration(ABC):
         return self._curr_config
 
     def status(self):
-        statuses = {
+        statuses: dict[Type[Iteration]] = {
             TrainingIteration: 'training',
             ReinforcementIteration: 'reinforcemente',
             ProbationIteration: 'probation',
@@ -857,12 +927,24 @@ class Iteration(ABC):
         # safety checking for logging subinterval
         assert 0 <= self.logging_subinterval <= 1
 
+        prommetrics.gauge_metric({
+            'app': self.production.name,
+            'cfg': self.production.configuration.name,
+            'workload': self.driver.session(),
+        }, f'smarttuning_cfg_timeline', 'configuration timeline', 1)
+
+        prommetrics.gauge_metric({
+            'app': self.training.name,
+            'cfg': self.training.configuration.name,
+            'workload': self.driver.session().workload.name,
+        }, f'smarttuning_cfg_timeline', 'configuration timeline', 1)
+
         self.logger.debug(f' *** waiting {(self.sampling_interval * self.n_sampling_subintervals):.2f}s *** ')
         t_running_stats = RunningStats()
         p_running_stats = RunningStats()
 
-        t_metric = self.__training.metrics()
-        p_metric = self.__production.metrics()
+        t_metric = self.training.metrics()
+        p_metric = self.production.metrics()
         for i in range(self.n_sampling_subintervals):
             self.logger.info(f'[{i}] waiting {self.sampling_interval:.2f}s before sampling metrics')
             elapsed = timedelta()
@@ -879,12 +961,12 @@ class Iteration(ABC):
                 for name, session in self.driver.all_sessions.items():
                     prommetrics.gauge_metric({
                         'app': self.production.name,
-                        'workload': session.workload,
+                        'workload': session.workload.name,
                     }, f'smarttuning_workload_timeline', 'workload timeline',
                         int(self.curr_workload() == session.workload))
 
-            t_metric = self.__training.metrics()
-            p_metric = self.__production.metrics()
+            t_metric = self.training.metrics()
+            p_metric = self.production.metrics()
 
             t_running_stats.push(t_metric.objective())
             p_running_stats.push(p_metric.objective())
@@ -949,8 +1031,9 @@ class Iteration(ABC):
 
             another_session = self.driver.session(mostly_workload)
             if another_session:
-                self.driver.session(mostly_workload).add(self.configuration)
-                self.driver.session(mostly_workload).mock_progress()
+                another_session.add(self.configuration)
+                another_session.mock_progress()
+                self.driver.save_trace(another_session)
             return False
 
         # session = self.driver.session()
