@@ -892,7 +892,7 @@ class Iteration(ABC):
         workloadctrl.workload_counter(self.curr_workload(), offset=1)
 
     def mostly_workload(self) -> Workload:
-        w, c = workloadctrl.get_mostly_workload(offset=self.n_sampling_subintervals)
+        w, c = workloadctrl.get_mostly_workload(offset=self.n_sampling_subintervals, ctx_workload=self.workload())
 
         return w
         #

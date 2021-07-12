@@ -98,9 +98,14 @@ def get_workload_counter_value(workload_name: str, offset: Optional[int] = 0) ->
     return sum(projection.get(workload_name, [-1])[-int(offset):])
 
 
-def get_mostly_workload(offset: Optional[int] = 0) -> (Workload, int):
-    counter_reduced = {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
-    return next(iter(sorted(counter_reduced.items(), key=lambda item: item[1], reverse=True)), (workload(), 0))
+def get_mostly_workload(ctx_workload: Workload, offset: Optional[int] = 0) -> (Workload, int):
+    counter_reduced = {w: sum(value[-int(offset):]) for w, value in __workload_counter.items()}
+
+    # sort by counter and then by name closest to the ctx workload
+    # e.g., w_1:1, w_2:1, w_3:1, ctx_w: w_2 --> w_2
+    comparator = lambda item: (item[1], -abs(ord(item[0].name[-1]) - ord(ctx_workload.name[-1])))
+
+    return next(iter(sorted(counter_reduced.items(), key=comparator, reverse=True)), (workload(), 0))
 
 
 def list_workloads(offset: Optional[int] = 0) -> dict:
