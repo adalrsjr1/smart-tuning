@@ -553,7 +553,7 @@ class IterationDriver:
         prommetrics.gauge_metric({
             'app': self.production.name,
             'cfg': self.production.configuration.name,
-            'workload': self.session(),
+            'workload': self.session().workload.name,
         }, f'smarttuning_cfg_timeline', 'configuration timeline', 0)
 
         prommetrics.gauge_metric({
@@ -930,7 +930,7 @@ class Iteration(ABC):
         prommetrics.gauge_metric({
             'app': self.production.name,
             'cfg': self.production.configuration.name,
-            'workload': self.driver.session(),
+            'workload': self.driver.session().workload.name,
         }, f'smarttuning_cfg_timeline', 'configuration timeline', 1)
 
         prommetrics.gauge_metric({
