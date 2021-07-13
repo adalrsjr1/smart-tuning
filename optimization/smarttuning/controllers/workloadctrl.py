@@ -111,7 +111,7 @@ def get_mostly_workload(ctx_workload: Workload, offset: Optional[int] = 0) -> (W
     #  1 -1	-1 = -27
     # -1 -1	-1 = -53
 
-    counter_reduced = {w: np.dot(value[-int(offset):], [13, 17, 23]) for w, value in __workload_counter.items()}
+    counter_reduced = {w: np.dot(value[-int(offset):], [13, 17, 23][-int(offset):]) for w, value in __workload_counter.items()}
 
     # sort by counter and then by name closest to the ctx workload
     # e.g., w_1:1, w_2:1, w_3:1, ctx_w: w_2 --> w_2
