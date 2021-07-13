@@ -5,6 +5,7 @@ import math
 from collections import Counter, defaultdict
 from typing import Optional
 
+import numpy as np
 from kubernetes.client import ApiException, V2beta2HorizontalPodAutoscaler, V2beta2HorizontalPodAutoscalerSpec, \
     V2beta2CrossVersionObjectReference
 from kubernetes.watch import Watch
@@ -99,7 +100,18 @@ def get_workload_counter_value(workload_name: str, offset: Optional[int] = 0) ->
 
 
 def get_mostly_workload(ctx_workload: Workload, offset: Optional[int] = 0) -> (Workload, int):
-    counter_reduced = {w: sum(value[-int(offset):]) for w, value in __workload_counter.items()}
+    # counter_reduced = {w: sum(value[-int(offset):]) for w, value in __workload_counter.items()}
+
+    #  1  1	 1 =  53
+    # -1  1	 1 =  27
+    #  1 -1	 1 =  19
+    #  1  1	-1 =  7
+    # -1 -1	 1 = -7
+    # -1  1	-1 = -19
+    #  1 -1	-1 = -27
+    # -1 -1	-1 = -53
+
+    counter_reduced = {w: np.dot(value[-int(offset):], [13, 17, 23]) for w, value in __workload_counter.items()}
 
     # sort by counter and then by name closest to the ctx workload
     # e.g., w_1:1, w_2:1, w_3:1, ctx_w: w_2 --> w_2
