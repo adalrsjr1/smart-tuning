@@ -2,7 +2,9 @@ import logging
 import threading
 import time
 import math
+import re
 from collections import Counter, defaultdict
+from functools import cache
 from typing import Optional
 
 import numpy as np
@@ -81,6 +83,9 @@ def workload_counter(workload: Workload, offset: Optional[int] = 0) -> int:
     if offset is None:
         offset = 0
 
+    if workload not in __workload_counter:
+        __workload_counter[workload] = []
+
     for key, value in __workload_counter.items():
         if workload == key:
             __workload_counter[key].append(1)
@@ -100,18 +105,40 @@ def get_workload_counter_value(workload_name: str, offset: Optional[int] = 0) ->
 
 
 def get_mostly_workload(ctx_workload: Workload, offset: Optional[int] = 0) -> (Workload, int):
-    # counter_reduced = {w: sum(value[-int(offset):]) for w, value in __workload_counter.items()}
+    if offset == 0:
+        return (workload(), 0)
 
-    #  1  1	 1 =  53
-    # -1  1	 1 =  27
-    #  1 -1	 1 =  19
-    #  1  1	-1 =  7
-    # -1 -1	 1 = -7
-    # -1  1	-1 = -19
-    #  1 -1	-1 = -27
-    # -1 -1	-1 = -53
+    @cache
+    def prime_generator(n, first=0) -> [int]:
+        # https://stackoverflow.com/questions/567222/simple-prime-number-generator-in-python
+        # https://iluxonchik.github.io/regular-expression-check-if-number-is-prime/
+        def isprime(k):
+            return re.compile(r'^1?$|^(11+)\1+$').match('1' * k) is None
 
-    counter_reduced = {w: np.dot(value[-int(offset):], [13, 17, 23][-int(offset):]) for w, value in __workload_counter.items()}
+        result = []
+        i = 0
+        counter_first = 0
+        while len(result) < n:
+            if isprime(i):
+                if counter_first < first-1:
+                    counter_first += 1
+                else:
+                    result.append(i)
+            i += 1
+        return result
+
+    #  1  1	 1 =  49
+    # -1  1	 1 =  23
+    #  1 -1	 1 =  15
+    #  1  1	-1 =  11
+    # -1 -1	 1 = -11
+    # -1  1	-1 = -15
+    #  1 -1	-1 = -23
+    # -1 -1	-1 = -49
+
+    primes = prime_generator(3, first=6)
+
+    counter_reduced = {w: np.dot(value[-int(offset):], primes[-min(offset, len(value)):]) for w, value in __workload_counter.items()}
 
     # sort by counter and then by name closest to the ctx workload
     # e.g., w_1:1, w_2:1, w_3:1, ctx_w: w_2 --> w_2
