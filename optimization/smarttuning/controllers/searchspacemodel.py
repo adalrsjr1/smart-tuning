@@ -486,7 +486,8 @@ class NumberRangeModel(BaseRangeModel):
                 value = trial.suggest_float(self.name, low, high, step=q)
                 # value = random.uniform(low, high) * q // q
             else:
-                value = random.randint(low, high) * q // q
+                value = trial.suggest_int(self.name, low, high, step=q)
+                # value = random.randint(low, high) * q // q
 
         memo[self.name] = value
         return value
@@ -509,9 +510,9 @@ class NumberRangeModel(BaseRangeModel):
                 return DiscreteUniformDistribution(low=lower, high=upper, q=step)
         else:
             if self.get_step() is None or self.get_step() <= 1:
-                return IntUniformDistribution(low=lower, high=upper)
+                return IntUniformDistribution(low=int(lower), high=int(upper))
             else:
-                return IntUniformDistribution(low=lower, high=upper, step=step)
+                return IntUniformDistribution(low=int(lower), high=int(upper), step=step)
 
     def __is_a_numeric_string(self, value):
         return isinstance(value, str) and str.isalpha(value)
