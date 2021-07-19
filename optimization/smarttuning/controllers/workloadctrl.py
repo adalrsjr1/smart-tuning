@@ -5,6 +5,7 @@ import math
 import re
 from collections import Counter, defaultdict
 from functools import cache
+from numbers import Number
 from typing import Optional
 
 import numpy as np
@@ -144,8 +145,10 @@ def get_mostly_workload(ctx_workload: Workload, offset: Optional[int] = 0) -> (W
     # comparator = lambda item: (item[1], -abs(ord(item[0].name[-1]) - ord(ctx_workload.name[-1])))
     # return next(iter(sorted(counter_reduced.items(), key=comparator, reverse=True)), (workload(), 0))
 
-    counter_reduced = {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
-    return next(iter(sorted(counter_reduced.items(), key=lambda item: item[1], reverse=True)), (workload(), 0))
+    counter_reduced = {key: int(sum(value[-int(offset):])) for key, value in __workload_counter.items()}
+    # sort by weight, workload volume, than name
+    comparator = lambda item: (item[1], item[0].data if isinstance(item[0].data, Number) else 0, -abs(ord(item[0].name[-1]) - ord(ctx_workload.name[-1])))
+    return next(iter(sorted(counter_reduced.items(), key=comparator, reverse=True)), (workload(), 0))
 
 
 def list_workloads(offset: Optional[int] = 0) -> dict:
