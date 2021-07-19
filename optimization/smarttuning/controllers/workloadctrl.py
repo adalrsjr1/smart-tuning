@@ -145,15 +145,15 @@ def get_mostly_workload(ctx_workload: Workload, offset: Optional[int] = 0) -> (W
     # comparator = lambda item: (item[1], -abs(ord(item[0].name[-1]) - ord(ctx_workload.name[-1])))
     # return next(iter(sorted(counter_reduced.items(), key=comparator, reverse=True)), (workload(), 0))
 
-    counter_reduced = {key: int(sum(value[-int(offset):])) for key, value in __workload_counter.items()}
+    counter_reduced = {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
     # sort by weight, workload volume, than name
     comparator = lambda item: (item[1], item[0].data if isinstance(item[0].data, Number) else 0, -abs(ord(item[0].name[-1]) - ord(ctx_workload.name[-1])))
     return next(iter(sorted(counter_reduced.items(), key=comparator, reverse=True)), (workload(), 0))
 
 
 def list_workloads(offset: Optional[int] = 0) -> dict:
-    return {w: np.dot(value[-int(offset):], [2**i for i in range(len(value[-int(offset):]))]) for w, value in __workload_counter.items()}
-    # return {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
+    # return {w: np.dot(value[-int(offset):], [2**i for i in range(len(value[-int(offset):]))]) for w, value in __workload_counter.items()}
+    return {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
 
 def workload() -> Workload:
     with __rlock:
