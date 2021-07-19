@@ -10,6 +10,7 @@ from typing import Union, Optional, Type
 
 import optuna
 from optuna.samplers import TPESampler, RandomSampler
+from optuna.structs import FrozenTrial
 from optuna.trial import BaseTrial
 
 import config
@@ -235,12 +236,37 @@ class DriverSession:
         """
         status: training; reinforcement; probation
         """
-        trial = optuna.create_trial(
-            params=configuration.trial.params,
-            distributions=configuration.trial.distributions,
-            value=configuration.final_score(),
-            state=optuna.trial.TrialState.COMPLETE
-        )
+
+        def check_and_fix_distributions_boundaries(configuration: Configuration):
+            for p_name, p_value in configuration.trial.params.items():
+                d = configuration.trial.distributions.get(p_name)
+                from optuna.distributions import CategoricalDistribution
+                if isinstance(d, CategoricalDistribution):
+                    continue
+                print(d, p_name, p_value)
+                if not d._contains(p_value):
+                    self.logger.warning(f'type of param: {p_name} isnt contained in {d}')
+                    self.logger.warning(f'adjusting distribution {d} to suits {p_name}')
+                    if p_value >= d.high:
+                        d.high = type(d.high)(p_value)
+                    if p_value <= d.low:
+                        d.low = type(d.low)(p_value)
+                    self.logger.warning(f'new bouderies for distribution {d}')
+
+            return optuna.create_trial(
+                params=configuration.trial.params,
+                distributions=configuration.trial.distributions,
+                value=configuration.final_score(),
+                state=optuna.trial.TrialState.COMPLETE
+            )
+
+        trial = check_and_fix_distributions_boundaries(configuration)
+        # trial = optuna.create_trial(
+        #     params=configuration.trial.params,
+        #     distributions=configuration.trial.distributions,
+        #     value=configuration.final_score(),
+        #     state=optuna.trial.TrialState.COMPLETE
+        # )
         self.study.add_trial(trial)
         from copy import deepcopy
         new_cfg = Configuration(self.study.trials[-1], data=deepcopy(configuration.data))
@@ -299,6 +325,7 @@ class IterationDriver:
                                                       n_startup_trial=n_startup_trial,
                                                       n_ei_candidates=n_ei_candidates,
                                                       seed=seed)
+        assert self.__session is not None, 'session cannot be created'
 
         IterationDriver.__all_sessions[self.__session.workload.name] = self.__session
 
@@ -524,7 +551,7 @@ class IterationDriver:
             self.logger.exception(f'[t] error to update trial {configuration.trial.number} into {configuration}')
 
     def __next__(self):
-
+        self.logger.debug(f'current iteration: {self.curr_iteration}')
         if self.global_iteration < self.max_global_iterations + self.session().n_pruned() + self.__extra_it:
 
             if self.lookahead == TrainingIteration:

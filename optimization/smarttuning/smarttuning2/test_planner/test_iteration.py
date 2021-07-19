@@ -852,7 +852,9 @@ class TestIteration(TestCase):
                                       max_reinforcement_iterations=1,
                                       max_probation_iterations=1)
 
-        driver.serialize(driver.session())
+        for key, value in driver.serialize(driver.session()).items():
+            self.assertIsNotNone(value, f'{key}:{value}')
+
 
 
 if __name__ == '__main__':
