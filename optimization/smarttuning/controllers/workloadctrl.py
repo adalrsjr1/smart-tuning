@@ -106,7 +106,7 @@ def get_workload_counter_value(workload_name: str, offset: Optional[int] = 0) ->
 
 def get_mostly_workload(ctx_workload: Workload, offset: Optional[int] = 0) -> (Workload, int):
     if offset == 0:
-        return (workload(), 0)
+        return workload(), 0
 
     @cache
     def prime_generator(n, first=0) -> [int]:
@@ -127,28 +127,30 @@ def get_mostly_workload(ctx_workload: Workload, offset: Optional[int] = 0) -> (W
             i += 1
         return result
 
-    #  1  1	 1 =  49
-    # -1  1	 1 =  23
-    #  1 -1	 1 =  15
-    #  1  1	-1 =  11
-    # -1 -1	 1 = -11
-    # -1  1	-1 = -15
-    #  1 -1	-1 = -23
-    # -1 -1	-1 = -49
+    #  1  1	 1 =  7
+    # -1  1	 1 =  5
+    #  1 -1	 1 =  3
+    #  1  1	-1 =  1
+    # -1 -1	 1 = -1
+    # -1  1	-1 = -3
+    #  1 -1	-1 = -5
+    # -1 -1	-1 = -7
 
-    primes = prime_generator(3, first=6)
+    # guarantee unique numbers by calculation power of 2 * (1, -1)
+    # counter_reduced = {w: np.dot(value[-int(offset):], [2**i for i in range(len(value[-int(offset):]))]) for w, value in __workload_counter.items()}
+    #
+    # # sort by counter and then by name closest to the ctx workload
+    # # e.g., w_1:1, w_2:1, w_3:1, ctx_w: w_2 --> w_2
+    # comparator = lambda item: (item[1], -abs(ord(item[0].name[-1]) - ord(ctx_workload.name[-1])))
+    # return next(iter(sorted(counter_reduced.items(), key=comparator, reverse=True)), (workload(), 0))
 
-    counter_reduced = {w: np.dot(value[-int(offset):], primes[-min(offset, len(value)):]) for w, value in __workload_counter.items()}
-
-    # sort by counter and then by name closest to the ctx workload
-    # e.g., w_1:1, w_2:1, w_3:1, ctx_w: w_2 --> w_2
-    comparator = lambda item: (item[1], -abs(ord(item[0].name[-1]) - ord(ctx_workload.name[-1])))
-
-    return next(iter(sorted(counter_reduced.items(), key=comparator, reverse=True)), (workload(), 0))
+    counter_reduced = {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
+    return next(iter(sorted(counter_reduced.items(), key=lambda item: item[1], reverse=True)), (workload(), 0))
 
 
 def list_workloads(offset: Optional[int] = 0) -> dict:
-    return {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
+    return {w: np.dot(value[-int(offset):], [2**i for i in range(len(value[-int(offset):]))]) for w, value in __workload_counter.items()}
+    # return {key: sum(value[-int(offset):]) for key, value in __workload_counter.items()}
 
 def workload() -> Workload:
     with __rlock:
@@ -217,15 +219,15 @@ def new_rps_based_workload() -> Workload:
         if not bands or (len(bands) == 1 and bands[0] == ''):
             bands = []
 
-        min_d = float('inf')
-        min_b = 0
+        distance_min = float('inf')
+        band_min = 0
         for idx, band in enumerate(bands):
             d = math.sqrt((float(band) - truput) ** 2)
-            if d < min_d:
-                min_b = idx
-                min_d = d
+            if d < distance_min:
+                band_min = idx
+                distance_min = d
 
-        return str(min_b)
+        return str(band_min)
 
     try:
         # classification based on both training and production truput
