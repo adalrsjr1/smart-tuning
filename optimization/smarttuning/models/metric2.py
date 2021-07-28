@@ -113,10 +113,10 @@ class MetricDecorator:
         try:
             return eval(self.__penalization_expr, globals(), self.__ctx)
         except ZeroDivisionError:
-            logger.warning(f'division by zero when eval penalization: {self.__objective_expr}')
+            logger.warning(f'division by zero when eval penalization: {self.__penalization_expr}')
             return float('inf')
         except TypeError:
-            logger.warning(f'cannot eval penalization: {self.__objective_expr}')
+            logger.warning(f'cannot eval penalization: {self.__penalization_expr}')
             return float('nan')
 
     def serialize(self) -> dict:
