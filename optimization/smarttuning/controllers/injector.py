@@ -502,7 +502,7 @@ def duplicate_deployment(deployment: V1Deployment):
     metadata.resource_version = None
 
     spec: V1DeploymentSpec = deployment.spec
-    spec.strategy = V1DeploymentStrategy(type='Recreate')
+    # spec.strategy = V1DeploymentStrategy(type='Recreate')
     spec.replicas = 1
     template: V1PodTemplateSpec = spec.template
     pod_spec: V1PodSpec = template.spec

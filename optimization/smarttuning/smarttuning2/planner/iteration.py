@@ -238,8 +238,10 @@ class DriverSession:
         """
 
         def check_and_fix_distributions_boundaries(configuration: Configuration):
+            # trials.distributions returns a deepcopy of distributions
+            distributions = configuration.trial.distributions
             for p_name, p_value in configuration.trial.params.items():
-                d = configuration.trial.distributions.get(p_name)
+                d = distributions.get(p_name)
                 from optuna.distributions import CategoricalDistribution
                 if isinstance(d, CategoricalDistribution):
                     continue
@@ -252,13 +254,13 @@ class DriverSession:
                     if p_value <= d.low:
                         d.low = type(d.low)(p_value)
                     self.logger.warning(f'new bouderies for distribution {d}')
-
             return optuna.create_trial(
                 params=configuration.trial.params,
-                distributions=configuration.trial.distributions,
+                distributions=distributions,
                 value=configuration.final_score(),
                 state=optuna.trial.TrialState.COMPLETE
             )
+
 
         trial = check_and_fix_distributions_boundaries(configuration)
         # trial = optuna.create_trial(
@@ -1012,17 +1014,21 @@ class Iteration(ABC):
             #     self.workload_counter += -1
 
             if self.fail_fast:
-                # self.logger.warning('FAIL FAST is not implemented yet')
-                # TODO: fail fast disabled for mocking workload classification
-                # TODO: reorganize this order, workload checking must be evaluated before than i==0
-                if i == 0:
-                    continue
-
-                # TODO: Is this fail fast working as expected?
-                if self.curr_workload() != self.mostly_workload():
+                if t_metric.throughput <= 0:
                     self.logger.warning(f'\t |- [W] fail fast -- {self.mostly_workload()} -> {self.curr_workload()}')
                     self.logger.warning(f'\t # ')
                     break
+                # # self.logger.warning('FAIL FAST is not implemented yet')
+                # # TODO: fail fast disabled for mocking workload classification
+                # # TODO: reorganize this order, workload checking must be evaluated before than i==0
+                # if i == 0:
+                #     continue
+                #
+                # # TODO: Is this fail fast working as expected?
+                # if self.curr_workload() != self.mostly_workload():
+                #     self.logger.warning(f'\t |- [W] fail fast -- {self.mostly_workload()} -> {self.curr_workload()}')
+                #     self.logger.warning(f'\t # ')
+                #     break
 
                 # if (t_running_stats.mean() + t_running_stats.standard_deviation()) > (
                 #         p_running_stats.mean() + p_running_stats.standard_deviation()):

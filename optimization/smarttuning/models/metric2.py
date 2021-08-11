@@ -107,7 +107,7 @@ class MetricDecorator:
             return float('inf')
         except TypeError:
             logger.warning(f'cannot eval objective: {self.__objective_expr}')
-            return float('nan')
+            return float('inf')
 
     def penalization(self) -> float:
         try:
@@ -117,7 +117,7 @@ class MetricDecorator:
             return float('inf')
         except TypeError:
             logger.warning(f'cannot eval penalization: {self.__penalization_expr}')
-            return float('nan')
+            return float('inf')
 
     def serialize(self) -> dict:
         data = dict(self.__ctx)
