@@ -103,7 +103,8 @@ class Configuration:
         self.__data = data
         # TODO: be careful with __name generation, since self.data.items() preseves the inserting ording
         # two dicts with same keys but different insertion order generate different hashes
-        self.__name = hashlib.md5(bytes(str(self.data.items()), 'ascii')).hexdigest()
+        # todo above was fixed
+        self.__name = hashlib.md5(bytes(str(sorted(self.data.items())), 'ascii')).hexdigest()
         self.__stats: RunningStats = RunningStats()
 
     def debug_stats(self) -> list[float]:
