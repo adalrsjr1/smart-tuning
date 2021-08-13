@@ -101,23 +101,27 @@ class MetricDecorator:
         data = dict(self.__ctx)
         data.update({'penalization': self.penalization()})
         try:
-            return eval(self.__objective_expr, globals(), data)
+            result = eval(self.__objective_expr, globals(), data)
+            if math.isnan(result):
+                logger.warning(f'objective evals "nan", returns 2**64 because it is the worst possible value for the minimization')
+                return 2**64
+            return result
         except ZeroDivisionError:
             logger.warning(f'division by zero when eval objective: {self.__objective_expr}')
-            return float('inf')
+            return 2**64
         except TypeError:
             logger.warning(f'cannot eval objective: {self.__objective_expr}')
-            return float('inf')
+            return 2**64
 
     def penalization(self) -> float:
         try:
             return eval(self.__penalization_expr, globals(), self.__ctx)
         except ZeroDivisionError:
             logger.warning(f'division by zero when eval penalization: {self.__penalization_expr}')
-            return float('inf')
+            return float('nan')
         except TypeError:
             logger.warning(f'cannot eval penalization: {self.__penalization_expr}')
-            return float('inf')
+            return float('nan')
 
     def serialize(self) -> dict:
         data = dict(self.__ctx)
