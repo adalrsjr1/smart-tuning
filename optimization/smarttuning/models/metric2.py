@@ -108,10 +108,10 @@ class MetricDecorator:
             return result
         except ZeroDivisionError:
             logger.warning(f'division by zero when eval objective: {self.__objective_expr}')
-            return 2**64
+            return 2**63-1
         except TypeError:
             logger.warning(f'cannot eval objective: {self.__objective_expr}')
-            return 2**64
+            return 2**63-1
 
     def penalization(self) -> float:
         try:
