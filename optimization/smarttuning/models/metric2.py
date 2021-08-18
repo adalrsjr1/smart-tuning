@@ -103,8 +103,8 @@ class MetricDecorator:
         try:
             result = eval(self.__objective_expr, globals(), data)
             if math.isnan(result):
-                logger.warning(f'objective evals "nan", returns 2**64 because it is the worst possible value for the minimization')
-                return 2**64
+                logger.warning(f'objective evals "nan", returns 2**63-1 because it is the worst possible value for the minimization')
+                return 2**63-1
             return result
         except ZeroDivisionError:
             logger.warning(f'division by zero when eval objective: {self.__objective_expr}')
