@@ -2,11 +2,12 @@
 # Results appear on /output in the container
 # Must specify the hostname for the acmeair application (or localhost will be assumed)
 FROM ibmjava:8-jre
+#FROM ibmjava:8-sfj-alpine
 
 ENV JMETER_VERSION 5.2.1
 # Install pre-requisite packages
-RUN apt-get update && apt-get install -y --no-install-recommends wget unzip curl inetutils-ping \
-       && rm -rf /var/lib/apt/lists/*
+#RUN apt-get update && apt-get install -y --no-install-recommends wget unzip curl inetutils-ping \
+#       && rm -rf /var/lib/apt/lists/*
 
 # Install jmeter
 RUN   mkdir /jmeter \
