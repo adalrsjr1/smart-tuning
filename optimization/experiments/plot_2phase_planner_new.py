@@ -3,6 +3,7 @@ import heapq
 import json
 import math
 import os
+import pprint
 import random
 import re
 import sys
@@ -17,6 +18,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import bson
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
@@ -58,7 +60,9 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
                 return hash(self.name)
 
             def __lt__(self, other):
-                return self.value < other.value
+                value = self.value or 0
+                other = other.value or 0
+                return value < other
 
             # def __eq__(self, other):
             #     return self.name == other.name
@@ -83,6 +87,7 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
             # workaround to avoid problems with mongodb id
             row: dict
             row = re.sub(r'{"_id":{"\$oid":"[a-z0-9]+"},', '{', row)
+            row = re.sub(r'\{\"\$numberLong\":\"(?P<N>[0-9]+)\"}', '\g<N>', row)
             record = json.loads(row)
 
             # if workload != '' and record['ctx_workload']['name'] != workload:
@@ -91,7 +96,9 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
                     raw_data.append(Iteration().__dict__)
                 continue
 
-            if skip_pruned and record['pruned']:
+            # if skip_pruned and record['pruned']:
+            if skip_pruned and (record['mostly_workload'] and record['mostly_workload']['name'] != record['ctx_workload']['name'] or
+                record['curr_workload']['name'] != record['ctx_workload']['name']):
                 # if len(raw_data) > 0:
                 #     raw_data = raw_data[:-1]
                 continue
@@ -125,49 +132,61 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
             if to_gib:
                 mem_scale = 2 ** 20
 
-            raw_data.append(Iteration(
-                # pruned=record['curr_workload']['name'] != record['ctx_workload']['name'],
-                pruned=record['pruned'],
-                workload=record['curr_workload']['name'],
-                iteration=record['global_iteration'],
-                pname=record['production']['curr_config']['name'],
-                pscore=math.fabs(record['production']['curr_config']['score'] or 0),
-                pmean=math.fabs(record['production']['curr_config']['stats']['mean'] or 0),
-                pmedian=math.fabs(record['production']['curr_config']['stats']['median'] or 0),
-                pmad=math.fabs(record['production']['curr_config']['stats'].get('mad', np.nan)),
-                pmin=math.fabs(record['production']['curr_config']['stats']['min'] or 0),
-                pmax=math.fabs(record['production']['curr_config']['stats']['max'] or 0),
-                pstddev=record['production']['curr_config']['stats']['stddev'] or 0,
-                ptruput=record['production']['metric']['throughput'],
-                pproctime=record['production']['metric']['process_time'],
-                pmem=(record['production']['metric']['memory'] or 0) / mem_scale,
-                pmem_lim=(record['production']['metric'].get('memory_limit',
-                                                             (record['production']['curr_config']['data'][service_name][
-                                                                  'memory'] or 0) * mem_scale) or 0) / mem_scale,
-                preplicas=math.ceil(record['production']['metric'].get('curr_replicas', 1)),
-                pparams=Param(record['production']['curr_config']['data'] or {},
-                              math.fabs(record['production']['curr_config']['score'] or 0)),
-                tname=record['training']['curr_config']['name'],
-                tscore=math.fabs(record['training']['curr_config']['score'] or 0),
-                tmean=math.fabs(record['training']['curr_config']['stats']['mean'] or 0),
-                tmedian=math.fabs(record['training']['curr_config']['stats']['median'] or 0),
-                tmad=math.fabs(record['training']['curr_config']['stats'].get('mad', np.nan)),
-                tmin=math.fabs(record['training']['curr_config']['stats']['min'] or 0),
-                tmax=math.fabs(record['training']['curr_config']['stats']['max'] or 0),
-                tstddev=record['training']['curr_config']['stats']['stddev'],
-                ttruput=record['training']['metric']['throughput'],
-                tproctime=record['training']['metric']['process_time'],
-                tmem=(record['training']['metric']['memory'] or 0) / mem_scale,
-                tmem_lim=(record['training']['metric'].get('memory_limit',
-                                                           (record['training']['curr_config']['data'][service_name][
-                                                                'memory'] or 0) * mem_scale) or 0) / mem_scale,
-                treplicas=math.ceil(record['training']['metric'].get('curr_replicas', 1)),
-                tparams=Param(record['training']['curr_config']['data'],
-                              math.fabs(record['training']['curr_config']['score'] or 0)),
-                # create an auxiliary table to hold the 3 best config at every iteration
-                nbest=nbest(record['trials'], record['nursery'], record['tenured'], 3)
-                # nbest={chr(i + 97): best['name'][:3] for i, best in enumerate(record['best'])} if 'best' in record else {}
-            ).__dict__)
+            try:
+                raw_data.append(Iteration(
+                    # pruned=record['mostly_workload']['name'] != record['ctx_workload']['name'] or
+                    #        record['curr_workload']['name'] != record['ctx_workload']['name'],
+                    pruned=record['pruned'],
+                    workload=record['ctx_workload']['name'],
+                    iteration=record['global_iteration'],
+                    pname=record['production']['curr_config']['name'],
+                    # pname=hashlib.md5(bytes(str(record['production']['curr_config']['data']), 'ascii')).hexdigest(),
+                    pscore=math.fabs(record['production']['metric']['objective'] or 0),
+                    pmean=math.fabs(record['production']['curr_config']['stats']['mean'] or 0),
+                    pmedian=math.fabs(record['production']['curr_config']['stats']['median'] or 0),
+                    pmad=math.fabs(record['production']['curr_config']['stats'].get('mad', np.nan) or 0),
+                    pmin=math.fabs(record['production']['curr_config']['stats']['min'] or 0),
+                    pmax=math.fabs(record['production']['curr_config']['stats']['max'] or 0),
+                    pstddev=record['production']['curr_config']['stats']['stddev'] or 0,
+                    ptruput=record['production']['metric']['throughput'],
+                    pproctime=record['production']['metric']['process_time'],
+                    pmem=(record['production']['metric']['memory'] or 0) / mem_scale,
+                    pmem_lim=(record['production']['metric'].get('memory_limit',
+                                                                 (record['production']['curr_config']['data'][service_name][
+                                                                      'memory'] or 0) * mem_scale) or 0) / mem_scale,
+                    pcpu=(record['production']['metric']['cpu'] or 1),
+                    pcpu_lim=(record['production']['metric']['cpu_limit'] or 1),
+                    preplicas=math.ceil(record['production']['metric'].get('curr_replicas', 1)),
+                    pparams=Param(record['production']['curr_config']['data'] or {},
+                                  math.fabs(record['production']['curr_config']['score'] or 0)),
+                    # tname=hashlib.md5(bytes(str(record['training']['curr_config']['data']), 'ascii')).hexdigest(),
+                    tname=record['training']['curr_config']['name'],
+                    tscore=math.fabs(record['training']['metric']['objective'] or 0),
+                    tmean=math.fabs(record['training']['curr_config']['stats']['mean'] or 0),
+                    tmedian=math.fabs(record['training']['curr_config']['stats']['median'] or 0),
+                    tmad=math.fabs(record['training']['curr_config']['stats'].get('mad', np.nan) or 0),
+                    tmin=math.fabs(record['training']['curr_config']['stats']['min'] or 0),
+                    tmax=math.fabs(record['training']['curr_config']['stats']['max'] or 0),
+                    tstddev=record['training']['curr_config']['stats']['stddev'],
+                    ttruput=record['training']['metric']['throughput'],
+                    tproctime=record['training']['metric']['process_time'],
+                    tmem=(record['training']['metric']['memory'] or 0) / mem_scale,
+                    tmem_lim=(record['training']['metric'].get('memory_limit',
+                                                               (record['training']['curr_config']['data'][service_name][
+                                                                    'memory'] or 0) * mem_scale) or 0) / mem_scale,
+                    tcpu=(record['training']['metric']['cpu'] or 1),
+                    tcpu_lim=(record['training']['metric']['cpu_limit'] or 1),
+                    treplicas=math.ceil(record['training']['metric'].get('curr_replicas', 1)),
+                    tparams=Param(record['training']['curr_config']['data'],
+                                  math.fabs(record['training']['curr_config']['score'] or 0)),
+                    # create an auxiliary table to hold the 3 best config at every iteration
+                    nbest=nbest(record['trials'] or [], record['nursery'] or [], record['tenured'] or [], 3)
+                    # nbest={chr(i + 97): best['name'][:3] for i, best in enumerate(record['best'])} if 'best' in record else {}
+                ).__dict__)
+            except Exception as e:
+                print(i)
+                raise e
+                pprint.pprint(record)
 
     return pd.DataFrame(raw_data).reset_index()
 
@@ -197,6 +216,8 @@ class Iteration:
     pproctime: float = 0
     pmem: int = 0
     pmem_lim: int = 0
+    pcpu: int = 0
+    pcpu_lim: int = 0
     preplicas: int = 0
     pparams: Param = 0
     tname: str = ''
@@ -211,6 +232,8 @@ class Iteration:
     tproctime: float = 0
     tmem: int = 0
     tmem_lim: int = 0
+    tcpu: int = 0
+    tcpu_lim: int = 0
     treplicas: int = 0
     tparams: Param = 0
     nbest: dict = field(default_factory=dict)
@@ -242,6 +265,18 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     colormap = cm.colorblind()
 
     reduced_table = df
+    reduced_table['ptruput_lim'] = reduced_table['ptruput']
+    reduced_table['ttruput_lim'] = reduced_table['ttruput']
+    reduced_table['pproctime'] = reduced_table['pproctime'].apply(lambda x: 1 if x >= 100000 else x)
+    reduced_table['tproctime'] = reduced_table['tproctime'].apply(lambda x: 1 if x >= 100000 else x)
+
+    reduced_table['ptruput'] = reduced_table['ptruput'] * reduced_table['pproctime']
+    reduced_table['ttruput'] = reduced_table['ttruput'] * reduced_table['tproctime']
+
+    reduced_table['psvcutil'] = (reduced_table['ptruput_lim'] / (1/reduced_table['pproctime'])).fillna(0)
+    reduced_table['tsvcutil'] = (reduced_table['ttruput_lim'] / (1/reduced_table['tproctime'])).fillna(0)
+
+    # print(reduced_table[["ptruput", "ttruput"]])
     memoization = {}
     new_colors = []
 
@@ -284,12 +319,14 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     ax_t: Axes  # truput row
     # fig = plt.figure()
     fig = plt.figure(figsize=(32, 8))
-    gs = fig.add_gridspec(nrows=4, hspace=0.1, height_ratios=[1, 1, 1, 4])
+    gs = fig.add_gridspec(nrows=6, hspace=.001, height_ratios=[1.4, 1.4, 1.4, 1.4, 1.4, 3])
     axs = gs.subplots(sharex='col')
     # bottom-up rows
-    ax = axs[3]  # iterations
-    ax_r = axs[2]  # ...
-    ax_m = axs[1]
+    ax = axs[5]  # iterations
+    ax_u = axs[4]
+    ax_r = axs[3]  # ...
+    ax_m = axs[2]
+    ax_c = axs[1]
     ax_t = axs[0]
 
     # split chart by configs and paint each region with a unique color
@@ -356,18 +393,61 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     if reduced_table.iloc[i + 1]['pruned']:
         rectangle.set_hatch('///')
 
+    # print(reduced_table[['pscore','tscore']])
+
     # truput row
-    ax_t = reduced_table.plot.bar(ax=ax_t, x='index', y=['ptruput', 'ttruput'], rot=0,
-                                  color={'ptruput': 'red', 'ttruput': 'blue'}, width=0.8, alpha=0.7)
-    # response time row
-    ax_r = reduced_table.plot.bar(ax=ax_r, x='index', y=['pproctime', 'tproctime'], rot=0,
-                                  color={'pproctime': 'red', 'tproctime': 'blue'}, width=0.8, alpha=0.7)
-    # memory row -- dark shaded to better visualize the runtime consumption
+    # ax_t = reduced_table.plot.bar(ax=ax_t, x='index', y=['ptruput', 'ttruput'], rot=0,
+    #                               color={'ptruput': 'red', 'ttruput': 'blue'}, width=0.8, alpha=1)
+
+    ax_t = reduced_table.plot.bar(ax=ax_t, x='index', y=['ptruput_lim', 'ttruput_lim'], rot=0,
+                                  color={'ptruput_lim': 'red', 'ttruput_lim': 'blue'}, width=0.8, alpha=1)
+    #psvcutil
+    ax_u = reduced_table.plot.bar(ax=ax_u, x='index', y=['psvcutil', 'tsvcutil'], rot=0,
+                                  color={'psvcutil': 'red', 'tsvcutil': 'blue'}, width=0.8, alpha=1)
+
+
+    # trending line
+    # trend_values = reduced_table['psvcutil'].values.tolist()
+    # # simulates more iterations after end of tuning
+    # trend_values = np.array(trend_values + trend_values[-4:-1]*20)
+    #
+    # # cap extremely high values for better visualization
+    # trend_values = np.where(trend_values > 2, 2, trend_values)
+    # z = np.polyfit(range(len(trend_values)), trend_values, 1)
+    # # normalize 0-1 yields very small values because the huge outliers
+    # # z = np.polyfit(range(len(trend_values)), (trend_values-min(trend_values))/(max(trend_values)-min(trend_values)), 1)
+    # p = np.poly1d(z)
+    # ax_u.plot(reduced_table.index, p(reduced_table.index), "c--", linewidth=1)
+
+# response time row
+#     print(reduced_table[[ 'tproctime', 'pproctime']])
+    ax_r = reduced_table.plot.bar(ax=ax_r, x='index', y=[ 'pproctime', 'tproctime'], rot=0,
+                                  color={'pproctime': 'red', 'tproctime': 'blue'}, width=0.8, alpha=1)
+    # # memory row -- dark shaded to better visualize the runtime consumption
     ax_m = reduced_table.plot.bar(ax=ax_m, x='index', y=['pmem', 'tmem'], rot=0, color={'pmem': 'red', 'tmem': 'blue'},
                                   width=0.8, alpha=1)
     # memory limit row -- light shaded to better visualize the memory limits
     ax_m = reduced_table.plot.bar(ax=ax_m, x='index', y=['pmem_lim', 'tmem_lim'], rot=0,
                                   color={'pmem_lim': 'red', 'tmem_lim': 'blue'}, width=0.8, alpha=0.3)
+
+    # reduced_table['pmem_util'] = reduced_table['pmem'] / reduced_table['pmem_lim']
+    # reduced_table['tmem_util'] = reduced_table['tmem'] / reduced_table['tmem_lim']
+    # ax_m = reduced_table.plot.bar(ax=ax_m, x='index', y=['pmem_util', 'tmem_util'], rot=0,
+    #                               color={'pmem_util': 'red', 'tmem_util': 'blue'},
+    #                               width=0.8, alpha=1)
+
+
+    # cpu row -- dark shaded to better visualize the runtime consumption
+    # reduced_table['pcpu_util'] = reduced_table['pcpu'] / reduced_table['pcpu_lim']
+    # reduced_table['tcpu_util'] = reduced_table['tcpu'] / reduced_table['tcpu_lim']
+    # ax_c = reduced_table.plot.bar(ax=ax_c, x='index', y=['pcpu_util', 'tcpu_util'], rot=0, color={'pcpu_util': 'red', 'tcpu_util': 'blue'},
+    #                               width=0.8, alpha=1)
+
+    ax_c = reduced_table.plot.bar(ax=ax_c, x='index', y=['pcpu', 'tcpu'], rot=0, color={'pcpu': 'red', 'tcpu': 'blue'},
+                                  width=0.8, alpha=1)
+    ax_c = reduced_table.plot.bar(ax=ax_c, x='index', y=['pcpu_lim', 'tcpu_lim'], rot=0,
+                                  color={'pcpu_lim': 'red', 'tcpu_lim': 'blue'}, width=0.8, alpha=0.3)
+
 
     # statistics marks p* stands for production t* stands for training
     # ax = reduced_table.plot(ax=ax, x='index', y='pmedian', color='yellow', marker='^', markersize=3, linewidth=0)
@@ -399,9 +479,10 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         ax.xaxis.set_ticks([])
         ax.set_xlabel('')
         ax.margins(x=0)
-        table = pd.DataFrame(reduced_table['nbest'].to_dict())
-        table = table.T
-        table['replicas'] = reduced_table['preplicas']
+        # table = pd.DataFrame(reduced_table['nbest'].to_dict())
+        # table = table.T
+        # table['replicas'] = reduced_table['preplicas']
+        table = reduced_table['preplicas']
         table = table.T
         table = table.fillna(value='')
         plt_table: Table
@@ -413,24 +494,34 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         table.iloc[0] = tmp
 
         try:
-            reshaped_table = table.to_numpy().reshape(4, -1)
+            reshaped_table = table.to_numpy().reshape(1, -1)
             plt_table = ax.table(cellText=reshaped_table, rowLoc='center',
-                                 rowLabels=['replicas', '1st', '2nd', '3rd'], colLabels=reduced_table['index'],
+                                 rowLabels=['replicas'], colLabels=reduced_table['index'],
                                  cellLoc='center',
                                  colLoc='center', loc='bottom')
             plt_table.set_fontsize('x-small')
 
-            for pos, cell in plt_table.get_celld().items():
-                cell.fill = True
-                text: str = cell.get_text().get_text()
-                if pos[0] != 0 and len(text) == 3 and text not in '1st2nd3rd':
-                    plt_table[pos].set_facecolor(cmap(memoization[text]))
-                    cell.set_alpha(0.5)
-                if pos[0] == 0:
-                    plt_table[pos].set_facecolor(cmap(memoization[reduced_table['pname'].iloc[pos[1]]]))
-                    # plt_table[pos].set_facecolor(cmap(memoization[reduced_table['workload'].iloc[pos[1]]]))
-                    cell.set_alpha(0.5)
-                cell.set_linewidth(0.3)
+            # reshaped_table = table.to_numpy().reshape(4, -1)
+            # plt_table = ax.table(cellText=reshaped_table, rowLoc='center',
+            #                      rowLabels=['replicas', '1st', '2nd', '3rd'], colLabels=reduced_table['index'],
+            #                      cellLoc='center',
+            #                      colLoc='center', loc='bottom')
+            # plt_table.set_fontsize('x-small')
+        #
+        #     for pos, cell in plt_table.get_celld().items():
+        #         cell.fill = True
+        #         text: str = cell.get_text().get_text()
+        #         if pos[0] != 0 and len(text) == 3 and text not in '1st2nd3rd':
+        #             try:
+        #                 plt_table[pos].set_facecolor(cmap(memoization[text]))
+        #                 cell.set_alpha(0.5)
+        #             except KeyError:
+        #                 print(f'KeyError: {text}')
+        #         if pos[0] == 0:
+        #             plt_table[pos].set_facecolor(cmap(memoization[reduced_table['pname'].iloc[pos[1]]]))
+        #             # plt_table[pos].set_facecolor(cmap(memoization[reduced_table['workload'].iloc[pos[1]]]))
+        #             cell.set_alpha(0.5)
+        #         cell.set_linewidth(0.3)
         except ValueError:
             print('cannot plot top 3 table')
 
@@ -465,6 +556,8 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     # customize y-axis labels
     ax.get_legend().remove()
     ax_m.get_legend().remove()
+    ax_u.get_legend().remove()
+    ax_c.get_legend().remove()
     ax_r.get_legend().remove()
 
     if simple_visualization:
@@ -473,24 +566,65 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         ax2 = ax.twinx()
         ax2.set_ylim(ax.get_ylim())
 
-    ax_t.set_ylabel('requests')
-    ax_r.set_ylabel('resp. time (s)')
+    ax_u.set_ylabel('service\nutilization (%)')
+    ax_u.set_ylim(0, 1.0)
+    ax_u.set_yticks(np.linspace(0, 1.0, 5))
+    rlabels = [f'{item:.0f}' for item in np.linspace(0, 1.0, 5)*100]
+    rlabels[-1] += '>'
+    ax_u.set_yticklabels(rlabels)
+
+    ax_t.set_ylabel('arrivals/s')
     ax_t.set_ylim(0, ax_t.get_yaxis().get_data_interval()[1])
-    ax_r.set_ylim(0, 1)
-    # ax.set_ylim(0, top)
     ax_t.set_yticks(np.linspace(0, ax_t.get_yaxis().get_data_interval()[1], 4))
-    ax_r.set_yticks(np.linspace(0, 1, 4))
-    rlabels = [f'{item:.2f}' for item in np.linspace(0, 1, 4)]
+
+
+
+    ax_r.set_ylabel('resp.\ntime(s)')
+    ax_r.set_ylim(0, .2)
+    ax_r.set_yticks(np.linspace(0, .2, 6))
+    rlabels = [f'{item:.4f}' for item in np.linspace(0, .2, 6)]
     rlabels[-1] += '>'
     ax_r.set_yticklabels(rlabels)
-    ax_m.set_ylim(0, ax_t.get_yaxis().get_data_interval()[1])
-    ax_m.set_yticks([0, 1024, 2048, 4096, 8192])
-    ax_m.set_ylabel('memory (MB)')
+
+    ax_m.set_yscale('log', base=2)
+    # ax_m.set_ylim(0, ax_m.get_yaxis().get_data_interval()[1])
+    ax_m.set_ylim(256, 8192)
+    ax_m.set_yticks([256, 512, 1024, 2048, 4096, 8192])
+    ax_m.set_yticklabels([256, 512, 1024, 2048, 4096, 8192])
+    # ax_m.set_yticks([0, 2**9, 2**10, 2**11, 2**12, 2*13])
+    ax_m.get_yaxis().get_major_formatter().labelOnlyBase = False
+    ax_m.set_ylabel('memory (MB)\n'+r'${\log_2}$ scale')
+
+    # ax_m.set_ylabel('Mem (%)')
+    # ax_m.set_ylim(0, 1)
+    # ax_m.set_yticks(np.linspace(0,1,5))
+    # ax_m.set_yticklabels([f'{item:.0f}' for item in np.linspace(0, 100, 5)])
+    # ax_m.get_yaxis().get_major_formatter().labelOnlyBase = False
+
+    # ax_c.set_ylabel('CPU (%)')
+    # ax_c.set_ylim(0, 1)
+    # ax_c.set_yticks(np.linspace(0,1,5))
+    # ax_c.set_yticklabels([f'{item:.0f}' for item in np.linspace(0, 100, 5)])
+    # ax_c.get_yaxis().get_major_formatter().labelOnlyBase = False
+
+    ax_c.set_ylim(0, ax_c.get_yaxis().get_data_interval()[1])
+    # ax_c.set_ylim(1, 8192)
+    ax_c.set_yticks(list(range(1,int(ax_c.get_yaxis().get_data_interval()[1]),2)))
+    ax_c.set_yticklabels(list(range(1,int(ax_c.get_yaxis().get_data_interval()[1]),2)))
+    # ax_m.set_yticks([0, 2**9, 2**10, 2**11, 2**12, 2*13])
+    ax_c.get_yaxis().get_major_formatter().labelOnlyBase = False
+    ax_c.set_ylabel('CPU')
+
     ax_t.set_title(title, loc='left')
     ax_t.axes.get_xaxis().set_visible(False)
+    ax_u.axes.get_xaxis().set_visible(False)
     ax_m.axes.get_xaxis().set_visible(False)
+    ax_c.axes.get_xaxis().set_visible(False)
+    ax_r.axes.get_xaxis().set_visible(False)
     ax_t.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
+    ax_u.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
     ax_m.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
+    ax_c.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
     ax_r.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
     # guarantee that legend is above the first row -- see line 180
     ax_t.legend(handles, [
@@ -504,12 +638,12 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         'config. \'abc\' pruned',
         'production',
         'training',
-    ], frameon=False, ncol=5, bbox_to_anchor=(0.6, 1.52), loc='upper center', fontsize='small')
+    ], frameon=False, ncol=5, bbox_to_anchor=(0.6, 1.72), loc='upper center', fontsize='small')
 
     ax.set_ylabel(objective_label)
-    # customize label position, -4 and 30 are magic numbers
-    ax.text(-4, 0, 'prod.\ncfg.', fontsize='smaller')
-    ax.text(-4, top + magic_number, 'train.\ncfg.', fontsize='smaller')
+    # customize label position, -2 and 30 are magic numbers
+    ax.text(-2, 0, 'prod.\ncfg.', fontsize='smaller')
+    ax.text(-2, top + magic_number, 'train.\ncfg.', fontsize='smaller')
 
     # hack to change hatch linewidth
     mpl.rc('hatch', color='k', linewidth=0.5)
@@ -681,7 +815,7 @@ def plot_importance(raw_data: dict):
     # plt.set_cmap(colormap)
     df = pd.DataFrame.from_dict(raw_data, orient='index')
 
-    print(df.to_csv())
+    # print(df.to_csv())
 
     # ax = df.plot.bar()
     #
@@ -692,8 +826,7 @@ def plot_importance(raw_data: dict):
     #
     # plt.show()
 
-
-if __name__ == '__main__':
+def general():
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
 
@@ -701,71 +834,72 @@ if __name__ == '__main__':
     service_name = "daytrader-service"
     config_name = "daytrader-config-app"
 
-    name = 'trace-new-version-2021-05-07T02 33 40_186281'
-    name = 'trace-2021-05-07T14 46 06 451301'
-    # name = 'trace-replicas-2021-05-08T15 48 24 363084'
-    name = 'trace-replicas-2021-05-08T19 28 57 796912'
-    name = 'trace-2021-05-10T14 24 45 937067'
-    name = 'trace-rps-2021-05-12T04 58 13 660584'
-    name = 'trace-2021-05-12T20 24 26 750340'
-    name = 'trace-rps-2021-05-12T20 24 26 750340'
-    name = 'trace-cpu-2021-05-14T00 31 43 190151'
-    name = 'trace-rps-avg-2021-05-12T20 24 26 750340 437713'
-    name = 'trace-cpu-4-2021-05-18T21 06 25 427970'
-    name = 'trace-cpu-jax-2021-05-18T21 06 25 427970 074876'
-    name = 'trace-2021-05-23T23 19 03 068170'
-    name = 'trace-2021-05-26T04 31 10 646280'  # <-- this is a valid trace
-    name = 'trace-2021-05-28T00 27 18 518096'
-    name = 'trace-long-2021-05-28T00 27 18 518096'
-    name = 'trace-rps-2021-05-31T23 57 57 960814'
-    name = 'trace-2021-06-01T20 16 53 803845'
-    name = 'trace-2021-06-02T14 17 06 775916'
-    name = 'trace-2021-06-02T21 12 08 787296' # <--- this
-    name = 'trace-2021-06-03T21 57 28 650968'
-    name = 'trace-2021-06-04T13 47 07 701796'
-    name = 'trace-2021-06-07T21 50 03 626427'
-    name = 'trace-2021-06-08T18 00 28 176707'
-    name = 'trace-2021-06-09T23 10 11 735500'
-    name = 'trace-2021-06-11T13 52 07 453913'
-    name = 'trace-2021-06-15T13 45 14 783402'
-    name = 'trace-2021-06-16T23 59 12 120766'
-    name = 'trace-2021-06-17T17 56 43 366635'
-    name = 'trace-2021-06-21T16 17 42 784677'
-    name = 'trace-2021-06-22T23 41 42 770140'
-    name = 'trace-2021-06-23T21 47 45 693264'
-    name = 'trace-2021-06-24T21 23 52 075929'
-    # name = 'trace-2021-06-23T16 57 46 496701'
-    name = 'trace-2021-06-25T19 11 18 063528'
-    name = 'trace-2021-06-27T18 48 22 336263'
-    name = 'trace-2021-06-28T17 52 33 563082'
-    name = 'trace-2021-06-29T00 14 37 499064'
-    name = 'trace-2021-06-29T20 55 50 017595'
-    name = 'trace-2021-06-30T19 52 07 300889'
-    name = 'trace-2021-07-01T00 19 29 949359'  # <-- hpa(mem, cpu)
-    name = 'trace-2021-07-01T22 13 58 727514'  # <-- hpa(cpu)
-    name = 'trace-2021-07-02T17 20 59 844732'
-    name = 'trace-2021-07-03T02 04 27 360317' # <-- 800 rps only/ tuning ok
-    name = 'trace-2021-07-04T23 42 59 410391'
-    name = 'trace-2021-07-05T17 52 08 663076'
+    # title= "Quarkus"
+    # service_name = "quarkus-service"
+    # config_name = "quarkus-cm-app"
+
+    # title = "AcmeAir"
+    # service_name = "acmeair-service"
+    # config_name = "acmeair-config-app"
+
+    name = 'trace-2021-07-12T23 06 37'
+    name = 'trace-2021-07-15T18 27 10'
+    name = 'trace-2021-07-16T21 18 09'
+    name = 'trace-2021-07-17T18 20 54'
+    name = 'trace-2021-07-19T19 44 38'
+    name = 'trace-2021-07-21T00 08 55'
+    name = 'trace-2021-07-21T15 15 57'
+    name = 'trace-2021-07-22T17 57 14'
+    name = 'trace-2021-07-24T17 00 11'
+    name = 'trace-2021-07-27T23 38 28'
+    name = 'trace-2021-07-28T17 37 26'
+    name = 'trace-2021-07-29T23 49 32'
+    name = 'trace-2021-07-30T17 56 45'
+    name = 'trace-2021-07-31T15 05 13' # 900
+    name = 'trace-2021-08-01T15 49 02' # 600
+    name = 'trace-2021-08-02T15 50 13' # 900 no readiness probe
+    name = 'trace-2021-08-03T22 50 32' # 50 clients
+    name = 'trace-2021-08-04T23 34 25'
+    name = 'trace-2021-08-06T16 14 33'
+    name = 'trace-2021-08-09T14 33 34' # svc utilization in workload 2 slowly trends downwards
+    # name = 'trace-2021-08-12T15 13 28'
+    # name = 'trace-2021-08-13T15 04 31'
+    # name = 'trace-2021-08-18T22 41 54'
+    name = 'trace-2021-08-19T22 37 44'
+    name = 'trace-2021-08-26T02 10 11'
+    name = 'trace-quarkus-2021-08-27T04 19 51' # quarkus, multi-workloads (50, 100, 200)
+    # name = 'trace-acmeair-2021-08-28T00 21 27' # acmeair, multi-workloads (50, 100, 200)
+    name = 'trace-daytrader-2021-08-28T00 23 06' # daytrader (5, 10, 50)
+    # name = 'trace-jsp-2021-03-11T13 41 07' # JSP
+    # name = 'trace-jsf-2021-03-10T14 01 00' # JSF
+    # name = 'trace-acmeair-2021-08-31T00 15 53' #acmeair trinity
+    # name = 'trace-acmeair-2021-08-31T19 27 42' # acmeair trinity 08
+    # name = 'trace-quarkus-2021-08-31T18 03 04' # quarkus trinity 08
+
+    # JSF
     # plot_importance(data)
 
-    for workload in [''] + [f'workload_{i}' for i in range(0, 3)]:
+    for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
+    # for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
+        print('workload: ', workload)
         try:
             print(workload)
-            # if 'workload_4' != workload:
+            # if 'workload_1' != workload:
             #     continue
             df = load_raw_data('./resources/' + name + '.json', service_name, workload,
-                               skip_reset=False,
-                               skip_pruned=False,
-                               skip_tuned=False,
-                               show_workload_gap=True,
+                               skip_reset=True,
+                               skip_pruned=True,
+                               skip_tuned=True,
+                               show_workload_gap=False,
                                to_gib=False)
+
             empty = df[(df['pname'].str.len() > 0)]
             if empty.empty:
                 print(f'skiping {workload}')
                 continue
             plot(df, title=title + ': ' + name + '\n' + workload,
-                 objective_label=r'$(1-error)*\frac{1}{(1+resp. time)} \times \frac{requests}{N \times \$}$',
+                 # objective_label=r'$(1-error)*\frac{1}{(1+resp. time)} \times \frac{requests}{N \times \$}$',
+                 objective_label='score',
                  save=False,
                  simple_visualization=False,
                  show_table=True)
@@ -775,3 +909,6 @@ if __name__ == '__main__':
         except:
             traceback.print_exc()
             continue
+
+if __name__ == '__main__':
+    general()
