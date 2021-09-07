@@ -10,7 +10,7 @@ from typing import Optional
 
 import numpy as np
 from kubernetes.client import ApiException, V2beta2HorizontalPodAutoscaler, V2beta2HorizontalPodAutoscalerSpec, \
-    V2beta2CrossVersionObjectReference
+    V2beta2CrossVersionObjectReference, V1ConfigMap
 from kubernetes.watch import Watch
 
 import config
@@ -38,9 +38,11 @@ def init(loop: EventLoop):
         # https://github.com/kubernetes-client/python/issues/1098
         while True:
             try:
-                hpa.read_namespaced_horizontal_pod_autoscaler(name, 'default')
+                _hpa = hpa.read_namespaced_horizontal_pod_autoscaler(name, namespace())
+                logger.debug(_hpa)
                 break
             except Exception:
+                logger.exception('cannot read hpa')
                 logger.info(f'waiting for HPA: {name}')
                 time.sleep(2)
         logger.info(f'HPA: {name} deployed')
@@ -161,6 +163,8 @@ def workload() -> Workload:
             return new_rps_based_workload()
         elif 'HPA' == config.WORKLOAD_CLASSIFIER:
             return new_replica_based_workload()
+        elif 'CM' == config.WORKLOAD_CLASSIFIER:
+            return new_cm_based_workload()
         else:
             return Workload('')
 
@@ -196,6 +200,19 @@ def workload_controller_wrapper(name):
 
     return workload_controller
 
+def new_cm_based_workload() -> Workload:
+    workload = None
+    jmeter_cm = config.JMETER_CM
+    try:
+        client = config.coreApi()
+        cm: V1ConfigMap = client.read_namespaced_config_map(name=jmeter_cm, namespace=namespace())
+        jmeter_threads = cm.data[config.JMETER_CFG_WORKLOAD]
+        workload = Workload(f'workload_{jmeter_threads}', data=jmeter_threads)
+    except:
+        logger.exception(f'cannot sample {config.JMETER_CFG_WORKLOAD} in {jmeter_cm} CM info')
+    finally:
+        logger.debug(f'sampling workload: {workload}')
+        return workload
 
 def new_replica_based_workload() -> Workload:
     workload = None

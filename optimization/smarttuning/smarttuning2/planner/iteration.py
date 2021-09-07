@@ -819,7 +819,7 @@ class IterationDriver:
             self.logger.warning(f'cannot save logging -- mongo unreacheable at {config.MONGO_ADDR}:{config.MONGO_PORT}')
             return None
         db = config.mongo()[config.MONGO_DB]
-        collection = db[f'trace-{self.uid}']
+        collection = db[f'trace-{config.NAMESPACE}-{self.uid}']
 
         trace_to_save = self.serialize(session)
         trace_to_save['reset'] = reset

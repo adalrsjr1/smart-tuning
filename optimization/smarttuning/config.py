@@ -82,9 +82,11 @@ logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format=FORMAT)
 
 # timeout before update workload
 SAMPLER_CONFIG = os.environ.get('SAMPLER_CONFIG', default='sampler.json')
-TWO_SERVICES = eval(os.environ.get('TWO_SERVICES', default='True'))
+TWO_SERVICES = eval(os.environ.get('TWO_SERVICES', default='False'))
 # WORKLOAD_TIMEOUT = int(os.environ.get('WORKLOAD_TIMEOUT', default='1'))
 WORKLOAD_CLASSIFIER = os.environ.get('WORKLOAD_CLASSIFIER', default='RPS')
+JMETER_CFG_WORKLOAD = os.environ.get('JMETER_CFG_WORKLOAD', default='JUSERS')
+JMETER_CM = os.environ.get('JMETER_CM', default='jmeter-cm')
 WORKLOAD_BANDS = os.environ.get('WORKLOAD_BANDS', default='').split(',')  # no bands
 RESTART_IF_CFG_DOESNT_CHANGE = eval(os.environ.get('RESTART_IF_CFG_DOESNT_CHANGE', default='False'))
 # WORKLOAD_BAND_WIDTH = int(os.environ.get('WORKLOAD_BAND_WIDTH', default='100'))
@@ -143,8 +145,8 @@ WAITING_TIME = int(os.environ.get('WAITING_TIME', default='120'))
 
 
 # actuator config
-NAMESPACE = os.environ.get('NAMESPACE', default='default')
-HPA_NAME = os.environ.get('HPA_NAME', default='daytrader-service')
+NAMESPACE = os.environ.get('NAMESPACE', default='quarkus')
+HPA_NAME = os.environ.get('HPA_NAME', default='quarkus-service')
 
 # -- begin -- remove this when delete sampler.py
 # OBJECTIVE = compile(os.environ.get('OBJECTIVE', default='-throughput/(memory / 2 ** 20)'), '<string>', 'eval')

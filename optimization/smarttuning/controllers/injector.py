@@ -15,7 +15,7 @@ from controllers.k8seventloop import EventLoop, ListToWatch
 config.init_k8s(hostname=config.K8S_HOST)
 
 logger = logging.getLogger(config.INJECTOR_LOGGER)
-logger.setLevel(logging.WARNING)
+logger.setLevel(config.LOGGING_LEVEL)
 
 # (key, value) == (production_name, training_name)
 duplicated_cm = {}

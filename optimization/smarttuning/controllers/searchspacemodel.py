@@ -731,6 +731,10 @@ def jmvoptions_to_dict(jvm_options):
             params['container_support'] = '-XX:+UseContainerSupport'
         elif item.startswith('-Xgcpolicy:'):
             params['gc'] = item
+        elif item.startswith('-Dhttp.keepalive'):
+            params['-Dhttp.keepalive'] = item.split('-Dhttp.keepalive=')[1]
+        elif item.startswith('-DmaxConnections'):
+            params['-DmaxConnections'] = int(item.split('-DmaxConnections=')[1])
 
     return set(params.keys()), params
 

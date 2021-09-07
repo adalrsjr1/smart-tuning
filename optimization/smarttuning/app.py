@@ -13,7 +13,7 @@ from models.instance import Instance
 from smarttuning2.planner.iteration import IterationDriver
 
 logger = logging.getLogger(config.APP_LOGGER)
-logger.setLevel('DEBUG')
+logger.setLevel(config.LOGGING_LEVEL)
 
 
 def init():
@@ -23,6 +23,8 @@ def init():
     searchspace.init(event_loop)
     injector.init(event_loop)
     workloadctrl.init(event_loop)
+
+
 
 
 contexts = {}
