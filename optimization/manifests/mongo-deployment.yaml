@@ -29,17 +29,6 @@ spec:
       labels:
         app: mongo-workload
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values:
-                      - kind-worker
-                      - docker-desktop
-                      - kind-control-plane
       containers:
         - name: mongo-admin-workload
           image: mongo-express
@@ -50,7 +39,7 @@ spec:
             - configMapRef:
                 name: mongoexpress-config
         - name: mongo-workload
-          image: mongo
+          image: mongo:4.4
           imagePullPolicy: IfNotPresent
           lifecycle:
             preStop:

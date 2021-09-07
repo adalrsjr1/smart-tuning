@@ -2,8 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: acmeair-service
-#  labels:
-#    app: "acmeair"
+  namespace: acmeair
   annotations:
     injection.smarttuning.ibm.com: "true"
 spec:
@@ -20,7 +19,6 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9080'
-#        prometheus.io/path: '/metrics'
     spec:
       containers:
         - name: acmeair
@@ -35,8 +33,6 @@ spec:
               port: 9080
               path: /acmeair-webapp/
             initialDelaySeconds: 30
-#            failureThreshold: 2
-#            periodSeconds: 10
           ports:
             - containerPort: 9080
           envFrom:

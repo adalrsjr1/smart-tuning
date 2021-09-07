@@ -1,14 +1,32 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jmeter-prod
+  labels:
+    app: jmeter-prod
+spec:
+  type: NodePort
+  ports:
+    - port: 9270
+      targetPort: 9270
+      name: smarttuning
+  selector:
+    app: jmeter-prod
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   creationTimestamp: null
   annotations:
     reloader.stakater.com/auto: "true"
+    prometheus.io/scrape: "true"
+      #prometheus.io/path: "/metrics"
+    prometheus.io/port: "9270"
   labels:
     app: jmeter-prod
   name: jmeter-prod
 spec:
-  replicas: 1
+  replicas: 10
   selector:
     matchLabels:
       app: jmeter-prod
@@ -21,11 +39,14 @@ spec:
     spec:
       containers:
       - image: smarttuning/dynamic_jmeter_daytrader
-        name: dynamic-jmeter-daytrader-x2h2q
+        name: dynamic-jmeter-daytrader
+        ports:
+          - containerPort: 9270
+            name: http
         imagePullPolicy: IfNotPresent
         env:
           - name: JHOST
-            value: 'daytrader.default.svc.cluster.local'
+            value: 'daytrader-full.default.svc.cluster.local'
         envFrom:
           - configMapRef:
               name: jmeter-config

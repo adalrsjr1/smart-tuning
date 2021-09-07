@@ -19,14 +19,14 @@ data:
     -Xtune:virtualized
     # Xms: https://www.eclipse.org/openj9/docs/openj9_defaults/
     -Xms8m
-    -Xmx384m
+    -Xmx256m
     #-XX:InitialRAMPercentage=25
     #-XX:MaxRAMPercentage=75
     # Xmn: https://www.eclipse.org/openj9/docs/xmn/
     # default 25% Xmx
     #-Xmn96m
     -Xmns2m
-    -Xmnx96m
+    -Xmnx64m
     -XX:SharedCacheHardLimit=32m
     -Xscmx=16m
     #-verbose:gc

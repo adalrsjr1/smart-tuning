@@ -1,9 +1,29 @@
 apiVersion: v1
+kind: Service
+metadta:
+  name: jmeter-train
+  labels:
+    app: jmeter-train
+spec:
+  type: NodePort
+  ports:
+    - port: 9270
+      name: http
+  selector:
+    app: jmeter-train
+
+---
+apiVersion: v1
 kind: Pod
 metadata:
   name: jmeter-train
   labels:
     app: jmeter
+  annotations:
+    prometheus.io/scrape: "true"
+      #prometheus.io/path: "/metrics"
+    prometheus.io/port: "9270"
+
 spec:
   containers:
     - name: jmeter
@@ -20,6 +40,8 @@ spec:
               - |
                 shutdown.sh
       imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 9270
       env:
         - name: JHOST
           value: 'daytrader-smarttuning.default.svc.cluster.local'

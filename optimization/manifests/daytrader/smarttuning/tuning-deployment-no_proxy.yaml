@@ -30,7 +30,8 @@ data:
   Q_CPU_L: f'sum(sum_over_time(container_spec_cpu_quota{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s])) / avg(sum_over_time(container_spec_cpu_period{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
   Q_MEM: f'sum(max_over_time(container_memory_working_set_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))/(2^20)'
   Q_MEM_L: f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))/(2^20)'
-  Q_THRUPUT: f'sum(rate(vendor_servlet_request_total{{pod=~"{self.podname}-.*",servlet!~"com_ibm_ws_microprofile.*"}}[{self.interval}s]))'
+  Q_THRUPUT: f'sum(rate(vendor_servlet_request_total{{pod=~"{self.podname}.*",servlet!~"com_ibm_ws_microprofile.*|.*Trade.*"}}[{self.interval}s]))'
+    #Q_THRUPUT: f'sum(rate(vendor_servlet_request_total{{pod=~"{self.podname}-.*",servlet!~"com_ibm_ws_microprofile.*|.*Trade.*"}}[{self.interval}s]))'
   Q_RESP_TIME: f'avg(deriv(vendor_servlet_responseTime_total_seconds{{pod=~"{self.podname}-.*",servlet!~"com_ibm_ws_microprofile.*"}}[{self.interval}s]))'
   Q_ERRORS: f'0'
   Q_REPLICAS: f'avg_over_time(kube_deployment_spec_replicas{{namespace="{self.namespace}", deployment="{self.podname}"}}[{self.interval}s])'
@@ -45,13 +46,15 @@ data:
   # test config
   NO_PROXY: "True"
   SAMPLER_CONFIG: "/etc/sampler-config/sampler.json"
-  TWO_SERVICES: "True"
+  TWO_SERVICES: "False"
+  RESTART_IF_CFG_DOESNT_CHANGE: "False"
   WORKLOAD_TIMEOUT: "60"
   WORKLOAD_CLASSIFIER: "RPS" #HPA or RPS
-  WORKLOAD_BANDS: "180,800,1600"
+  #WORKLOAD_BANDS: "50, 110, 170"
+  WORKLOAD_BANDS: "0"
   WORKLOAD_BAND_WIDTH: '500'
   WORKLOAD_BAND_DEV: '250'
-  FAIL_FAST: "True"
+  FAIL_FAST: "False"
   MOCK: "False"
   PRINT_CONFIG: "True"
   # mongo config
@@ -62,8 +65,8 @@ data:
   ST_METRICS_PORT: '9090'
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
-  SAMPLING_METRICS_TIMEOUT: '300'
-  WAITING_TIME: '300'
+  SAMPLING_METRICS_TIMEOUT: '1200'
+  WAITING_TIME: '1200'
   SAMPLE_SIZE: '0.3334'
   # classification config
   K: '1'
@@ -78,7 +81,7 @@ data:
   N_EI_CANDIDATES: '24'
   # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
   GAMMA: '0.25'
-  NUMBER_ITERATIONS: '80'
+  NUMBER_ITERATIONS: '50'
   ITERATIONS_BEFORE_REINFORCE: '10'
   MAX_N_ITERATION_NO_IMPROVEMENT: '150'
   TRY_BEST_AT_EVERY: '1'

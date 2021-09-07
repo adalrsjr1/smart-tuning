@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   creationTimestamp: null
   name: jmeter-cm
+  namespace: quarkus
 data:
   JUSERS: "1000"
   JDURATION: "172800"

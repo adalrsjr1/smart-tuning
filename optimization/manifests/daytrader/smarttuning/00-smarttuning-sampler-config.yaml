@@ -5,14 +5,25 @@ metadata:
   name: smarttuning-sampler-config
 data:
   # ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2)
+  # "penalization": "(1-errors)*(1/(1+process_time))*(memory_limit/(memory_limit + abs(xmx-memory_limit)))",
+  #"objective": "-(penalization)*(throughput/(((memory_limit * 0.013375) + (cpu_limit * 0.0535) ) / 2))",
+  # "objective": "-(penalization)*(1/(1+process_time))*((throughput)/((memory_limit/(2**10) + cpu_limit)))",
+  # "objective": "-(penalization)*(1/(1+(throughput/(1/process_time))))*(1/((memory_limit/(2**10) + cpu_limit)))",
+  #"objective": "-(penalization)*(1/(1+process_time))*(throughput/((memory_limit/(2**10) + cpu_limit)))",
+
   sampler.json: |
     {
-      "objective": "-(penalization)*(throughput/(((memory_limit * 0.013375) + (cpu_limit * 0.0535) ) / 2))",
-      "penalization": "(1-errors)*(1/(1+process_time))*(memory_limit/(memory_limit + abs(xmx-memory_limit)))",
+      "objective": "-(penalization)*(throughput/((memory_limit/(2**10) + cpu_limit)))",
+      "penalization": "(1/(1+max(0, 100*(memory/memory_limit)-79.999))) * (1/(1+max(0, 100*(throughput/(1/((process_time or 0)+(waiting_time or 0)+(connection_time or 0))))-79.999)))",
       "metrics": [
         {
           "name": "waiting_time",
-          "query": "f'avg(deriv(vendor_connectionpool_waitTime_total_seconds{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s])) /avg(rate(vendor_connectionpool_queuedRequests_total{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s]))'",
+          "query": "f'(sum(deriv(vendor_connectionpool_waitTime_total_seconds{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s])) /avg(rate(vendor_connectionpool_queuedRequests_total{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s]))) or vector(0)'",
+          "datasource": "prom"
+        },
+        {
+          "name": "connection_time",
+          "query": "f'(sum(deriv(vendor_connectionpool_inUseTime_total_seconds{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s])) /avg(rate(vendor_connectionpool_usedConnections_total{{pod=~\"{podname}-.*\",name!~\".*POD.*\",datasource=~\"jdbc.*\"}}[{interval}s]))) or vector(0)'",
           "datasource": "prom"
         },
         {
@@ -36,19 +47,19 @@ data:
           "datasource": "prom"
         },
         {
+          "name": "heap",
+          "query": "f'sum(avg_over_time(base_memory_usedHeap_bytes{{pod=~\"{podname}-.*\"}}[{interval}s]))/(2^20)'",
+          "datasource": "prom"
+        },
+        {
           "name": "throughput",
-          "query": "f'sum(rate(vendor_servlet_request_total{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*\"}}[{interval}s]))'",
+          "query": "f'sum(rate(vendor_servlet_request_total{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s]))'",
           "datasource": "prom"
         },
         {
           "name": "process_time",
-          "query": "f'avg(deriv(vendor_servlet_responseTime_total_seconds{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*\"}}[{interval}s]))'",
+          "query": "f'(avg(sum(rate(vendor_servlet_responseTime_total_seconds{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s])/rate(vendor_servlet_request_total{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s])) by (pod))) or vector(2^64)'",
           "datasource": "prom"
-        },
-        {
-          "name": "errors",
-          "query": "0",
-          "datasource": "scalar"
         },
         {
           "name": "curr_replicas",

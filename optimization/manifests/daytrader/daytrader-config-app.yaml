@@ -68,7 +68,7 @@ data:
   CORE_THREADS: "0"
   # default -1
 #  MAX_THREADS: "99"
-  MAX_THREADS: "-1"
+  MAX_THREADS: "10"
   ## App
   # SYNC:0, ASYNC:1, ASYNC_2P:2
   ORDER_PROCESSING_MODE: "0"

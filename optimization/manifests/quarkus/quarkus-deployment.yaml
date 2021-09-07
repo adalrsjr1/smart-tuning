@@ -2,12 +2,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  creationTimestamp: null
   labels:
     app: quarkus-service
   annotations:
     injection.smarttuning.ibm.com: "true"
   name: quarkus-service
+  namespace: quarkus
 spec:
   replicas: 1
   selector:
@@ -17,7 +17,6 @@ spec:
   strategy: {}
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app: quarkus-service
         smarttuning: "false"
@@ -29,23 +28,13 @@ spec:
       - image: smarttuning/rest-crud-quarkus-native
         imagePullPolicy: IfNotPresent
         name: rest-crud-quarkus-native
-#        readinessProbe:
-#          httpGet:
-#            path: /health/ready
-#            port: 9080
-#          initialDelaySeconds: 10
-#        livenessProbe:
-#          httpGet:
-#            path: /health/live
-#            port: 9080
-#          initialDelaySeconds: 10
         ports:
           - containerPort: 9080
         env:
           - name: "quarkus.http.port"
             value: "9080"
           - name: "quarkus.datasource.jdbc.url"
-            value: "jdbc:postgresql://postgres-quarkus-rest-http-crud-svc.default.svc.cluster.local/rest-crud"
+            value: "jdbc:postgresql://postgres-quarkus-rest-http-crud-svc.quarkus.svc.cluster.local/rest-crud"
         resources:
           limits:
             cpu: "1"
@@ -55,5 +44,4 @@ spec:
               name: quarkus-cm-app
           - configMapRef:
               name: quarkus-cm-jvm
-status: {}
 ---

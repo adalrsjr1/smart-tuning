@@ -2,6 +2,7 @@
 kind: HorizontalPodAutoscaler
 apiVersion: autoscaling/v2beta2
 metadata:
+  namespace: acmeair
   name: acmeair-service
 spec:
   scaleTargetRef:
@@ -13,7 +14,7 @@ spec:
   # autoscale between 1 and 10 replicas
   # cluster supports at most 24 cores
   minReplicas: 1
-  maxReplicas: 10 # 10 replicas of 2 cores
+  maxReplicas: 4 # 10 replicas of 2 cores
   metrics:
   # use a "Pods" metric, which takes the average of the
   # given metric across all pods controlled by the autoscaling target
@@ -22,4 +23,4 @@ spec:
          name: cpu
          target:
            type: Utilization
-           averageUtilization: 40
+           averageUtilization: 49

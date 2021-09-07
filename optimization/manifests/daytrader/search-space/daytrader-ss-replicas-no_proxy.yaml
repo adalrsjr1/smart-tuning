@@ -21,9 +21,12 @@ data:
           type: "integer"
           values:
             - "1"
-            - "2"
-            - "3"
-            - "4"
+#            - "1.5"
+#            - "2"
+#            - "2.5"
+#            - "3"
+#            - "3.5"
+#            - "4"
         - name: "memory"
           type: "integer"
           values:
@@ -39,7 +42,7 @@ data:
       number:
         - name: "MAX_THREADS"
           lower:
-            value: -1
+            value: 10
           upper:
             dependsOn: "CONMGR1_MAX_POOL_SIZE"
             value: 50
@@ -48,7 +51,7 @@ data:
         # JDBC Conn Pool
         - name: "CONMGR1_MAX_POOL_SIZE"
           lower:
-            value: 4
+            value: 10
           upper:
             value: 50
           step: 1
@@ -93,7 +96,7 @@ data:
         # TCF Conn Pool
         - name: "CONMGR4_MAX_POOL_SIZE"
           lower:
-            value: 4
+            value: 10
           upper:
             value: 50
           step: 1
@@ -173,7 +176,7 @@ data:
             value: 16
           upper:
             value: 8192
-            dependsOn: "memory 0.8 *"
+            dependsOn: "memory 0.5 *"
           step: 16
           real: False
         - name: "-Xmns"

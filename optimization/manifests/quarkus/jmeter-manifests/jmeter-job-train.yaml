@@ -3,6 +3,7 @@ kind: Job
 metadata:
   creationTimestamp: null
   name: jmeter-quarkus-train
+  namespace: quarkus
 spec:
   template:
     metadata:
@@ -14,7 +15,7 @@ spec:
         imagePullPolicy: Never
         env:
           - name: JHOST
-            value: "quarkus-svc-smarttuning.default.svc.cluster.local"
+            value: "quarkus-svc-smarttuning.quarkus.svc.cluster.local"
         envFrom:
           - configMapRef:
               name: jmeter-cm

@@ -45,6 +45,7 @@ data:
   # test config
   SAMPLER_CONFIG: "/etc/sampler-config/sampler.json"
   TWO_SERVICES: "True"
+  RESTART_IF_CFG_DOESNT_CHANGE: "False"
   WORKLOAD_TIMEOUT: "60"
   WORKLOAD_CLASSIFIER: "RPS" #HPA or RPS
   WORKLOAD_BANDS: "80,400,800"

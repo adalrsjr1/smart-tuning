@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: acmeair-config-jvm
+  namespace: acmeair
 data:
   # cannot set empty jvm.options
   # if it is candidate to be tuned, i.e., they are set on the search space
