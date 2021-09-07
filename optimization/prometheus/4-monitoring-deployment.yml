@@ -10,17 +10,6 @@ spec:
       labels:
         app: prometheus-server
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values:
-                      - kind-worker
-                      - docker-desktop
-                      - kind-control-plane
       containers:
         - name: prometheus
           image: quay.io/prometheus/prometheus:v2.26.0
