@@ -6,6 +6,8 @@
 * tuning multi-replicas services [#21](/../../issues/21)
 * classify workloads based on the number of replicas
 * classify workloads based on throughput
+* add mock workload-classifier
+* remove proxy need and service replication
 #### Version 3.0
 * update codebase to create one tuning context per workload [#18](/../../issues/18)
   * add eager stop
