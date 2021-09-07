@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quarkus-cm-app
+  namespace: quarkus
+data:
+  quarkus.datasource.jdbc.min-size: "0"
+  quarkus.datasource.jdbc.max-size: "20"
+  quarkus.datasource.jdbc.max-lifetime: "1800"
+  quarkus.datasource.jdbc.idle-removal-interval: "300"
+  quarkus.vertx.event-loops-pool-size: "2"
+  quarkus.vertx.worker-pool-size: "20"
+  quarkus.http.io-threads: "4"
+  quarkus.http.idle-timeout: "1800"
+  quarkus.http.so-reuse-port: "false"
+

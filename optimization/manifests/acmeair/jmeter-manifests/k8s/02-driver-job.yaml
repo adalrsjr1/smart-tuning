@@ -1,0 +1,106 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: jmeter-driver
+  namespace: acmeair
+rules:
+  - apiGroups: ["*"]
+    resources:
+      - configmaps
+      - services
+      - deployments
+      - searchspaces
+      - pods
+    verbs: ["get","list","watch","create","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jmeter-driver
+  namespace: acmeair
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: jmeter-driver
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: acmeair
+---
+# driver to try different workloads on Jmeter
+# Jmeter must have support to change the worklaod through env_var
+# Jmeter must be restarted when an env_var is updated
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: jmeter-driver
+  namespace: acmeair
+spec:
+  template:
+    spec:
+      containers:
+      - image: amouat/network-utils
+        name: jmeter-driver-acmeair
+        imagePullPolicy: IfNotPresent
+        command: ["bash", "-c"]
+        args:
+          - |
+            function update_cm() {
+              # patch config map
+              KUBE_TOKEN=$(</var/run/secrets/kubernetes.io/serviceaccount/token)
+              NAME=$1
+              curl -sSk \
+                -X PATCH \
+                -d "{\"kind\":\"ConfigMap\",\"apiVersion\":\"v1\",\"data\":{\"JTHREAD\":\"$NAME\"}}" \
+                -H "Authorization: Bearer $KUBE_TOKEN" \
+                -H 'Accept: application/json' \
+                -H 'Content-Type: application/strategic-merge-patch+json' \
+                https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/api/v1/namespaces/$NAMESPACE/configmaps/$CONFIGMAP_TARGET
+            }
+
+            # split string at IFS and assign to array
+            IFS=',' read -r -a array <<< $WORKLOADS_LIST
+            # array length
+            array_len=${#array[@]}
+            # workaround to correctly loop[0,n-1]
+            N_ITERATIONS=$((N_ITERATIONS - 1))
+            for i in $(seq 0 $N_ITERATIONS); do
+              # circular list
+              item="${array[$((i % array_len))]}"
+              echo ""
+              echo "iteration: $i, workload: $item, duration $ITERATION_DURATION"
+              # log only the updated parameter
+              #update_cm $item
+              # TODO: update any key:value data
+              #update_cm $item | grep \"TEST_GROUP\":
+              update_cm $item | grep \"JUSERS\":
+
+              #if [[ -n $RANDOM ]]; then
+                #ITERATION_DURATION=$(($RANDOM % $MAX_RANDOM + $MIN_RANDOM))
+              #fi
+
+              echo "sleeping: $(($ITERATION_DURATION / 60))"
+              sleep $ITERATION_DURATION
+              echo ""
+            done;
+        env:
+          - name: NAMESPACE
+            value: "acmeair"
+          - name: CONFIGMAP_TARGET
+            value: "jmeter-cm"
+          - name: N_ITERATIONS
+            value: "1000"
+            # unset if want a fixed value for ITERATION_DURATION
+          - name: RANDOM
+            value: ""
+          - name: MAX_RANDOM
+            value: "4020"
+          - name: MIN_RANDOM
+            value: "1020"
+          - name: ITERATION_DURATION
+            value: "2400"
+          - name: WORKLOADS_LIST
+            value: "50,100,200"
+      restartPolicy: Never

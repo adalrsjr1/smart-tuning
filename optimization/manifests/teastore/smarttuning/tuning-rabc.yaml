@@ -1,0 +1,26 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tuning
+  namespace: teastore
+rules:
+  - apiGroups: [ "*" ]
+    resources: [ "*" ]
+    verbs: [ "*" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tuning
+  namespace: teastore
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tuning
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: teastore
+---
+

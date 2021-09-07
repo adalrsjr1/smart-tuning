@@ -1,0 +1,174 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: daytrader-service
+  annotations:
+    injection.smarttuning.ibm.com: "true"
+spec:
+  selector:
+    matchLabels:
+      app: daytrader
+      smarttuning: "false"
+  # https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  #  strategy:
+  #  type: Recreate
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: "100%"
+      maxUnavailable: "0%"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: daytrader
+        smarttuning: "false"
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9080'
+        #prometheus.io/path: '/metrics'
+    spec:
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 90
+      containers:
+        - name: daytrader
+          image: smarttuning/daytrader8-db2   # update port to 50000
+          #image: smarttuning/daytrader8-derby # update port to 1527
+          #image: smarttuning/daytrader8-embd
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/bash", "-c", "sleep 90"]
+          #      command: ["/bin/bash", "-c", "rm -rf /home/$POD_NAME/ffdc /home/$POD_NAME/messages*.*"]
+          #  postStart:
+          #   exec:
+          #     command: ["/bin/bash", "-c", "export LOG_DIR=/home/$(date +'%Y%m%d.%H%M')/$POD_NAME"]
+          #     command: [ "/bin/bash", "-c", "mkdir -p /home/daytrader && touch /home/daytrader/verbosegc.$(date +'%Y%m%d.%H%M%S').$HOSTNAME"]
+          resources:
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          ports:
+            - containerPort: 9080
+          env:
+            #- name: "CONMGR4_TIMEOUT"
+            #  value: $(CONMGR1_TIMEOUT)
+            #- name: "CONMGR4_AGED_TIMEOUT"
+            #  value: $(CONMGR1_AGED_TIMEOUT)
+            #- name: "CONMGR4_MAX_IDLE_TIMEOUT"
+            #  value: $(CONMGR1_MAX_IDLE_TIMEOUT)
+            #- name: "CONMGR4_REAP_TIME"
+            #  value: $(CONMGR1_REAP_TIME)
+            #- name: "CONMGR4_MAX_POOL_SIZE"
+            #  value: $(CONMGR1_MAX_POOL_SIZE)
+            #- name: "CONMGR4_MIN_POOL_SIZE"
+            #  value: $(CONMGR1_MIN_POOL_SIZE)
+            #- name: "CONMGR4_PURGE_POLICY"
+            #  value: $(CONMGR1_PURGE_POLICY)
+            #- name: "CONMGR4_CONN_PER_THREAD"
+            #  value: $(CONMGR1_CONN_PER_THREAD)
+            - name: DB_ADDRESS
+              value: daytrader-db.default.svc.cluster.local
+            - name: DB_PORT
+            # value: "1527"
+              value: "50000"
+            - name: DB_NAME
+              value: "tradedb"
+            - name: DB_USER
+              value: "db2inst1"
+            - name: DB_PASS
+              value: "db2pass"
+            - name: MAX_QUOTES
+              value: "1000"
+            - name: MAX_USERS
+              value: "500"
+              #- name: TRACE_SLOW_REQUEST_THRESHOLD
+              #  value: "1s"
+              #- name: TRACE_HUNG_REQUEST_THRESHOLD
+              #  value: "2s"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: LOG_DIR
+              value: /home/$(POD_NAME)
+          # avoid to send requests if it already restarted
+          readinessProbe:
+            httpGet:
+              path: /daytrader
+              port: 9080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+#          readinessProbe:
+#            exec:
+#              command:
+#                - bash
+#                - -c
+#                - /opt/readness_probe.sh
+#            initialDelaySeconds: 30
+#            failureThreshold: 1
+#            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              port: 9080
+              path: /daytrader
+            initialDelaySeconds: 30
+            periodSeconds: 15
+#            # force restart
+#          livenessProbe:
+##            httpGet:
+##              port: 9080
+##              path: /health
+#            exec:
+##              # /opt/liveness_probe.sh <interval> <rqps threshold>
+#              command:
+#                - bash
+#                - -c
+#                - |
+#                  /bin/bash << 'EOF'
+#                  u=$(cat /sys/fs/cgroup/memory/memory.usage_in_bytes)
+#                  m=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes)
+#
+#                  # force oomkill if memory usage is below this threshould
+#                  kill=$(awk "BEGIN {printf \"%d\",1-(${u}/${m} <= 0.9)}")
+#
+#                  exit $kill
+#
+#                  EOF
+#            initialDelaySeconds: 100
+#            failureThreshold: 1
+#            periodSeconds: 10
+          envFrom:
+            - configMapRef:
+                name: daytrader-config-app
+            #- configMapRef:
+            #    name: daytrader-config-fake
+          volumeMounts:
+            #- mountPath: /etc/daytrader-config-app
+            #  name: daytrader-config-app
+            #- mountPath: /etc/daytrader-config-fake
+            #  name: daytrader-config-fake
+            - mountPath: /config/jvm.options
+              subPath: jvm.options
+              name: daytrader-config-jvm
+              #  - mountPath: /home
+              #name: threadpooldump
+          securityContext:
+            # rum as root
+            runAsUser: 0
+            privileged: true
+      volumes:
+        - name: daytrader-config-app
+          configMap:
+            name: daytrader-config-app
+        #- name: daytrader-config-fake
+            #configMap:
+            #name: daytrader-config-fake
+        - name: daytrader-config-jvm
+          configMap:
+            name: daytrader-config-jvm
+            #- name: threadpooldump
+            #hostPath:
+            #path: /smarttuning/threadpooldump
+            #type: DirectoryOrCreate

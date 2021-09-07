@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jmeter-acmeair
+  namespace: acmeair
+  labels:
+    app: jmeter-acmeair
+spec:
+  type: NodePort
+  ports:
+    - port: 9270
+      targetPort: 9270
+      name: smarttuning
+  selector:
+    app: jmeter-acmeair
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    reloader.stakater.com/auto: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9270"
+  labels:
+    app: jmeter-acmeair
+  name: jmeter-acmeair
+  namespace: acmeair
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jmeter-acmeair
+  template:
+    metadata:
+      labels:
+        app: jmeter-acmeair
+    spec:
+      containers:
+      - image: smarttuning/jmeter_acmeair
+        name: jmeter-acmeair
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: JHOST
+            value: "acmeair-svc.acmeair.svc.cluster.local"
+        envFrom:
+          - configMapRef:
+              name: jmeter-cm
+      restartPolicy: Always

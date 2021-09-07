@@ -1,0 +1,40 @@
+apiVersion: "smarttuning.ibm.com/v1alpha2"
+kind: SearchSpace
+metadata:
+  name: teastore-all-ss
+  namespace: teastore
+spec:
+  deployment: teastore-all
+  service: teastore-all
+  namespace: "teastore"
+  manifests:
+    - name: teastore-all
+      type: "deployment"
+    - name: teastore-cfg
+      type: "configMap"
+data:
+  - name: teastore-all
+    tunables:
+      option:
+        - name: "cpu"
+          type: "integer"
+          values:
+            - "2"
+        - name: "memory"
+          type: "integer"
+          values:
+            - "1024"
+            - "1536"
+            - "2048"
+            - "2560"
+            - "4096"
+  - name: teastore-cfg
+    tunables:
+      number:
+        - name: "TOMCAT_HEAP_MEM_PERCENTAGE"
+          lower:
+            value: 20
+          upper:
+            value: 80
+          real: False
+          step: 5

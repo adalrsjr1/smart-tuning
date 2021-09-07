@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smarttuning-proxy-config
+data:
+  ASYNC: "false"
+  PATH_SEPARATOR: "/"
+  PATH_SEPARATOR_INDEX: "0"
+  MAX_CONNECTIONS: "10000"
+  READ_BUFFER_SIZE: "65536"
+  WRITE_BUFFER_SIZE: "65536"
+  READ_TIMEOUT: "0"
+  WRITE_TIMEOUT: "0"
+  MAX_IDLE_CONNECTION_DURATION: "0"
+  MAX_CONNECTION_TIMEOUT: "0"
+  RESOURCE_USAGE: "false"
+  METRIC_ID: "smarttuning"
+  MEASURING_TRAFFIC: "true"
+  COUNT_REQUESTS: "true"
+  COUNT_PROC_TIME: "true"
+  COUNT_REQ_SIZE: "false"
+  COUNT_IN_REQ: "true"
+  COUNT_OUT_REQ: "true"
+  COUNT_ACTIVE_CONNS: "true"
+  INSTRUMENTING: "false"
+  MAX_IDEMPONENT_CALL_ATTEMPTS: "1" # single attempt before failing

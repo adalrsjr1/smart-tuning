@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: teastore
+  name: teastore-cfg
+data:
+  # all connectors
+  JVM_INLINE_LEVEL: "9"
+  TOMCAT_HEAP_MEM_PERCENTAGE: "50"
+  # standard HTTP connector
+  MAX_THREADS: "200"
+  MIN_SPARE_THREADS: "10"
+  PROCESSOR_CACHE: "200" # use MAX_THREADS as upper limit
+  KEEP_ALIVE_TIMEOUT: "20000" # same as connection timeout
+  CONNECTION_TIMEOUT: "20000" # 20s
+  COMPRESSION_MIN_SIZE: "2048"
+  COMPRESSION: "on" # on/off
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: teastore
+  name: teastore-all
+data:
+  catalina.properties: "package.access=sun.,org.apache.catalina.,org.apache.coyote.,org.apache.jasper.,org.apache.tomcat.\r\npackage.definition=sun.,java.,org.apache.catalina.,org.apache.coyote.,\\\r\norg.apache.jasper.,org.apache.naming.,org.apache.tomcat.\r\ncommon.loader=\"${catalina.base}/lib\",\"${catalina.base}/lib/*.jar\",\"${catalina.home}/lib\",\"${catalina.home}/lib/*.jar\"\r\nserver.loader=\r\nshared.loader=\r\ntomcat.util.scan.StandardJarScanFilter.jarsToSkip=\\\r\nannotations-api.jar,\\\r\nant-junit*.jar,\\\r\nant-launcher.jar,\\\r\nant.jar,\\\r\nasm-*.jar,\\\r\naspectj*.jar,\\\r\nbootstrap.jar,\\\r\ncatalina-ant.jar,\\\r\ncatalina-ha.jar,\\\r\ncatalina-jmx-remote.jar,\\\r\ncatalina-storeconfig.jar,\\\r\ncatalina-tribes.jar,\\\r\ncatalina-ws.jar,\\\r\ncatalina.jar,\\\r\ncglib-*.jar,\\\r\ncobertura-*.jar,\\\r\ncommons-beanutils*.jar,\\\r\ncommons-codec*.jar,\\\r\ncommons-collections*.jar,\\\r\ncommons-daemon.jar,\\\r\ncommons-dbcp*.jar,\\\r\ncommons-digester*.jar,\\\r\ncommons-fileupload*.jar,\\\r\ncommons-httpclient*.jar,\\\r\ncommons-io*.jar,\\\r\ncommons-lang*.jar,\\\r\ncommons-logging*.jar,\\\r\ncommons-math*.jar,\\\r\ncommons-pool*.jar,\\\r\ndom4j-*.jar,\\\r\neasymock-*.jar,\\\r\necj-*.jar,\\\r\nel-api.jar,\\\r\ngeronimo-spec-jaxrpc*.jar,\\\r\nh2*.jar,\\\r\nhamcrest-*.jar,\\\r\nhibernate*.jar,\\\r\nhttpclient*.jar,\\\r\nicu4j-*.jar,\\\r\njasper-el.jar,\\\r\njasper.jar,\\\r\njaspic-api.jar,\\\r\njaxb-*.jar,\\\r\njaxen-*.jar,\\\r\njdom-*.jar,\\\r\njetty-*.jar,\\\r\njmx-tools.jar,\\\r\njmx.jar,\\\r\njsp-api.jar,\\\r\njstl.jar,\\\r\njta*.jar,\\\r\njunit-*.jar,\\\r\njunit.jar,\\\r\nlog4j*.jar,\\\r\nmail*.jar,\\\r\nobjenesis-*.jar,\\\r\noraclepki.jar,\\\r\noro-*.jar,\\\r\nservlet-api-*.jar,\\\r\nservlet-api.jar,\\\r\nslf4j*.jar,\\\r\ntaglibs-standard-spec-*.jar,\\\r\ntagsoup-*.jar,\\\r\ntomcat-api.jar,\\\r\ntomcat-coyote.jar,\\\r\ntomcat-dbcp.jar,\\\r\ntomcat-i18n-*.jar,\\\r\ntomcat-jdbc.jar,\\\r\ntomcat-jni.jar,\\\r\ntomcat-juli-adapters.jar,\\\r\ntomcat-juli.jar,\\\r\ntomcat-util-scan.jar,\\\r\ntomcat-util.jar,\\\r\ntomcat-websocket.jar,\\\r\ntools.jar,\\\r\nwebsocket-api.jar,\\\r\nwsdl4j*.jar,\\\r\nxercesImpl.jar,\\\r\nxml-apis.jar,\\\r\nxmlParserAPIs-*.jar,\\\r\nxmlParserAPIs.jar,\\\r\nxom-*.jar\r\ntomcat.util.scan.StandardJarScanFilter.jarsToScan=\\\r\nlog4j-taglib*.jar,\\\r\nlog4j-web*.jar,\\\r\nlog4javascript*.jar,\\\r\nslf4j-taglib*.jar\r\ntomcat.util.buf.StringCache.byte.enabled=true\r\norg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource\r\n"
+  server.xml: |+
+    <Server port="8005" shutdown="SHUTDOWN">
+    <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+    <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
+    <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+    <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+    <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+    <GlobalNamingResources>
+      <Resource name="UserDatabase" auth="Container"
+                type="org.apache.catalina.UserDatabase"
+                description="User database that can be updated and saved"
+                factory="org.apache.catalina.users.MemoryUserDatabaseFactory"
+                pathname="conf/tomcat-users.xml" />
+    </GlobalNamingResources>
+    <Service name="Catalina">
+      <Connector port="8080" protocol="HTTP/1.1"
+                          server="TeaStore"
+                 redirectPort="8443" />
+      <Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
+      <Engine name="Catalina" defaultHost="localhost">
+        <Realm className="org.apache.catalina.realm.LockOutRealm">
+          <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+                 resourceName="UserDatabase"/>
+        </Realm>
+        <Host name="localhost"  appBase="webapps"
+              unpackWARs="true" autoDeploy="true">
+
+              <Valve className="org.apache.catalina.valves.AccessLogValve"
+     directory="logs" prefix="teastore." suffix=".log" resolveHosts="false" />
+
+        </Host>
+      </Engine>
+    </Service>
+    </Server>
+

@@ -1,0 +1,23 @@
+---
+kind: HorizontalPodAutoscaler
+apiVersion: autoscaling/v2beta2
+metadata:
+  name: teastore-all
+  namespace: teastore
+spec:
+  scaleTargetRef:
+    # point the HPA at the sample application
+    # you created above
+    apiVersion: apps/v1
+    kind: Deployment
+    name: teastore-all
+  minReplicas: 1
+  maxReplicas: 4 # 10 replicas of 2 cores
+  metrics:
+     - type: Resource
+       resource:
+         name: cpu
+         target:
+           type: Utilization
+           averageUtilization: 49
+

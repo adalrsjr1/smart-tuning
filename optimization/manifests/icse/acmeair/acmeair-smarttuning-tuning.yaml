@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: acmeair-service
+  namespace: acmeair
+  annotations:
+    injection.smarttuning.ibm.com: "true"
+spec:
+  selector:
+    matchLabels:
+      app: acmeair
+      smarttuning: "false"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: acmeair
+        smarttuning: "false"
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9080'
+    spec:
+      containers:
+        - name: acmeair
+          image: smarttuning/liberty-acmeair-k8s
+          resources:
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            httpGet:
+              port: 9080
+              path: /acmeair-webapp/
+            initialDelaySeconds: 60
+          ports:
+            - containerPort: 9080
+          envFrom:
+            - configMapRef:
+                name: acmeair-config-app
+          volumeMounts:
+            - mountPath: /etc/acmeair-config-app
+              name: acmeair-config-app
+            - mountPath: /config/jvm.options
+              subPath: jvm.options
+              name: acmeair-config-jvm
+      volumes:
+        - name: acmeair-config-app
+          configMap:
+            name: acmeair-config-app
+        - name: acmeair-config-jvm
+          configMap:
+            name: acmeair-config-jvm
+---

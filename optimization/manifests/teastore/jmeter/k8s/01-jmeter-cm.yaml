@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jmeter-cm-teastore
+  namespace: teastore
+data:
+  JVM_ARGS: "-Xms1g -Xmx1g -Xtune:virtualized -XX:+UseContainerSupport -XX:MaxRAMPercentage=90"
+  JPORT: "8080"
+  JTHREADS: "2"
+  JRAMP: "0"
+  JDURATION: "57600"
+  TEST_GROUP: "single"
+  TEST_PLAN: "teastore.jmx"

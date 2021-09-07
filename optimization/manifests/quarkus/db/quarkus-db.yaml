@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: postgres-quarkus-rest-http-crud
+  name: postgres-quarkus-rest-http-crud
+  namespace: quarkus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-quarkus-rest-http-crud
+  template:
+    metadata:
+      labels:
+        app: postgres-quarkus-rest-http-crud
+    spec:
+      containers:
+      - image: postgres:10.5
+        name: postgres
+        args: ["-N", "1000", "-B", "8192MB"]
+        imagePullPolicy: IfNotPresent
+        resources: {}
+        env:
+          - name: POSTGRES_USER
+            value: "restcrud"
+          - name: POSTGRES_PASSWORD
+            value: "restcrud"
+          - name: POSTGRES_DB
+            value: "rest-crud"
+        ports:
+          - containerPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: postgres-quarkus-rest-http-crud-svc
+  name: postgres-quarkus-rest-http-crud-svc
+  namespace: quarkus
+spec:
+  ports:
+  - name: "pg"
+    port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    app: postgres-quarkus-rest-http-crud
+  type: NodePort
+---

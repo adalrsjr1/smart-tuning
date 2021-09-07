@@ -1,0 +1,87 @@
+apiVersion: "smarttuning.ibm.com/v1alpha2"
+kind: SearchSpace
+metadata:
+  name: daytrader-ss
+  namespace: quarkus
+spec:
+  deployment: quarkus-service
+  service: quarkus-svc
+  namespace: "quarkus"
+  manifests:
+    - name: quarkus-service
+      type: "deployment"
+    - name: quarkus-cm-app
+      type: "configMap"
+    - name: quarkus-cm-jvm
+      type: "configMap"
+data:
+  - name: quarkus-service
+    tunables:
+      option:
+        - name: "cpu"
+          type: "real"
+          values:
+            - "2"
+        - name: "memory"
+          type: "integer"
+          values:
+            - "512"
+            - "1024"
+            - "2048"
+            - "4096"
+            - "8192"
+  - name: quarkus-cm-app
+    tunables:
+      number:
+        - name: "quarkus.vertx.worker-pool-size"
+          lower:
+            value: 10
+          upper:
+            value: 200
+          step: 10
+          real: False
+        - name: "quarkus.datasource.jdbc.max-size"
+          lower:
+            value: 16
+            dependsOn: "quarkus.vertx.worker-pool-size"
+          upper:
+            value: 200
+          step: 10
+          real: False
+        - name: "quarkus.datasource.jdbc.min-size"
+          lower:
+            value: 16
+          upper:
+            value: 200
+            dependsOn: "quarkus.datasource.jdbc.max-size"
+          step: 10
+          real: False
+  - name: quarkus-cm-jvm
+    tunables:
+      number:
+        - name: "XMS"
+          lower:
+            value: 8
+          upper:
+            value: 896
+            dependsOn: "memory 0.4 *"
+          step: 8
+          real: False
+        - name: "XMX"
+          lower:
+            value: 16
+            dependsOn: "XMS"
+          upper:
+            value: 8192
+            dependsOn: "memory 0.4 *"
+          step: 16
+          real: False
+        - name: "XMN"
+          lower:
+            value: 8
+          upper:
+            value: 896
+            dependsOn: "XMX 0.85 *"
+          step: 8
+          real: False
+
