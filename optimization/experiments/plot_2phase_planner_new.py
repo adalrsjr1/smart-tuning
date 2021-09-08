@@ -830,17 +830,17 @@ def general():
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
 
-    title = 'Daytrader'
-    service_name = "daytrader-service"
-    config_name = "daytrader-config-app"
+    # title = 'Daytrader'
+    # service_name = "daytrader-service"
+    # config_name = "daytrader-config-app"
 
     # title= "Quarkus"
     # service_name = "quarkus-service"
     # config_name = "quarkus-cm-app"
 
-    # title = "AcmeAir"
-    # service_name = "acmeair-service"
-    # config_name = "acmeair-config-app"
+    title = "AcmeAir"
+    service_name = "acmeair-service"
+    config_name = "acmeair-config-app"
 
     name = 'trace-2021-07-12T23 06 37'
     name = 'trace-2021-07-15T18 27 10'
@@ -875,12 +875,13 @@ def general():
     # name = 'trace-acmeair-2021-08-31T00 15 53' #acmeair trinity
     # name = 'trace-acmeair-2021-08-31T19 27 42' # acmeair trinity 08
     # name = 'trace-quarkus-2021-08-31T18 03 04' # quarkus trinity 08
+    name = 'trace-acmeair-2021-09-07T20 50 22' # ok
 
     # JSF
     # plot_importance(data)
 
-    for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
-    # for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
+    # for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
+    for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
         print('workload: ', workload)
         try:
             print(workload)
