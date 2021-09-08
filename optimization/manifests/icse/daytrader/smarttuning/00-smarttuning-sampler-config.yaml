@@ -5,11 +5,17 @@ metadata:
   name: smarttuning-sampler-config
   namespace: daytrader
 data:
+  # ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2)
+  # "penalization": "(1-errors)*(1/(1+process_time))*(memory_limit/(memory_limit + abs(xmx-memory_limit)))",
+  #"objective": "-(penalization)*(throughput/(((memory_limit * 0.013375) + (cpu_limit * 0.0535) ) / 2))",
+  # "objective": "-(penalization)*(1/(1+process_time))*((throughput)/((memory_limit/(2**10) + cpu_limit)))",
+  # "objective": "-(penalization)*(1/(1+(throughput/(1/process_time))))*(1/((memory_limit/(2**10) + cpu_limit)))",
+  #"objective": "-(penalization)*(1/(1+process_time))*(throughput/((memory_limit/(2**10) + cpu_limit)))",
 
   sampler.json: |
     {
       "objective": "-(penalization)*(throughput/((memory_limit/(2**10) + cpu_limit))) * 1/(1+process_time)",
-      "penalization": "1/(1+(errors/throughput))",
+      "penalization": "1",
       "metrics": [
         {
           "name": "cpu",
@@ -32,18 +38,13 @@ data:
           "datasource": "prom"
         },
         {
-          "name": "errors",
-          "query": "f'sum(rate(smarttuning_http_requests_total{{pod=~\"{podname}-.*\", code=~\"5..\",name!~\".*POD.*\"}}[{interval}s]))'",
-          "datasource": "prom"
-        },
-        {
           "name": "throughput",
-          "query": "f'sum(rate(smarttuning_http_requests_total{{pod=~\"{podname}-.*\",name!~\".*POD.*\"}}[{interval}s]))'",
+          "query": "f'sum(rate(vendor_servlet_request_total{{namespace=\"{namespace}\",pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s]))'",
           "datasource": "prom"
         },
         {
           "name": "process_time",
-          "query":"f'avg(rate(smarttuning_http_processtime_seconds_sum{{pod=~\"{podname}-.*\",name!~\".*POD.*\"}}[{interval}s])) / sum( rate(smarttuning_http_processtime_seconds_count{{pod=~\"{podname}-.*\",name!~\".*POD.*\"}}[{interval}s]))'",
+          "query": "f'(avg(sum(rate(vendor_servlet_responseTime_total_seconds{{namespace=\"{namespace}\",pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s])/rate(vendor_servlet_request_total{{namespace=\"{namespace}\",pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s])) by (pod))) or vector(2^64)'",
           "datasource": "prom"
         }
       ]

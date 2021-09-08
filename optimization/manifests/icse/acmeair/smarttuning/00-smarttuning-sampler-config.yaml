@@ -39,12 +39,12 @@ data:
         },
         {
           "name": "throughput",
-          "query": "f'sum(rate(vendor_servlet_request_total{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s]))'",
+          "query": "f'sum(rate(vendor_servlet_request_total{{namespace=\"{namespace}\",pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s]))'",
           "datasource": "prom"
         },
         {
           "name": "process_time",
-          "query": "f'(avg(sum(rate(vendor_servlet_responseTime_total_seconds{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s])/rate(vendor_servlet_request_total{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s])) by (pod))) or vector(2^64)'",
+          "query": "f'(avg(sum(rate(vendor_servlet_responseTime_total_seconds{{namespace=\"{namespace}\",pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s])/rate(vendor_servlet_request_total{{pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s])) by (pod))) or vector(2^64)'",
           "datasource": "prom"
         }
       ]

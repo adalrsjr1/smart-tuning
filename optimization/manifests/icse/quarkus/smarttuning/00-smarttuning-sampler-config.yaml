@@ -15,7 +15,7 @@ data:
   sampler.json: |
     {
       "objective": "-(penalization)*(throughput/((memory_limit/(2**10) + cpu_limit))) * 1/(1+process_time)",
-      "penalization": "1/(1+(errors/throughput))",
+      "penalization": "1",
       "metrics": [
         {
           "name": "cpu",
@@ -38,18 +38,13 @@ data:
           "datasource": "prom"
         },
         {
-          "name": "errors",
-          "query": "f'sum(rate(smarttuning_http_requests_total{{pod=~\"{podname}-.*\", code=~\"5..\",name!~\".*POD.*\"}}[{interval}s]))'",
-          "datasource": "prom"
-        },
-        {
           "name": "throughput",
-          "query": "f'sum(rate(smarttuning_http_requests_total{{pod=~\"{podname}-.*\",name!~\".*POD.*\"}}[{interval}s]))'",
+          "query": "f'sum(rate(base_REST_request_total{{pod=~\"{podname}-.*\",class=\"com.acme.crud.FruitResource\", namespace=\"{namespace}\"}}[{interval}s]))'",
           "datasource": "prom"
         },
         {
           "name": "process_time",
-          "query":"f'avg(rate(smarttuning_http_processtime_seconds_sum{{pod=~\"{podname}-.*\",name!~\".*POD.*\"}}[{interval}s])) / sum( rate(smarttuning_http_processtime_seconds_count{{pod=~\"{podname}-.*\",name!~\".*POD.*\"}}[{interval}s]))'",
+          "query": "f'sum(deriv(base_REST_request_elapsedTime_seconds{{pod=~\"{podname}-.*\",class=\"com.acme.crud.FruitResource\", namespace=\"{namespace}\"}}[{interval}s]))'",
           "datasource": "prom"
         }
       ]

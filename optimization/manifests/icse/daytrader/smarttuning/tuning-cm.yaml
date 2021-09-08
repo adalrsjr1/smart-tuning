@@ -21,7 +21,7 @@ metadata:
   name: smarttuning-config
   namespace: daytrader
 data:
-  NO_PROXY: "False"
+  NO_PROXY: "True"
   SAMPLER_CONFIG: "/etc/sampler-config/sampler.json"
   TWO_SERVICES: "False"
   RESTART_IF_CFG_DOESNT_CHANGE: "False"
