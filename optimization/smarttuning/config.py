@@ -79,7 +79,6 @@ warnings.filterwarnings("ignore", category=Warning)
 PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='True'))
 LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='NOTSET').upper()
 logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format=FORMAT)
-
 # timeout before update workload
 SAMPLER_CONFIG = os.environ.get('SAMPLER_CONFIG', default='sampler.json')
 TWO_SERVICES = eval(os.environ.get('TWO_SERVICES', default='False'))
@@ -133,6 +132,7 @@ NUMBER_ITERATIONS = int(float(
 #     os.environ.get('MAX_N_ITERATION_NO_IMPROVEMENT', default='15')))
 ITERATIONS_BEFORE_REINFORCE = int(os.environ.get('ITERATIONS_BEFORE_REINFORCE', default='2'))
 REINFORCEMENT_RATIO = float(os.environ.get('REINFORCEMENT_RATIO', default='1.0'))
+PROBATION_RATIO = float(os.environ.get('PROBATION_RATIO', default='1.0'))
 # RESTART_TRIGGER = float(os.environ.get('RESTART_TRIGGER', default='2'))
 # TRY_BEST_AT_EVERY = int(os.environ.get('TRY_BEST_AT_EVERY', default=ITERATIONS_BEFORE_REINFORCE))
 # METRIC_THRESHOLD = float(os.environ.get('METRIC_THRESHOLD', default='0.2'))

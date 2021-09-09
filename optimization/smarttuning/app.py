@@ -104,7 +104,7 @@ def create_context(production_microservice, training_microservice):
                                          max_reinforcement_iterations=round(config.ITERATIONS_BEFORE_REINFORCE *
                                                                             config.REINFORCEMENT_RATIO) or 1,
                                          max_probation_iterations=round(config.ITERATIONS_BEFORE_REINFORCE *
-                                                                        config.REINFORCEMENT_RATIO) or 1,
+                                                                        config.PROBATION_RATIO) or 1,
                                          sampling_interval=sample_interval,
                                          n_sampling_subintervals=3, logging_subinterval=0.2, fail_fast=config.FAIL_FAST,
                                          uid=uid,

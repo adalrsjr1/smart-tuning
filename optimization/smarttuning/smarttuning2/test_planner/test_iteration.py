@@ -846,6 +846,88 @@ class TestIteration(TestCase):
         self.assertEqual(c3.trial.number, len(driver1.session().study.trials)-1)
         self.assertEqual(_c3.trial.number, len(driver2.session().study.trials)-1)
 
+    def test_driver_skip_reinforcement(self):
+        def iterations(max_g=0,
+                       max_l=0,
+                       max_r=0,
+                       max_p=0,
+                       trace=None,
+                       tscore=0, pscore=0):
+            driver = TestIteration.training_driver(max_global_iterations=max_g,
+                                                   max_local_iterations=max_l,
+                                                   max_reinforcement_iterations=max_r,
+                                                   max_probation_iterations=max_p)
+
+            class MetricSideEffect:
+                def __init__(self, t_increment, p_increment):
+                    self.t_increment = t_increment
+                    self.p_increment = p_increment
+                    self.t_running_stats = RunningStats()
+                    self.t_running_stats.push(0)
+                    self.p_running_stats = RunningStats()
+                    self.p_running_stats.push(0)
+
+                def t_side_effect(self):
+                    self.t_running_stats.push(self.t_increment)
+                    m = Metric(to_eval=str(self.t_running_stats.mean()))
+                    # print(f't: {m}')
+                    return m
+
+                def p_side_effect(self):
+                    self.p_running_stats.push(self.p_increment)
+                    m = Metric(to_eval=str(self.p_running_stats.mean()))
+                    # print(f'p: {m}')
+                    return m
+
+            pmock = Mock()
+            sideeffects = MetricSideEffect(t_increment=tscore, p_increment=pscore)
+            pmock.side_effect = sideeffects.p_side_effect
+
+            tmock = Mock()
+            tmock.side_effect = sideeffects.t_side_effect
+
+            driver.production.metrics = pmock
+            driver.training.metrics = tmock
+
+            self.assertEqual(driver.max_global_iterations, max_g)
+            self.assertEqual(driver.max_local_iterations, max_l)
+            self.assertEqual(driver.max_reinforcement_iterations, max_r)
+            self.assertEqual(driver.max_probation_iterations, max_p)
+
+            # creating trace
+            if trace is None:
+                trace = []
+
+            self.assertFalse(max_g > 0 and len(trace) == 0, msg=f'#iterations != #expected')
+            # for i, expected in enumerate(new_l):
+            for i, expected in enumerate(trace):
+                it: Iteration
+                it = next(driver)
+                print(f'p:{it.production.configuration.final_score()}, t:{it.training.configuration.final_score()}')
+
+                print('expected:', expected.__name__, ', actual:', type(it).__name__)
+                self.assertEqual(expected, type(it), msg=f'failed at {i}')
+
+            self.assertEqual(driver.global_iteration, len(trace), msg=f'#iterations != #expected')
+
+        # progress to reinforcement but skip it
+        iterations(max_g=3,
+                   max_l=1,
+                   max_r=0,
+                   max_p=1,
+                   trace=[TrainingIteration, TrainingIteration, ProbationIteration, TrainingIteration],
+                   pscore=-0.1, tscore=-1)
+
+        # progress to probation but skip it
+        iterations(max_g=3,
+                   max_l=1,
+                   max_r=1,
+                   max_p=0,
+                   # the 2nd ReinforcementIteration fallback into handle_reset() that just pass through all logic
+                   # and reset the counters
+                   trace=[TrainingIteration, ReinforcementIteration, ReinforcementIteration, TrainingIteration],
+                   pscore=-0.1, tscore=-1)
+
     def test_driver_serialize(self):
         driver = TestIteration.training_driver(max_global_iterations=1,
                                       max_local_iterations=1,

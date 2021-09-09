@@ -238,6 +238,11 @@ class DriverSession:
         """
 
         def check_and_fix_distributions_boundaries(configuration: Configuration):
+            """
+            TODO: configurations may have knobs that doesn't match with search space after dependency analysis.
+            this is a workaround to avoid errors from optuna, though it should be fixed in the search space controller
+            which need to ensure that the configurations always match with the original search space
+            """
             # trials.distributions returns a deepcopy of distributions
             distributions = configuration.trial.distributions
             for p_name, p_value in configuration.trial.params.items():
@@ -315,9 +320,6 @@ class IterationDriver:
         self.__workload = workload
         self.__search_space = search_space
 
-        # self.__production = production
-        # self.__training = training
-
         self.__session: DriverSession = DriverSession(workload=workload,
                                                       driver=self,
                                                       search_space=self.search_space,
@@ -346,12 +348,6 @@ class IterationDriver:
         self.__n_sampling_subintervals = n_sampling_subintervals
         self.__logging_subinterval = logging_subinterval
         self.__fail_fast = fail_fast
-
-        # moved to driver session
-        # self.curr_iteration: Optional[Iteration] = None
-        # self.last_iteration: Optional[Iteration] = None
-        # self.lookahead = TrainingIteration
-        # self.prev_lookahead = TrainingIteration
 
         self.__extra_it = 0
         self.__last_prod: Configuration = self.production.configuration
@@ -475,18 +471,6 @@ class IterationDriver:
 
     def curr_workload(self) -> Workload:
         return workloadctrl.workload()
-        # try:
-        #     client = config.hpaApi()
-        #     hpa = client.read_namespaced_horizontal_pod_autoscaler(name=self.production.name,
-        #                                                            namespace=self.production.namespace)
-        #     status = hpa.status
-        #     n_replicas = status.current_replicas
-        #
-        #     workload = Workload(f'workload_{n_replicas}', data=n_replicas)
-        # except ApiException:
-        #     self.logger.exception('cannot sample HPA info')
-        # finally:
-        #     return workload
 
     @property
     def curr_best(self) -> Configuration:
@@ -631,6 +615,12 @@ class IterationDriver:
     def handle_reinforcement(self):
         self.logger.info(
             f'reinforcement {self.reinforcement_iteration}/{self.max_local_iterations}/{self.max_global_iterations}')
+
+        if self.max_reinforcement_iterations <= 0:
+            self.logger.info('skipping reinforcement, progressing to probation')
+            self.lookahead = ProbationIteration
+            return
+
         it = self.new_reinforcement_it(configuration=self.curr_best)
         if not it.iterate():
             self.logger.debug(f'aborting {it}')
@@ -653,6 +643,11 @@ class IterationDriver:
                     self.lookahead = Iteration
 
     def handle_probation(self):
+        if self.max_probation_iterations <= 0:
+            self.logger.info('skipping probation, progressing to training')
+            self.lookahead = Iteration
+            return
+
         self.logger.info(
             f'probation {self.probation_iteration}/{self.max_local_iterations}/{self.max_global_iterations}')
         it = self.new_probation_it(configuration=self.curr_best)
@@ -670,6 +665,7 @@ class IterationDriver:
             self.lookahead = Iteration
 
     def handle_reset(self):
+        self.logger.info(f'last iteration was {self.curr_iteration}')
         if self.__last_prod.final_score() < self.production.configuration.final_score():
             self.logger.warning(f'reverting production cfg: {self.production.configuration.name} -> '
                                 f'{self.__last_prod.name}')
@@ -851,21 +847,11 @@ class Iteration(ABC):
 
         self._curr_config: Configuration = curr_configuration
 
-        # self.__workload_counter = 0
-
         self.logger = logging.getLogger(f'{self.workload()}.{type(self).__name__}.smarttuning.ibm')
         self.logger.setLevel(logging.DEBUG)
 
     def __str__(self):
         return type(self).__name__
-
-    # @property
-    # def workload_counter(self) -> int:
-    #     return self.__workload_counter
-    #
-    # @workload_counter.setter
-    # def workload_counter(self, value: int):
-    #     self.__workload_counter = int(value)
 
     @property
     def driver(self):
@@ -924,11 +910,6 @@ class Iteration(ABC):
         w, c = workloadctrl.get_mostly_workload(offset=self.n_sampling_subintervals, ctx_workload=self.workload())
 
         return w
-        #
-        # if self.workload_counter > 0:
-        #     return self.workload()
-        # else:
-        #     return self.curr_workload()
 
     def sample(self, trial: BaseTrial) -> Configuration:
         # sample return the correct hierarchy for ConfigMaps
@@ -1008,45 +989,12 @@ class Iteration(ABC):
                 f'train_median: {t_running_stats.median():.2f}')
 
             self.count_curr_workload()
-            # if self.curr_workload() == self.workload():
-            #     self.workload_counter += 1
-            # else:
-            #     self.workload_counter += -1
 
             if self.fail_fast:
                 if t_metric.throughput <= 0:
                     self.logger.warning(f'\t |- [W] fail fast -- {self.mostly_workload()} -> {self.curr_workload()}')
                     self.logger.warning(f'\t # ')
                     break
-                # # self.logger.warning('FAIL FAST is not implemented yet')
-                # # TODO: fail fast disabled for mocking workload classification
-                # # TODO: reorganize this order, workload checking must be evaluated before than i==0
-                # if i == 0:
-                #     continue
-                #
-                # # TODO: Is this fail fast working as expected?
-                # if self.curr_workload() != self.mostly_workload():
-                #     self.logger.warning(f'\t |- [W] fail fast -- {self.mostly_workload()} -> {self.curr_workload()}')
-                #     self.logger.warning(f'\t # ')
-                #     break
-
-                # if (t_running_stats.mean() + t_running_stats.standard_deviation()) > (
-                #         p_running_stats.mean() + p_running_stats.standard_deviation()):
-                #     self.logger.warning(
-                #         f'\t |- [T] fail fast -- '
-                #         f'prod: {p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} '
-                #         f'train: {t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f}')
-                #     self.logger.warning(f'\t # ')
-                #     break
-                #
-                # if (p_running_stats.mean() + p_running_stats.standard_deviation()) > (
-                #         t_running_stats.mean() - t_running_stats.standard_deviation()):
-                #     self.logger.warning(
-                #         f'\t |- [P] fail fast -- '
-                #         f'prod: {p_running_stats.mean():.2f} ± {p_running_stats.standard_deviation():.2f} '
-                #         f'train: {t_running_stats.mean():.2f} ± {t_running_stats.standard_deviation():.2f}')
-                #     self.logger.warning(f'\t # ')
-                #     break
 
         return t_metric, p_metric
 
@@ -1068,17 +1016,6 @@ class Iteration(ABC):
                 another_session.mock_progress()
                 self.driver.save_trace(another_session)
             return False
-
-        # session = self.driver.session()
-        # if self.curr_workload() == self.workload():
-        #     session.tell(self.configuration, status=self.status())
-        #     return True
-        # else:
-        #     self.logger.debug(f'ctx_workload: {self.workload()} curr_workload: {self.curr_workload()}')
-        #     self.logger.debug(f'enqueue config {self.configuration.name}')
-        #     session.tell(self.configuration, status=self.status(),
-        #                  state=optuna.trial.TrialState.PRUNED)
-        #     return False
 
     @abstractmethod
     def iterate(self, best_config=False, reuse_config=False, config_to_reuse=None) -> bool:
@@ -1157,12 +1094,6 @@ class ProbationIteration(Iteration):
 
 class TunedIteration(Iteration):
     def iterate(self, **kwargs) -> bool:
-        # try:
-        #     if self.traininig.active:
-        #         self.production.max_replicas += 1
-        #         self.traininig.shutdown()
-        # except Exception:
-        #     self.logger.exception(f'exception catch when deleting training: {self.traininig.name}')
         self.production.configuration = self.configuration
         self.training.configuration = self.configuration
         tmetrics, pmetrics = self.waiting_for_metrics()
