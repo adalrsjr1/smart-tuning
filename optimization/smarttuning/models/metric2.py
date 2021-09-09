@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from models.instance import Instance
 
 logger = logging.getLogger(config.METRIC_LOGGER)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(config.LOGGING_LEVEL)
 
 
 def validate_json(j: dict) -> dict:

@@ -10,7 +10,6 @@ from typing import Union, Optional, Type
 
 import optuna
 from optuna.samplers import TPESampler, RandomSampler
-from optuna.structs import FrozenTrial
 from optuna.trial import BaseTrial
 
 import config
@@ -61,7 +60,7 @@ class DriverSession:
         self.__prev_lookahead = TrainingIteration
 
         self.logger = logging.getLogger(f'{type(self).__name__}.smarttuning.ibm')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(config.LOGGING_LEVEL)
 
     @property
     def production(self) -> Instance:
@@ -353,7 +352,7 @@ class IterationDriver:
         self.__last_prod: Configuration = self.production.configuration
 
         self.logger = logging.getLogger(f'{self.workload().name}.{type(self).__name__.lower()}.smarttuning.ibm')
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(config.LOGGING_LEVEL)
 
         self.__uid = uid
 
@@ -537,8 +536,13 @@ class IterationDriver:
             self.logger.exception(f'[t] error to update trial {configuration.trial.number} into {configuration}')
 
     def __next__(self):
-        self.logger.debug(f'current iteration: {self.curr_iteration}')
+
+        self.logger.debug(f'current iteration: {self.curr_iteration} {self.global_iteration}/{self.max_global_iterations}')
+
         if self.global_iteration < self.max_global_iterations + self.session().n_pruned() + self.__extra_it:
+            self.logger.log(level=config.ST_LOG_LEVEL, msg=f'--------------------------------------------------')
+            self.logger.log(level=config.ST_LOG_LEVEL, msg=f'session: {self.session().workload}')
+            self.logger.log(level=config.ST_LOG_LEVEL, msg=f'service: {self.production.namespace}.{self.production.name}')
 
             if self.lookahead == TrainingIteration:
                 self.handle_training()
@@ -554,6 +558,9 @@ class IterationDriver:
 
         else:
             if type(self.curr_iteration) not in [ReinforcementIteration, ProbationIteration]:
+                self.logger.log(level=config.ST_LOG_LEVEL, msg=f'--------------------------------------------------')
+                self.logger.log(level=config.ST_LOG_LEVEL, msg=f'session: {self.__workload}')
+                self.logger.log(level=config.ST_LOG_LEVEL, msg=f'service: {self.production.namespace}.{self.production.name}')
                 self.handle_tuned()
             else:
                 self.__extra_it += 1
@@ -583,6 +590,7 @@ class IterationDriver:
         self.production.configuration.score = self.production.configuration.last_score
 
     def handle_training(self):
+        self.logger.log(level=config.ST_LOG_LEVEL, msg=f'iteration type: training {self.local_iteration}/{self.local_iteration}/{self.global_iteration}')
         self.logger.info(f'training {self.local_iteration}/{self.max_local_iterations}/{self.global_iteration}')
         it = self.new_training_it(configuration=None)
         if not it.iterate():
@@ -613,8 +621,8 @@ class IterationDriver:
                 self.lookahead = ReinforcementIteration
 
     def handle_reinforcement(self):
-        self.logger.info(
-            f'reinforcement {self.reinforcement_iteration}/{self.max_local_iterations}/{self.max_global_iterations}')
+        self.logger.log(level=config.ST_LOG_LEVEL, msg=f'iteration type: reinforcement {self.reinforcement_iteration}/{self.local_iteration}/{self.max_global_iterations}')
+        self.logger.info(f'reinforcement {self.reinforcement_iteration}/{self.max_local_iterations}/{self.max_global_iterations}')
 
         if self.max_reinforcement_iterations <= 0:
             self.logger.info('skipping reinforcement, progressing to probation')
@@ -643,13 +651,15 @@ class IterationDriver:
                     self.lookahead = Iteration
 
     def handle_probation(self):
+        self.logger.log(level=config.ST_LOG_LEVEL, msg=f'iteration type: probation {self.probation_iteration}/{self.local_iteration}/{self.max_global_iterations}')
+        self.logger.info(f'probation {self.probation_iteration}/{self.max_local_iterations}/{self.max_global_iterations}')
+
         if self.max_probation_iterations <= 0:
             self.logger.info('skipping probation, progressing to training')
             self.lookahead = Iteration
             return
 
-        self.logger.info(
-            f'probation {self.probation_iteration}/{self.max_local_iterations}/{self.max_global_iterations}')
+
         it = self.new_probation_it(configuration=self.curr_best)
         if not it.iterate():
             self.logger.debug(f'aborting {it}')
@@ -665,12 +675,15 @@ class IterationDriver:
             self.lookahead = Iteration
 
     def handle_reset(self):
+        self.logger.log(level=config.ST_LOG_LEVEL, msg=f'iteration type: reseting counters')
         self.logger.info(f'last iteration was {self.curr_iteration}')
         if self.__last_prod.final_score() < self.production.configuration.final_score():
+            self.logger.log(config.ST_LOG_LEVEL, f'reverting cfg in production: {self.production.configuration.name} -> {self.__last_prod.name}')
             self.logger.warning(f'reverting production cfg: {self.production.configuration.name} -> '
                                 f'{self.__last_prod.name}')
             self.production.configuration = self.__last_prod
         else:
+            self.logger.log(config.ST_LOG_LEVEL, f'promoting {self.production.configuration.name}')
             self.logger.info(f'promoting {self.production.configuration.name} to tenured')
             self.session().promote_to_tenured(self.production.configuration)
 
@@ -683,6 +696,7 @@ class IterationDriver:
         return self.__next__()
 
     def handle_tuned(self):
+        self.logger.log(level=config.ST_LOG_LEVEL, msg=f'iteration type: tuned {self.local_iteration}/{self.max_global_iterations}')
         it = self.new_tuned_it(self.session().best())
         if not it.iterate():
             return
@@ -848,7 +862,7 @@ class Iteration(ABC):
         self._curr_config: Configuration = curr_configuration
 
         self.logger = logging.getLogger(f'{self.workload()}.{type(self).__name__}.smarttuning.ibm')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(config.LOGGING_LEVEL)
 
     def __str__(self):
         return type(self).__name__
@@ -1002,9 +1016,11 @@ class Iteration(ABC):
         session = self.driver.session()
         mostly_workload = self.mostly_workload()
         if self.workload() == mostly_workload:
+            self.logger.log(config.ST_LOG_LEVEL, f'saving tuning into: session.{session.workload}')
             session.tell(self.configuration, status=self.status())
             return True
         else:
+
             self.logger.debug(f'ctx_workload: {self.workload()} curr_workload: {mostly_workload}')
             self.logger.debug(f'enqueue config {self.configuration.name}')
             session.tell(self.configuration, status=self.status(),
@@ -1012,9 +1028,11 @@ class Iteration(ABC):
 
             another_session = self.driver.session(mostly_workload)
             if another_session:
+                self.logger.log(config.ST_LOG_LEVEL, f'saving tuning into: session.{another_session.workload}')
                 another_session.add(self.configuration)
                 another_session.mock_progress()
                 self.driver.save_trace(another_session)
+
             return False
 
     @abstractmethod
@@ -1025,7 +1043,11 @@ class Iteration(ABC):
 class TrainingIteration(Iteration):
     def iterate(self, **kwargs) -> bool:
         assert self._curr_config is None, f'__curr_config must be None'
+
+
         self.training.configuration = self.configuration
+        self.logger.log(config.ST_LOG_LEVEL, f'training cfg: {self.training.configuration.name}')
+        self.logger.log(config.ST_LOG_LEVEL, f'production cfg: {self.production.configuration.name}')
 
         assert self.production.configuration.name != self.training.configuration.name, \
             f'[t] config {self.production.configuration.name} in prod must be different than train'
@@ -1034,6 +1056,9 @@ class TrainingIteration(Iteration):
 
         self.training.configuration.score = tmetrics.objective()
         self.production.configuration.score = pmetrics.objective()
+
+        self.logger.log(config.ST_LOG_LEVEL, f'training score: {self.training.configuration.score}')
+        self.logger.log(config.ST_LOG_LEVEL, f'production score: {self.production.configuration.score}')
 
         self.logger.debug(
             f'training: [p] {self.production.configuration.name}:{self.production.configuration.final_score()} '
@@ -1051,6 +1076,9 @@ class ReinforcementIteration(Iteration):
         best_configuration: Configuration = self.configuration
         self.training.configuration = best_configuration
 
+        self.logger.log(config.ST_LOG_LEVEL, f'training cfg: {self.training.configuration.name}')
+        self.logger.log(config.ST_LOG_LEVEL, f'production cfg: {self.production.configuration.name}')
+
         assert self.production.configuration.name != self.training.configuration.name, \
             f'[r] config {self.production.configuration.name} in prod must be different than train'
 
@@ -1058,6 +1086,9 @@ class ReinforcementIteration(Iteration):
 
         self.training.configuration.score = tmetrics.objective()
         self.production.configuration.score = pmetrics.objective()
+
+        self.logger.log(config.ST_LOG_LEVEL, f'training score: {self.training.configuration.score}')
+        self.logger.log(config.ST_LOG_LEVEL, f'production score: {self.production.configuration.score}')
 
         self.logger.debug(
             f'reinforcement: [p] {self.production.configuration.name}:{self.production.configuration.final_score()} '
@@ -1076,10 +1107,17 @@ class ProbationIteration(Iteration):
 
         self.training.configuration = best_configuration
         self.production.configuration = best_configuration
+
+        self.logger.log(config.ST_LOG_LEVEL, f'training cfg: {self.training.configuration.name}')
+        self.logger.log(config.ST_LOG_LEVEL, f'production cfg: {self.production.configuration.name}')
+
         tmetrics, pmetrics = self.waiting_for_metrics()
 
         self.training.configuration.score = tmetrics.objective()
         self.production.configuration.score = pmetrics.objective()
+
+        self.logger.log(config.ST_LOG_LEVEL, f'training score: {self.training.configuration.score}')
+        self.logger.log(config.ST_LOG_LEVEL, f'production score: {self.production.configuration.score}')
 
         self.logger.debug(
             f'probation: [p] {self.production.configuration.name}:{self.production.configuration.final_score()} '
@@ -1096,8 +1134,15 @@ class TunedIteration(Iteration):
     def iterate(self, **kwargs) -> bool:
         self.production.configuration = self.configuration
         self.training.configuration = self.configuration
+
+        self.logger.log(config.ST_LOG_LEVEL, f'training cfg: {self.training.configuration.name}')
+        self.logger.log(config.ST_LOG_LEVEL, f'production cfg: {self.production.configuration.name}')
+
         tmetrics, pmetrics = self.waiting_for_metrics()
         self.production.configuration.score = pmetrics.objective()
+
+        self.logger.log(config.ST_LOG_LEVEL, f'training score: {self.training.configuration.score}')
+        self.logger.log(config.ST_LOG_LEVEL, f'production score: {self.production.configuration.score}')
 
         if self.curr_workload() != self.mostly_workload():
             return False

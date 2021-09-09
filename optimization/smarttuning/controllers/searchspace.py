@@ -10,7 +10,7 @@ from controllers.searchspacemodel import *
 from models.workload import Workload, empty_workload
 
 logger = logging.getLogger(config.SEARCH_SPACE_LOGGER)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(config.LOGGING_LEVEL)
 
 
 def init(loop):

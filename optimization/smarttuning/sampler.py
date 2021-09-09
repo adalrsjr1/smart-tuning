@@ -18,7 +18,7 @@ from prometheus_pandas import query as handler
 import config
 
 logger = logging.getLogger(config.SAMPLER_LOGGER)
-logger.setLevel(logging.WARNING)
+logger.setLevel(config.LOGGING_LEVEL)
 
 
 def __extract_value_from_future__(future, timeout=config.SAMPLING_METRICS_TIMEOUT):

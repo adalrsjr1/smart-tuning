@@ -10,7 +10,7 @@ from kubernetes import watch
 import config
 
 logger = logging.getLogger(config.EVENT_LOOP_LOGGER)
-logger.setLevel(logging.WARNING)
+logger.setLevel(config.LOGGING_LEVEL)
 
 class ListToWatch:
     def __init__(self, func=None, **kwargs):

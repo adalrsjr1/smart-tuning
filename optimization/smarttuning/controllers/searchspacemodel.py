@@ -19,7 +19,7 @@ from optuna.distributions import UniformDistribution, DiscreteUniformDistributio
 import config
 
 logger = logging.getLogger(config.SEARCH_SPACE_LOGGER)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(config.LOGGING_LEVEL)
 
 
 class SearchSpaceModel:

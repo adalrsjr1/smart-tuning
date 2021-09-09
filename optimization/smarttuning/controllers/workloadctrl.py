@@ -21,7 +21,7 @@ from models.workload import Workload
 from sampler import PrometheusSampler
 
 logger = logging.getLogger(config.WORKLOAD_LOGGER)
-logger.setLevel(logging.INFO)
+logger.setLevel(config.LOGGING_LEVEL)
 
 workloads: set[Workload] = set()
 

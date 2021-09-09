@@ -12,7 +12,7 @@ import copy
 import config
 
 logger = logging.getLogger(config.KMEANS_LOGGER)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(config.LOGGING_LEVEL)
 
 
 def __merge_data__(data1:pd.Series, data2:pd.Series) -> (pd.Series, pd.Series, pd.Index):

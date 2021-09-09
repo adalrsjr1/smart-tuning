@@ -134,7 +134,6 @@ def create_context(production_microservice, training_microservice):
                 logger.exception('fail to update training pod before iteration')
 
             next(driver)
-            # it: Iteration = next(driver)
 
             try:
                 driver.production.patch_current_config()
@@ -145,15 +144,6 @@ def create_context(production_microservice, training_microservice):
                 driver.training.patch_current_config()
             except Exception:
                 logger.exception('fail to update training pod after iteration')
-
-            # last_config = driver.production.configuration
-            # if isinstance(it, TunedIteration):
-            #     try:
-            #         if driver.training.active:
-            #             driver.production.max_replicas += 1
-            #             driver.training.shutdown()
-            #     except Exception:
-            #         logger.exception('error to delete training replica')
 
         except Exception:
             logger.exception('error during tuning iteration')

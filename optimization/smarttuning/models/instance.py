@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 from models.configuration import Configuration, DefaultConfiguration
 from sampler import PrometheusSampler, Metric
 
-logger = logging.getLogger('models.smarttuning.ibm')
-logger.setLevel('DEBUG')
+logger = logging.getLogger(config.MODELS_LOGGER)
+logger.setLevel(config.LOGGING_LEVEL)
 
 
 class Instance:
