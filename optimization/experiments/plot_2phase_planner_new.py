@@ -876,6 +876,7 @@ def general():
     # name = 'trace-acmeair-2021-08-31T19 27 42' # acmeair trinity 08
     # name = 'trace-quarkus-2021-08-31T18 03 04' # quarkus trinity 08
     name = 'trace-acmeair-2021-09-07T20 50 22' # ok
+    name = 'trace-acmeair-2021-09-08T17 59 42'
 
     # JSF
     # plot_importance(data)
