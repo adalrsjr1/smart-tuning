@@ -915,7 +915,7 @@ class TestIteration(TestCase):
                    max_l=1,
                    max_r=0,
                    max_p=1,
-                   trace=[TrainingIteration, TrainingIteration, ProbationIteration, TrainingIteration],
+                   trace=[TrainingIteration, TrainingIteration, ProbationIteration, TrainingIteration, TunedIteration],
                    pscore=-0.1, tscore=-1)
 
         # progress to probation but skip it
@@ -925,7 +925,15 @@ class TestIteration(TestCase):
                    max_p=0,
                    # the 2nd ReinforcementIteration fallback into handle_reset() that just pass through all logic
                    # and reset the counters
-                   trace=[TrainingIteration, ReinforcementIteration, ReinforcementIteration, TrainingIteration],
+                   trace=[TrainingIteration, ReinforcementIteration, ReinforcementIteration, TrainingIteration, TunedIteration],
+                   pscore=-0.1, tscore=-1)
+
+        # skip both reinforcement and probation
+        iterations(max_g=3,
+                   max_l=1,
+                   max_r=0,
+                   max_p=0,
+                   trace=[TrainingIteration, TrainingIteration, TrainingIteration, TunedIteration],
                    pscore=-0.1, tscore=-1)
 
     def test_driver_serialize(self):
