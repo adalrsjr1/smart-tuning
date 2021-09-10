@@ -24,11 +24,11 @@ def print_config(toPrint=False):
 # K8S_HOST = 'trxrhel7perf-1'
 # LOCALHOST = '9.26.100.254'
 
-K8S_HOST = 'trinity01'
-LOCALHOST = '127.0.0.1'
+# K8S_HOST = 'trinity01'
+# LOCALHOST = '127.0.0.1'
 
-# K8S_HOST = 'localhost'
-# LOCALHOST = 'localhost'
+K8S_HOST = 'localhost'
+LOCALHOST = 'localhost'
 
 # K8S_CONF = f'{os.environ.get("HOME")}/.kube/trxrhel7perf-1/config'
 K8S_CONF = f'{os.environ.get("HOME")}/.kube/trinity01/config'
@@ -54,7 +54,6 @@ def init_k8s(hostname=K8S_HOST):
 
     __loaded = True
 
-
 # loggers names
 # FORMAT = '%(asctime)-15s - %(name)-30s %(levelname)-7s - %(threadName)-30s: %(message)s'
 FORMAT = '%(asctime)-15s - %(levelname)-7s - %(message)s'
@@ -78,8 +77,9 @@ logging.config.dictConfig({'version': 1, 'disable_existing_loggers': True})
 warnings.filterwarnings("ignore", category=Warning)
 
 # debug config
-PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='True'))
-ST_LOG_LEVEL = 60
+PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='False'))
+# ST_LOG_LEVEL = 60
+ST_LOG_LEVEL = logging.NOTSET
 logging.addLevelName(ST_LOG_LEVEL, 'SMART_TUNING')
 LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='smart_tuning').upper()
 logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format=FORMAT)
@@ -90,7 +90,7 @@ logger = logging.getLogger(PLANNER_LOGGER)
 SAMPLER_CONFIG = os.environ.get('SAMPLER_CONFIG', default='sampler.json')
 
 # if true, training replica will be behind a dedicated service
-TWO_SERVICES = eval(os.environ.get('TWO_SERVICES', default='False'))
+TWO_SERVICES = eval(os.environ.get('TWO_SERVICES', default='True'))
 WORKLOAD_CLASSIFIER = os.environ.get('WORKLOAD_CLASSIFIER', default='RPS')
 JMETER_CFG_WORKLOAD = os.environ.get('JMETER_CFG_WORKLOAD', default='JUSERS')
 JMETER_CM = os.environ.get('JMETER_CM', default='jmeter-cm')
