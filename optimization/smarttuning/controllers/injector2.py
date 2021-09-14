@@ -1,5 +1,7 @@
 import copy
+import time
 
+from kubernetes import client
 from kubernetes.client import AppsV1Api, ApiException, CoreV1Api
 from kubernetes.client.models import *
 import logging
@@ -7,6 +9,7 @@ import logging
 from kubernetes.watch import watch
 
 import config
+from controllers.k8seventloop import EventLoop, ListToWatch
 
 logger = logging.getLogger(config.INJECTOR_LOGGER)
 logger.setLevel(config.LOGGING_LEVEL)
@@ -20,7 +23,7 @@ def training_suffix():
 def handle_event(event, apps, core):
     obj = event['object']
     if isinstance(obj, V1Deployment):
-        handle_deployment(obj, event['type'], apps, core)
+        handle_deployment(event)
     elif isinstance(obj, V1Service):
         handle_service(obj, event['type'], core)
     else:
@@ -28,7 +31,11 @@ def handle_event(event, apps, core):
             f'there is not handler for event: {event["type"]} {obj.kind} {obj.metadata.name} {obj.metadata.namespace}')
 
 
-def handle_deployment(dep: V1Deployment, event_type: str, apps: AppsV1Api, core: CoreV1Api):
+def handle_deployment(event):
+    event_type = event['type']
+    dep = event['object']
+    apps = config.appsApi()
+    core = config.coreApi()
     if dep.metadata.annotations.get('injection.smarttuning.ibm.com', 'false').upper() != 'TRUE':
         return
 
@@ -144,7 +151,10 @@ def handle_deployment(dep: V1Deployment, event_type: str, apps: AppsV1Api, core:
         return result
 
 
-def handle_service(svc: V1Service, event_type: str, core: CoreV1Api):
+def handle_service(event):
+    event_type = event['type']
+    svc = event['object']
+    core = config.coreApi()
     if not config.TWO_SERVICES:
         return
 
@@ -182,6 +192,14 @@ def handle_service(svc: V1Service, event_type: str, core: CoreV1Api):
         except ApiException as e:
             logger.exception('')
 
+def init(loop: EventLoop, namespace: str = config.NAMESPACE):
+    # initializing
+    loop.register('service-injector',
+                  ListToWatch(func=config.coreApi(), namespace=namespace), handle_service)
+    loop.register('deployment-injector',
+                  ListToWatch(func=config.coreApi(), namespace=namespace), handle_deployment)
+
+    time.sleep(1)
 
 if __name__ == '__main__':
     config.init_k8s()

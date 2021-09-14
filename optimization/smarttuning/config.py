@@ -78,8 +78,8 @@ warnings.filterwarnings("ignore", category=Warning)
 
 # debug config
 PRINT_CONFIG = eval(os.environ.get('PRINT_CONFIG', default='False'))
-# ST_LOG_LEVEL = 60
-ST_LOG_LEVEL = logging.NOTSET
+ST_LOG_LEVEL = 60
+# ST_LOG_LEVEL = logging.NOTSET
 logging.addLevelName(ST_LOG_LEVEL, 'SMART_TUNING')
 LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', default='smart_tuning').upper()
 logging.basicConfig(level=logging.getLevelName(LOGGING_LEVEL), format=FORMAT)
@@ -197,40 +197,44 @@ __customApi = None
 
 
 def customApi() -> kubernetes.client.CustomObjectsApi:
-    global __customApi
-    if not __customApi:
-        __customApi = kubernetes.client.CustomObjectsApi()
-    return __customApi
+    return kubernetes.client.CustomObjectsApi()
+    # global __customApi
+    # if not __customApi:
+    #     __customApi = kubernetes.client.CustomObjectsApi()
+    # return __customApi
 
 
 __coreV1Api = None
 
 
 def coreApi() -> kubernetes.client.CoreV1Api:
-    global __coreV1Api
-    if not __coreV1Api:
-        __coreV1Api = kubernetes.client.CoreV1Api()
-    return __coreV1Api
+    return kubernetes.client.CoreV1Api()
+    # global __coreV1Api
+    # if not __coreV1Api:
+    #     __coreV1Api = kubernetes.client.CoreV1Api()
+    # return __coreV1Api
 
 
 __appsApi = None
 
 
 def appsApi() -> kubernetes.client.AppsV1Api:
-    global __appsApi
-    if not __appsApi:
-        __appsApi = kubernetes.client.AppsV1Api()
-    return __appsApi
+    return kubernetes.client.AppsV1Api()
+    # global __appsApi
+    # if not __appsApi:
+    #     __appsApi = kubernetes.client.AppsV1Api()
+    # return __appsApi
 
 
 __hpaApi = None
 
 
 def hpaApi() -> kubernetes.client.api.autoscaling_v2beta2_api.AutoscalingV2beta2Api:
-    global __hpaApi
-    if not __hpaApi:
-        __hpaApi = kubernetes.client.api.autoscaling_v2beta2_api.AutoscalingV2beta2Api()
-    return __hpaApi
+    return kubernetes.client.api.autoscaling_v2beta2_api.AutoscalingV2beta2Api()
+    # global __hpaApi
+    # if not __hpaApi:
+    #     __hpaApi = kubernetes.client.api.autoscaling_v2beta2_api.AutoscalingV2beta2Api()
+    # return __hpaApi
 
 
 def executor(max_workers: int = None) -> ThreadPoolExecutor:

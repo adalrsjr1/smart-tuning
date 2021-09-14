@@ -6,6 +6,7 @@ from functools import partial
 
 import kubernetes
 from kubernetes import watch
+from urllib3.exceptions import ProtocolError
 
 import config
 
@@ -36,29 +37,37 @@ def event_loop(w: watch.Watch, list_to_watch: ListToWatch, callback, context=Non
     def name(event):
         if isinstance(event['object'], dict):
             return event['object']['metadata']['name']
-        return event['object'].metadata._name
+        return event['object'].metadata.name
 
     loop_name = context[1] if context else ''
     logger.info(f'initializing new watcher loop {loop_name}')
 
-    try:
-        for event in w.stream(list_to_watch.func, **list_to_watch.kwargs):
-            logger.info("[%s] Event: %s %s %s" % (loop_name, event['type'], kind(event), name(event)))
-            try:
-                callback(event)
-            except Exception:
-                traceback.print_exc()
-                logger.exception('error at event loop')
-                if context:
-                    manager = context[0]
-                    name = context[1]
-                    manager.unregister(name)
-                else:
-                    w.stop()
-        logger.debug(f'stopping watcher loop {loop_name}')
-    except Exception:
-        traceback.print_exc()
-        logger.exception('error outside loop ', name(event))
+    event = None
+    while True:
+        try:
+            for event in w.stream(list_to_watch.func, **list_to_watch.kwargs):
+                logger.info("[%s] Event: %s %s %s" % (loop_name, event['type'], kind(event), name(event)))
+                try:
+                    callback(event)
+                except Exception:
+                    traceback.print_exc()
+                    logger.exception('error at event loop')
+                    if context:
+                        manager = context[0]
+                        name = context[1]
+                        manager.unregister(name)
+                    else:
+                        w.stop()
+            logger.debug(f'stopping watcher loop {loop_name}')
+            break
+        except ProtocolError:
+            # bug on Azure, connection resets after +4min
+            logger.warning(f'reseting watcher {loop_name}')
+            continue
+        except Exception:
+            logger.error(f'stoping watcher {loop_name}')
+            logger.exception(f'error outside loop {name(event)}')
+            break
 
 
 class EventLoop:
