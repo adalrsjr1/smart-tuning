@@ -659,11 +659,11 @@ class IterationDriver:
             self.lookahead = Iteration
             return
 
-
         it = self.new_probation_it(configuration=self.curr_best)
         if not it.iterate():
             self.logger.debug(f'aborting {it}')
             return
+
         self.last_iteration = self.curr_iteration
         self.curr_iteration = it
         self.probation_iteration += 1
@@ -683,9 +683,14 @@ class IterationDriver:
                                 f'{self.__last_prod.name}')
             self.production.configuration = self.__last_prod
         else:
-            self.logger.log(config.ST_LOG_LEVEL, f'promoting {self.production.configuration.name}')
-            self.logger.info(f'promoting {self.production.configuration.name} to tenured')
-            self.session().promote_to_tenured(self.production.configuration)
+            if self.production.configuration.name != self.training.configuration.name:
+                # workaround to update production when st does not goes to probation phase
+                self.logger.info('updating production without probation')
+                self.production.configuration = self.training.configuration
+
+            self.logger.log(config.ST_LOG_LEVEL, f'promoting {self.training.configuration.name}')
+            self.logger.info(f'promoting {self.training.configuration.name} to tenured')
+            self.session().promote_to_tenured(self.training.configuration)
 
             self.logger.info(f'reseting counters {self.global_iteration}/{self.max_global_iterations}')
         self.lookahead = TrainingIteration
