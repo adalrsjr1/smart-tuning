@@ -1,7 +1,8 @@
 ## Quick links
 
-* [Deployment](optimization/manifests/README.md)
 * [Repository structure](optimization/README.md)
+* [Algorithm](optimization/docs/README.md)
+* [Deployment](optimization/manifests/README.md)
 
 ## Release notes
 
