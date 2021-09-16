@@ -10,11 +10,13 @@ data:
   # "objective": "-(penalization)*(1/(1+process_time))*((throughput)/((memory_limit/(2**10) + cpu_limit)))",
   # "objective": "-(penalization)*(1/(1+(throughput/(1/process_time))))*(1/((memory_limit/(2**10) + cpu_limit)))",
   #"objective": "-(penalization)*(1/(1+process_time))*(throughput/((memory_limit/(2**10) + cpu_limit)))",
+  #"objective": "-(penalization)*(throughput/((memory_limit/(2**10) + cpu_limit)))",
+  # "penalization": "(1/(1+max(0, 100*(memory/memory_limit)-79.999))) * (1/(1+max(0, 100*(throughput/(1/((process_time or 0)+(waiting_time or 0)+(connection_time or 0))))-79.999)))",
 
   sampler.json: |
     {
-      "objective": "-(penalization)*(throughput/((memory_limit/(2**10) + cpu_limit)))",
-      "penalization": "(1/(1+max(0, 100*(memory/memory_limit)-79.999))) * (1/(1+max(0, 100*(throughput/(1/((process_time or 0)+(waiting_time or 0)+(connection_time or 0))))-79.999)))",
+      "objective": "-(penalization)*(1/(1+process_time))*((throughput)/((memory_limit/(2**10) + cpu_limit)))",
+      "penalization": "1"
       "metrics": [
         {
           "name": "waiting_time",

@@ -47,6 +47,7 @@ data:
   NO_PROXY: "True"
   SAMPLER_CONFIG: "/etc/sampler-config/sampler.json"
   TWO_SERVICES: "False"
+  LOGGING_LEVEL: "NOTSET"
   RESTART_IF_CFG_DOESNT_CHANGE: "False"
   WORKLOAD_TIMEOUT: "60"
   WORKLOAD_CLASSIFIER: "RPS" #HPA or RPS
@@ -87,6 +88,7 @@ data:
   TRY_BEST_AT_EVERY: '1'
   RESTART_TRIGGER: '3' # https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule
   REINFORCEMENT_RATIO: '0.3'
+  PROBATION_RATIO: '0'
   METRIC_THRESHOLD: '0.0'
   RANDOM_SEED: '31'
   ## the objective is always to minimize

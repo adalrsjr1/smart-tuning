@@ -96,12 +96,16 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
                     raw_data.append(Iteration().__dict__)
                 continue
 
-            # if skip_pruned and record['pruned']:
-            if skip_pruned and (record['mostly_workload'] and record['mostly_workload']['name'] != record['ctx_workload']['name'] or
-                record['curr_workload']['name'] != record['ctx_workload']['name']):
-                # if len(raw_data) > 0:
-                #     raw_data = raw_data[:-1]
+            if skip_pruned and (record['mostly_workload']['name'] != record['ctx_workload']['name'] or
+                                record['curr_workload']['name'] != record['ctx_workload']['name'] or record['pruned']):
                 continue
+
+            # if skip_pruned and (
+            #         record['mostly_workload'] and record['mostly_workload']['name'] != record['ctx_workload']['name'] or
+            #         record['curr_workload']['name'] != record['ctx_workload']['name'] or record['pruned']):
+            #     # if len(raw_data) > 0:
+            #     #     raw_data = raw_data[:-1]
+            #     continue
 
             if skip_reset and record['reset']:
                 continue
@@ -152,11 +156,14 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
                     pproctime=record['production']['metric']['process_time'],
                     pmem=(record['production']['metric']['memory'] or 0) / mem_scale,
                     pmem_lim=(record['production']['metric'].get('memory_limit',
-                                                                 (record['production']['curr_config']['data'][service_name][
+                                                                 (record['production']['curr_config']['data'][
+                                                                      service_name][
                                                                       'memory'] or 0) * mem_scale) or 0) / mem_scale,
                     pcpu=(record['production']['metric']['cpu'] or 1),
                     pcpu_lim=(record['production']['metric']['cpu_limit'] or 1),
-                    preplicas=math.ceil(record['production']['metric'].get('curr_replicas', 1)),
+                    preplicas=math.ceil(record['production']['metric'].get('curr_replicas',
+                                                                           record['production']['metric'][
+                                                                               'cpu_limit'])),
                     pparams=Param(record['production']['curr_config']['data'] or {},
                                   math.fabs(record['production']['curr_config']['score'] or 0)),
                     # tname=hashlib.md5(bytes(str(record['training']['curr_config']['data']), 'ascii')).hexdigest(),
@@ -176,7 +183,8 @@ def load_raw_data(filename: str, service_name: str, workload: str, skip_reset=Fa
                                                                     'memory'] or 0) * mem_scale) or 0) / mem_scale,
                     tcpu=(record['training']['metric']['cpu'] or 1),
                     tcpu_lim=(record['training']['metric']['cpu_limit'] or 1),
-                    treplicas=math.ceil(record['training']['metric'].get('curr_replicas', 1)),
+                    treplicas=math.ceil(record['training']['metric'].get('curr_replicas',
+                                                                         record['training']['metric']['cpu_limit'])),
                     tparams=Param(record['training']['curr_config']['data'],
                                   math.fabs(record['training']['curr_config']['score'] or 0)),
                     # create an auxiliary table to hold the 3 best config at every iteration
@@ -247,11 +255,6 @@ def calculate_mad(df: pd.DataFrame):
     return df
 
 
-def plot_clean(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = False, show_table: bool = False) -> \
-        list[Axes]:
-    pass
-
-
 def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = False, show_table: bool = False,
          simple_visualization=False) -> list[
     Axes]:
@@ -267,16 +270,15 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     reduced_table = df
     reduced_table['ptruput_lim'] = reduced_table['ptruput']
     reduced_table['ttruput_lim'] = reduced_table['ttruput']
-    reduced_table['pproctime'] = reduced_table['pproctime'].apply(lambda x: 1 if x >= 100000 else x)
-    reduced_table['tproctime'] = reduced_table['tproctime'].apply(lambda x: 1 if x >= 100000 else x)
+    # reduced_table['pproctime'] = reduced_table['pproctime'].apply(lambda x: 1 if x >= 100000 else x)
+    # reduced_table['tproctime'] = reduced_table['tproctime'].apply(lambda x: 1 if x >= 100000 else x)
 
     reduced_table['ptruput'] = reduced_table['ptruput'] * reduced_table['pproctime']
     reduced_table['ttruput'] = reduced_table['ttruput'] * reduced_table['tproctime']
 
-    reduced_table['psvcutil'] = (reduced_table['ptruput_lim'] / (1/reduced_table['pproctime'])).fillna(0)
-    reduced_table['tsvcutil'] = (reduced_table['ttruput_lim'] / (1/reduced_table['tproctime'])).fillna(0)
+    # reduced_table['psvcutil'] = (reduced_table['ptruput_lim'] / (1/reduced_table['pproctime'])).fillna(0)
+    # reduced_table['tsvcutil'] = (reduced_table['ttruput_lim'] / (1/reduced_table['tproctime'])).fillna(0)
 
-    # print(reduced_table[["ptruput", "ttruput"]])
     memoization = {}
     new_colors = []
 
@@ -317,13 +319,11 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     ax_r: Axes  # response time row
     ax_m: Axes  # memory row
     ax_t: Axes  # truput row
-    # fig = plt.figure()
     fig = plt.figure(figsize=(32, 8))
-    gs = fig.add_gridspec(nrows=6, hspace=.001, height_ratios=[1.4, 1.4, 1.4, 1.4, 1.4, 3])
+    gs = fig.add_gridspec(nrows=5, hspace=.001, height_ratios=[1.4, 1.4, 1.4, 1.4, 3])
     axs = gs.subplots(sharex='col')
     # bottom-up rows
-    ax = axs[5]  # iterations
-    ax_u = axs[4]
+    ax = axs[4]  # iterations
     ax_r = axs[3]  # ...
     ax_m = axs[2]
     ax_c = axs[1]
@@ -346,14 +346,10 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     ax.set_ylim(ymax=top + magic_number)
     for index, row in reduced_table.iterrows():
         # max min score boundaris at every iteration
-        # _tmax = max(row['pmean'], row['tscore'])
         _tmax = max(row['pmedian'], row['tscore'])
-        # _tmin = min(row['pmean'], row['tscore'])
         _tmin = min(row['pmedian'], row['tscore'])
 
-        # _pmax = max(row['pmean'], row['pscore'])
         _pmax = max(row['pmedian'], row['pscore'])
-        # _pmin = min(row['pmean'], row['pscore'])
         _pmin = min(row['pmedian'], row['pscore'])
 
         # configuration label
@@ -401,10 +397,9 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
 
     ax_t = reduced_table.plot.bar(ax=ax_t, x='index', y=['ptruput_lim', 'ttruput_lim'], rot=0,
                                   color={'ptruput_lim': 'red', 'ttruput_lim': 'blue'}, width=0.8, alpha=1)
-    #psvcutil
-    ax_u = reduced_table.plot.bar(ax=ax_u, x='index', y=['psvcutil', 'tsvcutil'], rot=0,
-                                  color={'psvcutil': 'red', 'tsvcutil': 'blue'}, width=0.8, alpha=1)
-
+    # psvcutil
+    # ax_u = reduced_table.plot.bar(ax=ax_u, x='index', y=['psvcutil', 'tsvcutil'], rot=0,
+    #                               color={'psvcutil': 'red', 'tsvcutil': 'blue'}, width=0.8, alpha=1)
 
     # trending line
     # trend_values = reduced_table['psvcutil'].values.tolist()
@@ -419,9 +414,9 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     # p = np.poly1d(z)
     # ax_u.plot(reduced_table.index, p(reduced_table.index), "c--", linewidth=1)
 
-# response time row
-#     print(reduced_table[[ 'tproctime', 'pproctime']])
-    ax_r = reduced_table.plot.bar(ax=ax_r, x='index', y=[ 'pproctime', 'tproctime'], rot=0,
+    # response time row
+    #     print(reduced_table[[ 'tproctime', 'pproctime']])
+    ax_r = reduced_table.plot.bar(ax=ax_r, x='index', y=['pproctime', 'tproctime'], rot=0,
                                   color={'pproctime': 'red', 'tproctime': 'blue'}, width=0.8, alpha=1)
     # # memory row -- dark shaded to better visualize the runtime consumption
     ax_m = reduced_table.plot.bar(ax=ax_m, x='index', y=['pmem', 'tmem'], rot=0, color={'pmem': 'red', 'tmem': 'blue'},
@@ -436,7 +431,6 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     #                               color={'pmem_util': 'red', 'tmem_util': 'blue'},
     #                               width=0.8, alpha=1)
 
-
     # cpu row -- dark shaded to better visualize the runtime consumption
     # reduced_table['pcpu_util'] = reduced_table['pcpu'] / reduced_table['pcpu_lim']
     # reduced_table['tcpu_util'] = reduced_table['tcpu'] / reduced_table['tcpu_lim']
@@ -447,7 +441,6 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
                                   width=0.8, alpha=1)
     ax_c = reduced_table.plot.bar(ax=ax_c, x='index', y=['pcpu_lim', 'tcpu_lim'], rot=0,
                                   color={'pcpu_lim': 'red', 'tcpu_lim': 'blue'}, width=0.8, alpha=0.3)
-
 
     # statistics marks p* stands for production t* stands for training
     # ax = reduced_table.plot(ax=ax, x='index', y='pmedian', color='yellow', marker='^', markersize=3, linewidth=0)
@@ -556,7 +549,7 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     # customize y-axis labels
     ax.get_legend().remove()
     ax_m.get_legend().remove()
-    ax_u.get_legend().remove()
+    # ax_u.get_legend().remove()
     ax_c.get_legend().remove()
     ax_r.get_legend().remove()
 
@@ -566,34 +559,39 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
         ax2 = ax.twinx()
         ax2.set_ylim(ax.get_ylim())
 
-    ax_u.set_ylabel('service\nutilization (%)')
-    ax_u.set_ylim(0, 1.0)
-    ax_u.set_yticks(np.linspace(0, 1.0, 5))
-    rlabels = [f'{item:.0f}' for item in np.linspace(0, 1.0, 5)*100]
-    rlabels[-1] += '>'
-    ax_u.set_yticklabels(rlabels)
+    # ax_u.set_ylabel('service\nutilization (%)')
+    # ax_u.set_ylim(0, 1.0)
+    # ax_u.set_yticks(np.linspace(0, 1.0, 5))
+    # rlabels = [f'{item:.0f}' for item in np.linspace(0, 1.0, 5)*100]
+    # rlabels[-1] += '>'
+    # ax_u.set_yticklabels(rlabels)
 
     ax_t.set_ylabel('arrivals/s')
-    ax_t.set_ylim(0, ax_t.get_yaxis().get_data_interval()[1])
-    ax_t.set_yticks(np.linspace(0, ax_t.get_yaxis().get_data_interval()[1], 4))
-
-
+    ax_t.set_ylim(0, 1)
+    ax_t.set_yticks([0, .25, .50, .75, 1])
+    ax_t.set_yticklabels([0, .25, .50, .75, 1])
+    # ax_t.set_ylim(0, ax_t.get_yaxis().get_data_interval()[1])
+    # ax_t.set_yticks(np.linspace(0, ax_t.get_yaxis().get_data_interval()[1], 4))
 
     ax_r.set_ylabel('resp.\ntime(s)')
-    ax_r.set_ylim(0, .2)
-    ax_r.set_yticks(np.linspace(0, .2, 6))
-    rlabels = [f'{item:.4f}' for item in np.linspace(0, .2, 6)]
-    rlabels[-1] += '>'
-    ax_r.set_yticklabels(rlabels)
+    ax_r.set_ylim(0, 1)
+    ax_r.set_yticks([0, .25, .50, .75, 1])
+    ax_r.set_yticklabels([0, .25, .50, .75, 1])
+    # ax_r.set_yticks(np.linspace(0, .2, 6))
+    # rlabels = [f'{item:.4f}' for item in np.linspace(0, .2, 6)]
+    # rlabels[-1] += '>'
+    # ax_r.set_yticklabels(rlabels)
 
-    ax_m.set_yscale('log', base=2)
-    # ax_m.set_ylim(0, ax_m.get_yaxis().get_data_interval()[1])
-    ax_m.set_ylim(256, 8192)
-    ax_m.set_yticks([256, 512, 1024, 2048, 4096, 8192])
-    ax_m.set_yticklabels([256, 512, 1024, 2048, 4096, 8192])
-    # ax_m.set_yticks([0, 2**9, 2**10, 2**11, 2**12, 2*13])
-    ax_m.get_yaxis().get_major_formatter().labelOnlyBase = False
-    ax_m.set_ylabel('memory (MB)\n'+r'${\log_2}$ scale')
+    ax_m.set_ylabel('Mem (%)')
+    ax_m.set_ylim(0, 1)
+    ax_m.set_yticks([0, .25, .50, .75, 1])
+    ax_m.set_yticklabels([0, .25, .50, .75, 1])
+    # ax_m.set_ylabel('memory (MB)\n'+r'${\log_2}$ scale')
+    # ax_m.set_yscale('log', base=2)
+    # ax_m.set_ylim(256, 8192)
+    # ax_m.set_yticks([256, 512, 1024, 2048, 4096, 8192])
+    # ax_m.set_yticklabels([256, 512, 1024, 2048, 4096, 8192])
+    # ax_m.get_yaxis().get_major_formatter().labelOnlyBase = False
 
     # ax_m.set_ylabel('Mem (%)')
     # ax_m.set_ylim(0, 1)
@@ -601,28 +599,30 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     # ax_m.set_yticklabels([f'{item:.0f}' for item in np.linspace(0, 100, 5)])
     # ax_m.get_yaxis().get_major_formatter().labelOnlyBase = False
 
-    # ax_c.set_ylabel('CPU (%)')
-    # ax_c.set_ylim(0, 1)
+    ax_c.set_ylabel('CPU (%)')
+    ax_c.set_ylim(0, 1)
+    ax_c.set_yticks([0, .25, .50, .75, 1])
+    ax_c.set_yticklabels([0, .25, .50, .75, 1])
     # ax_c.set_yticks(np.linspace(0,1,5))
     # ax_c.set_yticklabels([f'{item:.0f}' for item in np.linspace(0, 100, 5)])
     # ax_c.get_yaxis().get_major_formatter().labelOnlyBase = False
 
-    ax_c.set_ylim(0, ax_c.get_yaxis().get_data_interval()[1])
-    # ax_c.set_ylim(1, 8192)
-    ax_c.set_yticks(list(range(1,int(ax_c.get_yaxis().get_data_interval()[1]),2)))
-    ax_c.set_yticklabels(list(range(1,int(ax_c.get_yaxis().get_data_interval()[1]),2)))
-    # ax_m.set_yticks([0, 2**9, 2**10, 2**11, 2**12, 2*13])
-    ax_c.get_yaxis().get_major_formatter().labelOnlyBase = False
-    ax_c.set_ylabel('CPU')
+    # ax_c.set_ylim(0, ax_c.get_yaxis().get_data_interval()[1])
+    # # ax_c.set_ylim(1, 8192)
+    # ax_c.set_yticks(list(range(1, int(ax_c.get_yaxis().get_data_interval()[1]), 2)))
+    # ax_c.set_yticklabels(list(range(1, int(ax_c.get_yaxis().get_data_interval()[1]), 2)))
+    # # ax_m.set_yticks([0, 2**9, 2**10, 2**11, 2**12, 2*13])
+    # ax_c.get_yaxis().get_major_formatter().labelOnlyBase = False
+    # ax_c.set_ylabel('CPU')
 
     ax_t.set_title(title, loc='left')
     ax_t.axes.get_xaxis().set_visible(False)
-    ax_u.axes.get_xaxis().set_visible(False)
+    # ax_u.axes.get_xaxis().set_visible(False)
     ax_m.axes.get_xaxis().set_visible(False)
     ax_c.axes.get_xaxis().set_visible(False)
     ax_r.axes.get_xaxis().set_visible(False)
     ax_t.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
-    ax_u.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
+    # ax_u.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
     ax_m.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
     ax_c.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
     ax_r.grid(True, linewidth=0.3, alpha=0.7, color='k', linestyle='-')
@@ -826,22 +826,13 @@ def plot_importance(raw_data: dict):
     #
     # plt.show()
 
+
 def general():
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
 
-    # title = 'Daytrader'
-    # service_name = "daytrader-service"
-    # config_name = "daytrader-config-app"
 
-    # title= "Quarkus"
-    # service_name = "quarkus-service"
-    # config_name = "quarkus-cm-app"
-
-    title = "AcmeAir"
-    service_name = "acmeair-service"
-    config_name = "acmeair-config-app"
-
+    name = 'trace-2021-05-12T20 24 26 750340'
     name = 'trace-2021-07-12T23 06 37'
     name = 'trace-2021-07-15T18 27 10'
     name = 'trace-2021-07-16T21 18 09'
@@ -855,34 +846,57 @@ def general():
     name = 'trace-2021-07-28T17 37 26'
     name = 'trace-2021-07-29T23 49 32'
     name = 'trace-2021-07-30T17 56 45'
-    name = 'trace-2021-07-31T15 05 13' # 900
-    name = 'trace-2021-08-01T15 49 02' # 600
-    name = 'trace-2021-08-02T15 50 13' # 900 no readiness probe
-    name = 'trace-2021-08-03T22 50 32' # 50 clients
+    name = 'trace-2021-07-31T15 05 13'  # 900
+    name = 'trace-2021-08-01T15 49 02'  # 600
+    name = 'trace-2021-08-02T15 50 13'  # 900 no readiness probe
+    name = 'trace-2021-08-03T22 50 32'  # 50 clients
     name = 'trace-2021-08-04T23 34 25'
     name = 'trace-2021-08-06T16 14 33'
-    name = 'trace-2021-08-09T14 33 34' # svc utilization in workload 2 slowly trends downwards
+    name = 'trace-2021-08-09T14 33 34'  # svc utilization in workload 2 slowly trends downwards
     # name = 'trace-2021-08-12T15 13 28'
     # name = 'trace-2021-08-13T15 04 31'
     # name = 'trace-2021-08-18T22 41 54'
     name = 'trace-2021-08-19T22 37 44'
     name = 'trace-2021-08-26T02 10 11'
-    name = 'trace-quarkus-2021-08-27T04 19 51' # quarkus, multi-workloads (50, 100, 200)
+    name = 'trace-quarkus-2021-08-27T04 19 51'  # quarkus, multi-workloads (50, 100, 200)
     # name = 'trace-acmeair-2021-08-28T00 21 27' # acmeair, multi-workloads (50, 100, 200)
-    name = 'trace-daytrader-2021-08-28T00 23 06' # daytrader (5, 10, 50)
+    name = 'trace-daytrader-2021-08-28T00 23 06'  # daytrader (5, 10, 50)
     # name = 'trace-jsp-2021-03-11T13 41 07' # JSP
     # name = 'trace-jsf-2021-03-10T14 01 00' # JSF
     # name = 'trace-acmeair-2021-08-31T00 15 53' #acmeair trinity
     # name = 'trace-acmeair-2021-08-31T19 27 42' # acmeair trinity 08
     # name = 'trace-quarkus-2021-08-31T18 03 04' # quarkus trinity 08
-    name = 'trace-acmeair-2021-09-07T20 50 22' # ok
+    name = 'trace-acmeair-2021-09-07T20 50 22'  # ok
     name = 'trace-acmeair-2021-09-08T17 59 42'
+    name = 'trace-acmeair-2021-09-09T13 11 16'  # acmeair 10min
+    name = 'trace-quarkus-2021-09-10T18 36 38'
+    name = 'trace-acmeair-2021-09-14T01 18 40' # trinity acmeair
+    name = 'trace-daytrader-2021-09-13T23 29 09' # no probation
+    name = 'trace-daytrader-2021-09-14T15 33 54'
+    name = 'trace-acmeair-2021-09-14T19 46 28' # azure
+    # name = 'trace-daytrader-2021-09-14T19 46 52' # no probation
+    # name = 'trace-acmeair-2021-09-14T21 09 51' # trinity
+    name = 'trace-quarkus-2021-09-14T19 46 43'
+    name = 'trace-daytrader-2021-09-15T23 26 02' # azure
+
+    title = 'Daytrader'
+    service_name = "daytrader-service"
+    config_name = "daytrader-config-app"
+
+    # title= "Quarkus"
+    # service_name = "quarkus-service"
+    # config_name = "quarkus-cm-app"
+
+    # title = "AcmeAir"
+    # service_name = "acmeair-service"
+    # config_name = "acmeair-config-app"
 
     # JSF
     # plot_importance(data)
 
-    # for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
-    for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
+    # for workload in ['']:
+    for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
+    # for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
         print('workload: ', workload)
         try:
             print(workload)
@@ -891,9 +905,11 @@ def general():
             df = load_raw_data('./resources/' + name + '.json', service_name, workload,
                                skip_reset=True,
                                skip_pruned=True,
-                               skip_tuned=True,
+                               skip_tuned=False,
                                show_workload_gap=False,
                                to_gib=False)
+
+            df = normalize_01_df(df)
 
             empty = df[(df['pname'].str.len() > 0)]
             if empty.empty:
@@ -905,12 +921,45 @@ def general():
                  save=False,
                  simple_visualization=False,
                  show_table=True)
+
             # break
             # plot_app_curves(df, service_name, config_name)
             # plot_importance(importance(df, 'daytrader', 'config'))
         except:
             traceback.print_exc()
             continue
+
+
+def normalize_01_df(df: pd.DataFrame):
+    def normalize_column(df: pd.DataFrame, prod_col: str, train_col: str):
+        m = min(df[train_col].min(), df[prod_col].min())
+        M = max(df[train_col].max(), df[prod_col].max())
+
+        df[train_col] = (df[train_col] - m) / (M - m)
+        df[prod_col] = (df[prod_col] - m) / (M - m)
+
+        return df
+
+    df = normalize_column(df, 'ptruput', 'ttruput')
+    df = normalize_column(df, 'pproctime', 'tproctime')
+    df = normalize_column(df, 'pmem', 'tmem')
+    df = normalize_column(df, 'pmem_lim', 'tmem_lim')
+    df = normalize_column(df, 'pcpu', 'tcpu')
+    df = normalize_column(df, 'pcpu_lim', 'tcpu_lim')
+
+    df = normalize_column(df, 'pscore', 'tscore')
+
+    df['pmean'] = df.groupby('pname')['pscore'].transform(lambda s: s.rolling(3, min_periods=1).mean())
+    df['pmedian'] = df.groupby('pname')['pscore'].transform(lambda s: s.rolling(3, min_periods=1).median())
+    df['pstddev'] = df.groupby('pname')['pscore'].transform(lambda s: s.rolling(3, min_periods=1).std())
+    df['pmad'] = df.groupby('pname')['pscore'].transform(lambda s: s.rolling(3, min_periods=1).std())
+    df['tmean'] = df.groupby('tname')['tscore'].transform(lambda s: s.rolling(3, min_periods=1).mean())
+    df['tmedian'] = df.groupby('tname')['tscore'].transform(lambda s: s.rolling(3, min_periods=1).median())
+    df['tstddev'] = df.groupby('tname')['tscore'].transform(lambda s: s.rolling(3, min_periods=1).std())
+    df['tmad'] = df.groupby('tname')['tscore'].transform(lambda s: s.rolling(3, min_periods=1).std())
+
+    return df
+
 
 if __name__ == '__main__':
     general()

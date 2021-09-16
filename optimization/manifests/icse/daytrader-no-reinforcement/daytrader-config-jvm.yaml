@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: daytrader-config-jvm
+  namespace: daytrader
+data:
+  jvm.options: |-
+    -XX:+UseContainerSupport
+    -Xgcpolicy:gencon
+    -Xtune:virtualized
+    -Xms8m
+    -Xmx256m
+    -Xmns2m
+    -Xmnx64m
+    -XX:SharedCacheHardLimit=32m
+    -Xscmx=16m

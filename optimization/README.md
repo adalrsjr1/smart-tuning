@@ -1,11 +1,12 @@
-# Deploying SmartTuning
-
+# Repository structure
 ```
 optimization/
   |_/docs
   |_/experiments
   |_/grafana
+  |_/kube-state-metrics
   |_/manifests
+  |_/metrics-server
   |_/prometheus
   |_/proxy
   |_/reloader
@@ -14,81 +15,73 @@ optimization/
   |_/scripts
 
 ```
+## Docs
+
+This folder has SmartTuning's architecture diagram and other related
+documentation.
+
+## Experiments
+
+This folder has the script `plot_2phase_planner_new.py` for plotting all data
+SmartTuning saves into MongoDB during its execution.
+
+## Grafana
+
+This folder has the manifest for deploying Grafana and several dashboards to
+visualize the execution of applications being tuned. `smarttuning-replicas.json`
+is latest dashboard created.
+
+## Kube-state-metrics and metrics-server
+
+Local repositories for `kube-state-metrics` and `metrics-server`.
 
 ## Manifests
 
-This folder has all manifests files necessary to deploy the `AcmeAir` or
-`Daytrader` apps.
+```
+manifests/
+  |_/icse
+  |_/search-space
+```
 
-### AcmeAir and Daytrader
+The scripts `/manifests/monitoring-deploy.sh` and
+`/manifests/monitoring-delete.sh` install and uninstall all plumbing necessary
+for Smart Tuning. The `/manifests/icse` folder has the manifests necessary to
+  deploy benchmarks applications and Smart Tuning on Kubernetes. To deploy any
+  of these applications, just run `deployment.sh` and it will install all into
+  your local Kubernetes. Finally, the other folders in `manifests/` are kept for
+  historical reasons.
 
-[AcmeAir Repo](https://github.com/blueperf/acmeair-mainservice-java)
 
+## Prometheus
 
-[Daytrader Repo](https://github.com/OpenLiberty/sample.daytrader8)
+This folder contains all manifests necessary for deploying Prometheus.
 
-The `*.config.yaml` are the configuration files to set the applications app. If
-the `*.config.yaml` has some entry named `*jvm*` this are the configurations
-related to JVM (OpenJ9) otherwise they are the configuration specific to the application
-or application server (Open Liberty).
+## Proxy
 
-The `search-space` folder has the K8s CRD used to limit the values that
-SmartTuning can sample to try a new configuration. The `search-space` definition
-is in [search-space/search-space-crd-2.yaml](../search-space/).
+`Proxy` is a custom made proxy implemented to observe requests flowing into the
+application. For using this, mark the SmartTuning's envVar `NO_PROXY=False` and
+SmartTuning automatically will inject this proxy in the application Pod. If
+using this proxy, the queries for sampling metrics should be updated
+accordingly. See deployment for more.
 
-The `jmeter` folder has the manifest necessary to deploy Jmeter performance test
-client. When deploying Jmeter there are only two key configuration that may be
-adjusted:
+## Reload
 
-* JTHREAD: '200' -- The number of threads (virtual clients) used during the
-  experiment
-* JDURATION: '15000' -- The duration of the experiment in seconds.
+This folder is kept for historical reasons. It has a custom made implementation
+for reload pods when their `ConfigMaps` are updated. This implementation was
+  replaced in favor of
+  [stakater/Reloader](https://github.com/stakater/Reloader).
 
-### SmartTuning
+## SmartTuning
 
-This folder has the manifests related to SmartTuning deployment. Below are the
-configurations that likely will be changed between the applications
+This folder has the SmartTuning implementation.
 
-* `SAMPLING_METRICS_TIMEOUT: '1200'` -- The interval experimenting a configuration
-* `WAITING_TIME: '1200'` -- The interval waiting between each deployment.
-  `SAMPLING_METRICS_TIMEOUT` and `WAITING_TIME` should be set the same.
-* `SAMPLE_SIZE: '0.3334'` -- The interval used to compare two metrics. E.g.,
-  0.3334 with sample the last 3rd part of the experimenting interval
-  (WAITING_TIME) of the training and production pod. SmartTuning uses this value
-  sampled to compare whether training pod has a better performance than the
-  production pod.
-* `K: '1'`: -- The max number of workload types that SmartTuning can classify
-* `URL_SIMILARITY_THRESHOLD: "0.1"` -- Similarity threshold that SmartTuning uses
-  to compare two URLs
-* `OBJECTIVE: '-(throughput / ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2))'` -- Objective function to optimize the application
-* `POD_REGEX: 'daytrader-.*servicesmarttuning-.+'` -- Training pod regex name
-* `POD_PROD_REGEX: 'daytrader-.*service-.+'` -- Production pod regex name
-
-### Other files
-
-`mongo-deployment.yaml` is the manifest to deploy the instance of Mongo that
-SmartTuning uses to log the experiments iterations. It is possible to inspect
-it accessing `http://localhost:30081`.
-
-`prox-config.yaml` is the file with the proxy configurations.
-
-`monitoring-*.sh` are the scripts to deploy the monitoring machinary on K8s
-(Prometheus and Grafana), the pod reloader, and the search-space CRD. See next section.
-
-## Quick Start
+# Quick Start
 
 1. run `manifests/monitoring-deploy.sh`
-2. deploy the application `manifest/acmeair` or `manifest/daytrader` -- be
-   careful with the DB deployments
-3. deploy SmartTuning from the application folder
-4. deploy jmeter from the application folder
-5. deploy the search-space from the application folder
-
-Access the Grafana's dashboard `http://localhost:30030` and import the grafana
-dashboard json from `../grafana/smarttuning.json`
-
-## Tips
-When benchmarking an application with Smart Tuning, set the number of
-clients/threads equal to the number of max connections to DB. Also, set the
-upper limit for db connections in search space the same number as the available
-connections in db.
+1.1. install a proper dashboard to grafana
+2. deploy the application `manifests/icse/quarkus/deployment.sh`
+3. monitors SmartTuning
+3.1. `kubectl -n kube-monitoring port-forward service/grafana-service 3000` and
+access `localhost:3000`
+3.2. `kubectl port-forward service/mongo-workload-service  8081` and access
+`localhost:8081` for detailed logs.

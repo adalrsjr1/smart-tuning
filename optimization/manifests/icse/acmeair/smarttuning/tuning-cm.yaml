@@ -22,6 +22,7 @@ metadata:
   namespace: acmeair
 data:
   NO_PROXY: "True"
+  LOGGING_LEVEL: "NOTSET"
   SAMPLER_CONFIG: "/etc/sampler-config/sampler.json"
   TWO_SERVICES: "False"
   RESTART_IF_CFG_DOESNT_CHANGE: "False"
@@ -42,8 +43,8 @@ data:
   ST_METRICS_PORT: '9090'
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
-  SAMPLING_METRICS_TIMEOUT: '600'
-  WAITING_TIME: '600'
+  SAMPLING_METRICS_TIMEOUT: '300'
+  WAITING_TIME: '300'
   SAMPLE_SIZE: '0.3334'
   BAYESIAN: 'True'
   # n_startup_jobs: # of jobs doing random search at begining of optimization
@@ -58,6 +59,7 @@ data:
   TRY_BEST_AT_EVERY: '1'
   RESTART_TRIGGER: '3' # https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule
   REINFORCEMENT_RATIO: '0.3'
+  PROBATION_RATIO: '0.3'
   METRIC_THRESHOLD: '0.0'
   RANDOM_SEED: '31'
   ## the objective is always to minimize

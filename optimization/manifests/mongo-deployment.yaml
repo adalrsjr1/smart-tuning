@@ -41,16 +41,6 @@ spec:
         - name: mongo-workload
           image: mongo:4.4
           imagePullPolicy: IfNotPresent
-          lifecycle:
-            preStop:
-              exec:
-                command:
-                  - "sh"
-                  - "-c"
-                  - |
-                    FOLDER_NAME=$(date '+%Y%m%d-%H%M%S')
-                    mkdir /home/$FOLDER_NAME
-                    mongoexport -d smarttuning -c logging --out /home/$FOLDER_NAME/mongo_tuning.json
           ports:
             - containerPort: 27017
           envFrom:

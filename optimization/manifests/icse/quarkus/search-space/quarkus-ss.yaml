@@ -21,10 +21,11 @@ data:
         - name: "cpu"
           type: "real"
           values:
-            - "2"
+            - "1"
         - name: "memory"
           type: "integer"
           values:
+            - "256"
             - "512"
             - "1024"
             - "2048"

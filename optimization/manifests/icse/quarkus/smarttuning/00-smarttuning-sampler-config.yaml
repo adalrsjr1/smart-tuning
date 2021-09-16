@@ -39,12 +39,12 @@ data:
         },
         {
           "name": "throughput",
-          "query": "f'sum(rate(base_REST_request_total{{pod=~\"{podname}-.*\",class=\"com.acme.crud.FruitResource\", namespace=\"{namespace}\"}}[{interval}s]))'",
+          "query": "f'sum(rate(base_REST_request_total{{pod=~\"{podname}-.*\",class=\"com.acme.crud.FruitResource\"}}[{interval}s]))'",
           "datasource": "prom"
         },
         {
           "name": "process_time",
-          "query": "f'sum(deriv(base_REST_request_elapsedTime_seconds{{pod=~\"{podname}-.*\",class=\"com.acme.crud.FruitResource\", namespace=\"{namespace}\"}}[{interval}s]))'",
+          "query": "f'sum(deriv(base_REST_request_elapsedTime_seconds{{pod=~\"{podname}-.*\",class=\"com.acme.crud.FruitResource\"}}[{interval}s]))'",
           "datasource": "prom"
         }
       ]

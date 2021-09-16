@@ -37,8 +37,8 @@ spec:
             value: "jdbc:postgresql://postgres-quarkus-rest-http-crud-svc.quarkus.svc.cluster.local/rest-crud"
         resources:
           limits:
-            cpu: "1"
-            memory: "512Mi"
+            cpu: 1
+            memory: "1024Mi"
         envFrom:
           - configMapRef:
               name: quarkus-cm-app

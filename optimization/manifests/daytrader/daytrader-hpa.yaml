@@ -69,7 +69,7 @@ spec:
   # cluster supports at most 24 cores
   minReplicas: 1
   # 9 prod + 1 train
-  maxReplicas: 10 # 10 replicas of 2 cores
+  maxReplicas: 8 # 10 replicas of 2 cores
   metrics:
   # use a "Pods" metric, which takes the average of the
   # given metric across all pods controlled by the autoscaling target

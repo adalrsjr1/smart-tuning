@@ -16,3 +16,7 @@ sleep 30
 
 kubectl --kubeconfig=/Users/adalrsjr1/.kube/$1 apply -f search-space/
 
+kubectl --kubeconfig=/Users/adalrsjr1/.kube/$1 delete svc acmeair-svc-smarttuning -n acmeair
+
+
+

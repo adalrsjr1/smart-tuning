@@ -684,7 +684,7 @@ class IterationDriver:
             self.production.configuration = self.__last_prod
         else:
             if self.production.configuration.name != self.training.configuration.name:
-                # workaround to update production when st does not goes to probation phase
+                # TODO: workaround to update production when st does not goes to probation phase
                 self.logger.info('updating production without probation')
                 self.production.configuration = self.training.configuration
 
@@ -693,6 +693,7 @@ class IterationDriver:
             self.session().promote_to_tenured(self.training.configuration)
 
             self.logger.info(f'reseting counters {self.global_iteration}/{self.max_global_iterations}')
+
         self.lookahead = TrainingIteration
         self.local_iteration = 0
         self.reinforcement_iteration = 0

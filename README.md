@@ -1,3 +1,9 @@
+## Quick links
+
+[Repository structure](optimization/README.md)
+[Deployment](optimization/manifests/README.md)
+
+
 ## Release notes
 
 ### Version 4.0

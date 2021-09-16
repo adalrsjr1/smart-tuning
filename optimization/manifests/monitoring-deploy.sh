@@ -16,7 +16,6 @@ kubectl apply --kubeconfig=$CFG -f ../metrics-server
 echo -e "\ndeploying kube state metrics\n"
 kubectl apply --kubeconfig=$CFG -f ../kube-state-metrics
 sleep 1
-sleep 1
 echo -e "\ndeploying prometheus\n"
 kubectl apply --kubeconfig=$CFG -f  ../prometheus
 sleep 1
@@ -33,7 +32,7 @@ echo -e "\ndeploying mongo\n"
 kubectl apply --kubeconfig=$CFG -f  mongo-deployment.yaml
 sleep 1
 echo -e "\ndeploying netutil pod\n"
-kubectl --kubeconfig=$CFG run netutil --image=amouat/network-utils --image-pull-policy=IfNotPresent --command -- "/bin/sh" "-c" "while true; do sleep 10; done;"
+kubectl --kubeconfig=$CFG run netutil --image=amouat/network-utils --image-pull-policy=IfNotPresent --command -- "/bin/sh" "-c" "while true; do sleep 60; done;"
 echo -e "\ndeploying dashboard\n"
 kubectl apply --kubeconfig=$CFG -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
 echo -e "to access dashboard: "
