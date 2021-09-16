@@ -78,10 +78,8 @@ This folder has the SmartTuning implementation.
 # Quick Start
 
 1. run `manifests/monitoring-deploy.sh`
-1.1. install a proper dashboard to grafana
+  1. install a proper dashboard to grafana
 2. deploy the application `manifests/icse/quarkus/deployment.sh`
 3. monitors SmartTuning
-3.1. `kubectl -n kube-monitoring port-forward service/grafana-service 3000` and
-access `localhost:3000`
-3.2. `kubectl port-forward service/mongo-workload-service  8081` and access
-`localhost:8081` for detailed logs.
+  1. `kubectl -n kube-monitoring port-forward service/grafana-service 3000` and access `localhost:3000`
+  2. `kubectl port-forward service/mongo-workload-service  8081` and access `localhost:8081` for detailed logs.
