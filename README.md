@@ -1,8 +1,22 @@
+## TODO
+
+* writing walkthrough
+* add JMX for AcmeAir, Daytrader, Quarkus
+* building section
+
 ## Quick links
 
 * [Repository structure](optimization/README.md)
 * [Algorithm](optimization/docs/README.md)
 * [Deployment](optimization/manifests/README.md)
+* [Walkthrough](WALKTHROUGH.md)
+* [Implementation](optimization/smarttuning/README.md)
+
+### Applications tested
+
+* [AcmeAir](https://github.com/adalrsjr1/acmeair-monolithic-java)
+* [Daytrader](https://github.com/OpenLiberty/sample.daytrader8)
+* [Quarkus Demo](https://github.com/adalrsjr1/quarkusRestCrudDemo)
 
 ## Release notes
 
