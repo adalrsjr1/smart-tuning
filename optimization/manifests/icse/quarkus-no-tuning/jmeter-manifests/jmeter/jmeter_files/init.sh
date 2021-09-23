@@ -1,0 +1,13 @@
+#!/bin/bash
+
+jmeter -n \
+  -DusePureIDs=true \
+  -t $JMETER_HOME/jmeter.jmx \
+  -JHOST=$JHOST \
+  -JPORT=$JPORT \
+  -JDURATION=$JDURATION \
+  -JUSERS=$JUSERS \
+  -JRAMPUP=$JRAMPUP \
+  -JMAX_THINK_TIME=$JMAX_THINK_TIME \
+  -JMIN_THINK_TIME=$JMIN_THINK_TIME
+

@@ -1,9 +1,3 @@
-## TODO
-
-* writing walkthrough
-* add JMX for AcmeAir, Daytrader, Quarkus
-* building section
-
 ## Quick links
 
 * [Repository structure](optimization/README.md)
@@ -11,6 +5,10 @@
 * [Deployment](optimization/manifests/README.md)
 * [Walkthrough](WALKTHROUGH.md)
 * [Implementation](optimization/smarttuning/README.md)
+
+## Build
+
+Run `make build` in [SmartTuning](optimization/) directory.
 
 ### Applications tested
 

@@ -1,0 +1,59 @@
+apiVersion: "smarttuning.ibm.com/v1alpha2"
+kind: SearchSpace
+metadata:
+  name: daytrader-ss
+  namespace: quarkus2
+spec:
+  deployment: quarkus-service
+  service: quarkus-svc
+  namespace: "quarkus2"
+  manifests:
+    - name: quarkus-service
+      type: "deployment"
+    - name: quarkus-cm-app
+      type: "configMap"
+    - name: quarkus-cm-jvm
+      type: "configMap"
+data:
+  - name: quarkus-service
+    tunables:
+      option:
+        - name: "cpu"
+          type: "real"
+          values:
+            - "1"
+        - name: "memory"
+          type: "integer"
+          values:
+            - "1024"
+  - name: quarkus-cm-app
+    tunables:
+      option:
+        - name: "quarkus.vertx.worker-pool-size"
+          type: "integer"
+          values:
+            - "20"
+        - name: "quarkus.datasource.jdbc.max-size"
+          type: "integer"
+          values:
+            - "20"
+        - name: "quarkus.datasource.jdbc.min-size"
+          type: "integer"
+          values:
+            - "0"
+  - name: quarkus-cm-jvm
+    tunables:
+      option:
+        - name: "XMS"
+          type: "integer"
+          values:
+            - "100"
+        - name: "XMX"
+          type: "integer"
+          values:
+            - "128"
+        - name: "XMN"
+          type: "integer"
+          values:
+            - "110"
+

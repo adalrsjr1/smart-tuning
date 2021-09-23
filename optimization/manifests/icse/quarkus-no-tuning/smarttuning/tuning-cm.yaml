@@ -1,0 +1,81 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smarttuning-sampling-prom-queries
+  namespace: quarkus2
+data:
+  Q_CPU: f'sum(rate(container_cpu_usage_seconds_total{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
+  Q_CPU_L: f'sum(sum_over_time(container_spec_cpu_quota{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s])) / avg(sum_over_time(container_spec_cpu_period{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
+  Q_MEM: f'sum(max_over_time(container_memory_working_set_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))/(2^20)'
+  Q_MEM_L: f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))/(2^20)'
+  Q_THRUPUT: f'sum(rate(vendor_servlet_request_total{{pod=~"{self.podname}.*",servlet!~"com_ibm_ws_microprofile.*|.*Trade.*"}}[{self.interval}s]))'
+  Q_RESP_TIME: f'avg(deriv(vendor_servlet_responseTime_total_seconds{{pod=~"{self.podname}-.*",servlet!~"com_ibm_ws_microprofile.*"}}[{self.interval}s]))'
+  Q_ERRORS: f'0'
+  Q_REPLICAS: f'avg_over_time(kube_deployment_spec_replicas{{namespace="{self.namespace}", deployment="{self.podname}"}}[{self.interval}s])'
+  Q_CONNS: f'sum(rate(smarttuning_active_conns{{pod=~"{self.podname}-*",name!~".*POD.*", state="new"}}[{self.interval}s]))'
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smarttuning-config
+  namespace: quarkus2
+data:
+  NO_PROXY: "True"
+  LOGGING_LEVEL: "NOTSET"
+  SAMPLER_CONFIG: "/etc/sampler-config/sampler.json"
+  TWO_SERVICES: "False"
+  RESTART_IF_CFG_DOESNT_CHANGE: "False"
+  WORKLOAD_TIMEOUT: "60"
+  WORKLOAD_CLASSIFIER: "CM" #HPA or RPS or CM
+  JMETER_CFG_WORKLOAD: "JUSERS"
+  JMETER_CM: "jmeter-cm"
+  #WORKLOAD_BANDS: "50, 110, 170"
+  WORKLOAD_BANDS: "0"
+  FAIL_FAST: "False"
+  MOCK: "False"
+  PRINT_CONFIG: "True"
+  # mongo config
+  MONGO_ADDR: 'mongo-workload-service.default.svc.cluster.local'
+  MONGO_PORT: '27017'
+  MONGO_DB: 'quarkus'
+  # prometheus config
+  ST_METRICS_PORT: '9090'
+  PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
+  PROMETHEUS_PORT: '9090'
+  SAMPLING_METRICS_TIMEOUT: '300'
+  WAITING_TIME: '300'
+  SAMPLE_SIZE: '0.3334'
+  BAYESIAN: 'True'
+  # n_startup_jobs: # of jobs doing random search at begining of optimization
+  N_STARTUP_JOBS: '10'
+  # n_EI_candidades: number of config samples draw before select the best. lower number encourages exploration
+  N_EI_CANDIDATES: '24'
+  # gamma: p(y) in p(y|x) = p(x|y) * p(x)/p(y) or specifically  1/(gamma + g(x)/l(x)(1-gamma))
+  GAMMA: '0.25'
+  NUMBER_ITERATIONS: '50'
+  ITERATIONS_BEFORE_REINFORCE: '10'
+  MAX_N_ITERATION_NO_IMPROVEMENT: '150'
+  TRY_BEST_AT_EVERY: '1'
+  RESTART_TRIGGER: '3' # https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule
+  REINFORCEMENT_RATIO: '0.3'
+  PROBATION_RATIO: '0.3'
+  METRIC_THRESHOLD: '0.0'
+  RANDOM_SEED: '31'
+  ## the objective is always to minimize
+  ## 2 ** 20 transforms bytes to megabytes
+  ## AWS Cost, CPU: 0.0535/vCore Memory: 0.013375/GB --> (total_cost / CPU  + total_cost / GB) / 2
+  ## M5 Instance https://aws.amazon.com/ec2/pricing/on-demand/
+  # avg
+  #OBJECTIVE: '-(1-errors)*(1.0/(1+process_time))*(throughput / (((((memory_limit / (2**20)) * 0.013375) + (cpu_limit * 0.0535)) / 2)))'
+  OBJECTIVE: '-(1-errors)*(1.0/(1+process_time))*((throughput / curr_replicas)/(((memory_limit / (2**20)) * 0.013375) + (cpu_limit * 0.0535)) / 2)'
+  # sum
+  #OBJECTIVE: '-(1.0/(1+process_time))*(throughput / ((((memory_limit / (2**20)) * 0.013375) + (cpu_limit * 0.0535)) / 2))'
+  #OBJECTIVE: '-(1-errors)*(throughput)/curr_replicas'
+  AGGREGATION_FUNCTION: 'sum'
+  THROUGHPUT_THRESHOLD: '10'
+  QUANTILE: '1.0'
+  NAMESPACE: 'quarkus2'
+  HPA_NAME: 'quarkus-service'
+  PROXY_IMAGE: 'smarttuning/proxy'
+---

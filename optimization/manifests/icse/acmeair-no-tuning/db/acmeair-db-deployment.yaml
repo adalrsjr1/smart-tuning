@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: acmeair
+  name: acmeair-db
+  labels:
+    app: acmeair-db
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: acmeair-db
+      labels:
+        app: acmeair-db
+    spec:
+      containers:
+        - name: acmeair-db
+          image: mongo:4.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 27017
+      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: acmeair-db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: acmeair-db
+  namespace: acmeair
+spec:
+  selector:
+    app: acmeair-db
+  ports:
+    - port: 27017
+      targetPort: 27017
+      protocol: TCP
+  type: NodePort
+---

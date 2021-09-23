@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: daytrader-service
+  namespace: daytrader
+  annotations:
+    injection.smarttuning.ibm.com: "true"
+spec:
+  selector:
+    matchLabels:
+      app: daytrader
+      smarttuning: "false"
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: "100%"
+      maxUnavailable: "0%"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: daytrader
+        smarttuning: "false"
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9080'
+        #prometheus.io/path: '/metrics'
+    spec:
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 90
+      containers:
+        - name: daytrader
+          image: smarttuning/daytrader8-db2   # update port to 50000
+          #image: smarttuning/daytrader8-derby # update port to 1527
+          #image: smarttuning/daytrader8-embd
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/bash", "-c", "sleep 90"]
+          resources:
+            limits:
+              cpu: "1"
+              memory: "1024Mi"
+          ports:
+            - containerPort: 9080
+          env:
+            - name: DB_ADDRESS
+              value: daytrader-db.default.svc.cluster.local
+            - name: DB_PORT
+            # value: "1527"
+              value: "50000"
+            - name: DB_NAME
+              value: "tradedb"
+            - name: DB_USER
+              value: "db2inst1"
+            - name: DB_PASS
+              value: "db2pass"
+            - name: MAX_QUOTES
+              value: "1000"
+            - name: MAX_USERS
+              value: "500"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: LOG_DIR
+              value: /home/$(POD_NAME)
+          # avoid to send requests if it already restarted
+          readinessProbe:
+            httpGet:
+              path: /daytrader
+              port: 9080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          startupProbe:
+            httpGet:
+              port: 9080
+              path: /daytrader
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          envFrom:
+            - configMapRef:
+                name: daytrader-config-app
+          volumeMounts:
+            - mountPath: /config/jvm.options
+              subPath: jvm.options
+              name: daytrader-config-jvm
+          securityContext:
+            runAsUser: 0
+            privileged: true
+      volumes:
+        - name: daytrader-config-app
+          configMap:
+            name: daytrader-config-app
+        - name: daytrader-config-jvm
+          configMap:
+            name: daytrader-config-jvm

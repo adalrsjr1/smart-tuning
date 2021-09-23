@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  name: jmeter-quarkus-train
+  namespace: quarkus2
+spec:
+  template:
+    metadata:
+      creationTimestamp: null
+    spec:
+      containers:
+      - image: smarttuning/jmeter_quarkus
+        name: jmeter-quarkus
+        imagePullPolicy: Never
+        env:
+          - name: JHOST
+            value: "quarkus-svc-smarttuning.quarkus.svc.cluster.local"
+        envFrom:
+          - configMapRef:
+              name: jmeter-cm
+        resources: {}
+      restartPolicy: Never
+status: {}

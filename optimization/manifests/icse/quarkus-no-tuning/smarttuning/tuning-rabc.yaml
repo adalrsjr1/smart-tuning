@@ -1,0 +1,26 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tuning
+  namespace: quarkus2
+rules:
+  - apiGroups: [ "*" ]
+    resources: [ "*" ]
+    verbs: [ "*" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tuning
+  namespace: quarkus2
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tuning
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: quarkus2
+---
+

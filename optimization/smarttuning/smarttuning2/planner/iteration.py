@@ -1055,8 +1055,8 @@ class TrainingIteration(Iteration):
         self.logger.log(config.ST_LOG_LEVEL, f'training cfg: {self.training.configuration.name}')
         self.logger.log(config.ST_LOG_LEVEL, f'production cfg: {self.production.configuration.name}')
 
-        assert self.production.configuration.name != self.training.configuration.name, \
-            f'[t] config {self.production.configuration.name} in prod must be different than train'
+        # assert self.production.configuration.name != self.training.configuration.name, \
+        #     f'[t] config {self.production.configuration.name} in prod must be different than train'
 
         tmetrics, pmetrics = self.waiting_for_metrics()
 
@@ -1085,8 +1085,8 @@ class ReinforcementIteration(Iteration):
         self.logger.log(config.ST_LOG_LEVEL, f'training cfg: {self.training.configuration.name}')
         self.logger.log(config.ST_LOG_LEVEL, f'production cfg: {self.production.configuration.name}')
 
-        assert self.production.configuration.name != self.training.configuration.name, \
-            f'[r] config {self.production.configuration.name} in prod must be different than train'
+        # assert self.production.configuration.name != self.training.configuration.name, \
+        #     f'[r] config {self.production.configuration.name} in prod must be different than train'
 
         tmetrics, pmetrics = self.waiting_for_metrics()
 

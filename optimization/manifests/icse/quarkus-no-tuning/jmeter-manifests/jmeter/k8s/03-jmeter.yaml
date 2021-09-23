@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jmeter-quarkus
+  namespace: quarkus2
+  labels:
+    app: jmeter-quarkus
+spec:
+  type: NodePort
+  ports:
+    - port: 9270
+      targetPort: 9270
+      name: smarttuning
+  selector:
+    app: jmeter-quarkus
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    reloader.stakater.com/auto: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9270"
+  labels:
+    app: jmeter-quarkus
+  name: jmeter-quarkus
+  namespace: quarkus2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jmeter-quarkus
+  template:
+    metadata:
+      labels:
+        app: jmeter-quarkus
+    spec:
+      containers:
+      - image: smarttuning/jmeter_quarkus
+        name: jmeter-quarkus
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: JHOST
+            value: "quarkus-svc.quarkus2.svc.cluster.local"
+        envFrom:
+          - configMapRef:
+              name: jmeter-cm
+      restartPolicy: Always

@@ -878,6 +878,17 @@ def general():
     # name = 'trace-acmeair-2021-09-14T21 09 51' # trinity
     name = 'trace-quarkus-2021-09-14T19 46 43'
     name = 'trace-daytrader-2021-09-15T23 26 02' # azure
+    # name = 'trace-daytrader-2021-09-16T17 04 09' # no probation
+    name = 'trace-daytrader-2021-09-17T16 45 24' # no reinforcement
+    name = 'trace-daytrader-2021-09-17T16 45 24'
+    name = 'trace-daytrader-2021-09-19T14 33 34' # no reinforcement / no probation
+    # name = 'trace-daytrader-2021-09-18T00 12 14' # azure jsp jsf
+    name = 'trace-daytrader-2021-09-19T14 43 41'
+    # name = 'trace-daytrader-2021-09-20T14 33 12'
+    name = 'trace-daytrader-2021-09-22T02 42 28'
+    # name = 'trace-quarkus-2021-09-21T13 42 44'
+    # name = 'trace-quarkus2-2021-09-21T13 43 30'
+
 
     title = 'Daytrader'
     service_name = "daytrader-service"
@@ -895,7 +906,8 @@ def general():
     # plot_importance(data)
 
     # for workload in ['']:
-    for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
+    for workload in [''] + [f'workload_{i}' for i in ['jsp','jsf']]:
+    # for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
     # for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
         print('workload: ', workload)
         try:
@@ -905,7 +917,7 @@ def general():
             df = load_raw_data('./resources/' + name + '.json', service_name, workload,
                                skip_reset=True,
                                skip_pruned=True,
-                               skip_tuned=False,
+                               skip_tuned=True,
                                show_workload_gap=False,
                                to_gib=False)
 
@@ -916,7 +928,7 @@ def general():
                 print(f'skiping {workload}')
                 continue
             plot(df, title=title + ': ' + name + '\n' + workload,
-                 # objective_label=r'$(1-error)*\frac{1}{(1+resp. time)} \times \frac{requests}{N \times \$}$',
+                 # objective_label=r'$(1-error)*\frac{1}{(1+resp. time)} \times \frac{equests}{N \times \$}$',
                  objective_label='score',
                  save=False,
                  simple_visualization=False,
