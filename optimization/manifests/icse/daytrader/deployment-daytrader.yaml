@@ -46,7 +46,7 @@ spec:
             - containerPort: 9080
           env:
             - name: DB_ADDRESS
-              value: daytrader-db.default.svc.cluster.local
+              value: daytrader-db.daytrader.svc.cluster.local
             - name: DB_PORT
             # value: "1527"
               value: "50000"

@@ -38,7 +38,7 @@ data:
   # mongo config
   MONGO_ADDR: 'mongo-workload-service.default.svc.cluster.local'
   MONGO_PORT: '27017'
-  MONGO_DB: 'quarkus'
+  MONGO_DB: 'quarkus2'
   # prometheus config
   ST_METRICS_PORT: '9090'
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'

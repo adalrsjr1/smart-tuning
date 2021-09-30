@@ -30,7 +30,7 @@ metadata:
   labels:
     app: daytrader-db
   name: daytrader-db
-  namespace: default
+  namespace: daytrader
 spec:
   type: NodePort
   ports:

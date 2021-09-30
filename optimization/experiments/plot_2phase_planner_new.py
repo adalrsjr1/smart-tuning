@@ -888,6 +888,8 @@ def general():
     name = 'trace-daytrader-2021-09-22T02 42 28'
     # name = 'trace-quarkus-2021-09-21T13 42 44'
     # name = 'trace-quarkus2-2021-09-21T13 43 30'
+    name = 'trace-daytrader-2021-09-28T15 10 58' # daytrader db limited to 50 conn
+    # name = 'trace-daytrader-2021-09-29T14 15 23'
 
 
     title = 'Daytrader'

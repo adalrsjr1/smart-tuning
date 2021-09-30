@@ -726,7 +726,7 @@ def jmvoptions_to_dict(jvm_options):
         elif item.startswith('-Xtune:virtualized'):
             params['-Xtune:virtualized'] = True
         elif item.startswith('-XX:-UseContainerSupport'):
-            params['container_support'] = '+XX:-UseContainerSupport'
+            params['container_support'] = '-XX:-UseContainerSupport'
         elif item.startswith('-XX:+UseContainerSupport'):
             params['container_support'] = '-XX:+UseContainerSupport'
         elif item.startswith('-Xgcpolicy:'):

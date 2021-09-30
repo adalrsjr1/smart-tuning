@@ -54,7 +54,6 @@ def load_file_workload(filename: str, iteration_lenght_minutes=5):
             row = re.sub(r'{"_id":{"\$oid":"[a-z0-9]+"},', '{', row)
             row = re.sub(r'\{\"\$numberLong\":\"(?P<N>[0-9]+)\"}', '\g<N>', row)
             record = json.loads(row)
-
             # DON'T TOUCH!!!
             # RULES FOR FILTERING OUT PRUNED OR TRANSITION RESULTS
             if (record['mostly_workload'] and record['mostly_workload']['name'] != record['ctx_workload']['name'] or
@@ -64,8 +63,8 @@ def load_file_workload(filename: str, iteration_lenght_minutes=5):
             if record['reset']:
                 continue
 
-            if 'Tuned' in record['status']:
-                continue
+            # if 'Tuned' in record['status']:
+            #     continue
 
             table['cfg'].append(record['production']['curr_config']['name'])
             table['workload'].append(record['curr_workload']['name'])
@@ -219,8 +218,8 @@ def plot_replicas(df: pd.DataFrame, length=50, title=''):
                     'workload_5': 0.1,
                     'workload_10': 0.3,
                     'workload_50': 0.5,
-                    'jsp': 0.1,
-                    'jsf': 0.5,
+                    'workload_jsp': 0.1,
+                    'workload_jsf': 0.5,
                 }
             color = line.get_color()
             try:
@@ -228,7 +227,7 @@ def plot_replicas(df: pd.DataFrame, length=50, title=''):
             except:
                 pass
 
-        ax.set_ylim(1, 16)
+        ax.set_ylim(1)
         ax.set_yticks([y for y in range(0, 11, 2)])
         ax.set_yticklabels([y for y in range(0, 11, 2)])
         ax.set_xlim(0, len(df))
@@ -248,10 +247,10 @@ def plot_replicas(df: pd.DataFrame, length=50, title=''):
                                                  label='config. color'))
     custom_lines.append(matplotlib.patches.Patch(facecolor='k', edgecolor='k', alpha=0.5,
                                                  label='config. color'))
-    legend_labels = list([name for name in df.columns if not 'workload' in name]) + ['workload 1', 'workload 2',
-                                                                                     'workload 3']
-    axes[0].legend(custom_lines, legend_labels, frameon=False, loc='upper center', fontsize='small', ncol=4,
-                   bbox_to_anchor=(0.7, 1.7), )
+    legend_labels = list([name for name in df.columns if not 'workload' in name]) + ['workload 1 or jsp', 'workload 2',
+                                                                                     'workload 3 or jsf']
+    axes[0].legend(custom_lines, legend_labels, frameon=False, loc='upper center', fontsize='small', ncol=3,
+                   bbox_to_anchor=(0.7, 2), )
 
     axes[0].set_title(title, loc='left')
 
@@ -270,6 +269,7 @@ def plot_perf(df0: pd.DataFrame, dfN: pd.DataFrame, title=''):
     # dfN = dfN.T
 
     metrics_lst = ['score', 'memory', 'throughput', 'proc. time', 'replicas']
+    metrics_lst = ['score', 'memory', 'throughput', 'replicas']
     # metrics_lst = ['score']
     fig, axes = plt.subplots(nrows=len(metrics_lst),
                              # figsize=(6,6),
@@ -283,8 +283,8 @@ def plot_perf(df0: pd.DataFrame, dfN: pd.DataFrame, title=''):
         data.plot.bar(ax=ax)
 
         ax.set_yticks(np.linspace(0, data.max().max(), 4))
-        if ax.get_xticklabels():
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize='small')
+        # if ax.get_xticklabels():
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize='small')
 
         # if metric != 'throughput':
         #     ax.set_yscale('log')
@@ -309,7 +309,7 @@ def plot_perf(df0: pd.DataFrame, dfN: pd.DataFrame, title=''):
     plotter(axes[1], df0, dfN, 'replicas', ylabel='replicas', yunit='')
     plotter(axes[2], df0, dfN, 'memory', ylabel='memory', yunit='MB')
     plotter(axes[3], df0, dfN, 'throughput', ylabel='throughput', yunit='rps')
-    plotter(axes[4], df0, dfN, 'process time', ylabel='response\ntime', yunit='ms')
+    # plotter(axes[4], df0, dfN, 'process time', ylabel='response\ntime', yunit='ms')
     # plotter(axes[4], df0*1000, dfN*1000, 'process time', ylabel='proc. time', yunit='ms')
 
     custom_lines = []
@@ -336,7 +336,7 @@ def plot_perf(df0: pd.DataFrame, dfN: pd.DataFrame, title=''):
     axes[0].legend(handles, labels, frameon=False, loc='upper center', fontsize='small', ncol=2,
                    bbox_to_anchor=(0.7, 1.5))
 
-    fig.tight_layout()
+    # fig.tight_layout()
 
 
 def plot_cost(df0: pd.DataFrame, dfN: pd.DataFrame, title=''):
@@ -419,7 +419,7 @@ def replicas(df_acme: pd.DataFrame, df_daytrader: pd.DataFrame, df_qhd: pd.DataF
         'QHD': df_qhd[[metric, 'workload']],
         'AcmeAir': df_acme[[metric, 'workload']],
         'Daytrader': df_daytrader[[metric, 'workload']],
-        'Daytrader JSP-JSF': df_daytrader[[metric, 'workload']]
+        'Daytrader JSP-JSF': df_frameworks[[metric, 'workload']]
         # 'Daytrader JSP-JSF': df_d_jsp[['replicas', 'workload']].append(df_d_jsf[['replicas', 'workload']]).sample(frac=1).reset_index(drop=True) ,
         # 'Daytrader JSP': df_d_jsp[['replicas', 'workload']],
         # 'Daytrader JSF': df_d_jsf[['replicas', 'workload']]
@@ -434,7 +434,7 @@ def replicas(df_acme: pd.DataFrame, df_daytrader: pd.DataFrame, df_qhd: pd.DataF
         columns.append(f'{k}_workload')
     df_replicas.columns = columns
     # df_cost.columns = columns
-    plot_replicas(df_replicas, length=150, title=title)
+    plot_replicas(df_replicas, length=100, title=title)
 
 
 def cost(df_acme: pd.DataFrame, df_daytrader: pd.DataFrame, df_qhd: pd.DataFrame, df_frameworks: pd.DataFrame):
@@ -736,16 +736,15 @@ if __name__ == '__main__':
     # name = 'trace-daytrader-2021-09-19T14 43 41' # no tuning at all
     name = 'trace-daytrader-2021-09-22T02 42 28'
     df_frameworks = load_file_workload(f'resources/{name}.json',iteration_lenght_minutes=20)
-
     # name = 'trace-jsp-2021-03-11T13 41 07'  # ICSE JSP
     # df_d_jsp = load_file_framework(f'resources/{name}.json', 'jsp',iteration_lenght_minutes=20)
     # name = 'trace-jsf-2021-03-10T14 01 00'  # ICSE JSF
     # df_d_jsf = load_file_framework(f'resources/{name}.json', 'jsf',iteration_lenght_minutes=20)
     np.random.seed(0)
 
-    cost2(df_acme, df_daytrader, df_qhd, df_frameworks, cost_per_replica=True)
+    # cost2(df_acme, df_daytrader, df_qhd, df_frameworks, cost_per_replica=True)
     replicas(df_acme, df_daytrader, df_qhd, df_frameworks, 'replicas', '# replicas over time')
-    cost(df_acme, df_daytrader, df_qhd, df_frameworks)
+    # cost(df_acme, df_daytrader, df_qhd, df_frameworks)
     improvement(df_acme, df_daytrader, df_qhd, df_frameworks)
 
     ### Skip iterations after tuning has ended

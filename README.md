@@ -5,6 +5,7 @@
 * [Deployment](optimization/manifests/README.md)
 * [Walkthrough](WALKTHROUGH.md)
 * [Implementation](optimization/smarttuning/README.md)
+* [Known Issues](KNOWN_ISSUES.md)
 
 ## Build
 
