@@ -566,26 +566,26 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     # rlabels[-1] += '>'
     # ax_u.set_yticklabels(rlabels)
 
-    ax_t.set_ylabel('arrivals/s')
-    ax_t.set_ylim(0, 1)
-    ax_t.set_yticks([0, .25, .50, .75, 1])
-    ax_t.set_yticklabels([0, .25, .50, .75, 1])
+    ax_t.set_ylabel('arrivals/s\nnormalized')
+    # ax_t.set_ylim(0, 1)
+    # ax_t.set_yticks([0, .25, .50, .75, 1])
+    # ax_t.set_yticklabels([0, .25, .50, .75, 1])
     # ax_t.set_ylim(0, ax_t.get_yaxis().get_data_interval()[1])
     # ax_t.set_yticks(np.linspace(0, ax_t.get_yaxis().get_data_interval()[1], 4))
 
-    ax_r.set_ylabel('resp.\ntime(s)')
-    ax_r.set_ylim(0, 1)
-    ax_r.set_yticks([0, .25, .50, .75, 1])
-    ax_r.set_yticklabels([0, .25, .50, .75, 1])
+    ax_r.set_ylabel('resp. time\nnormalized')
+    # ax_r.set_ylim(0, 1)
+    # ax_r.set_yticks([0, .25, .50, .75, 1])
+    # ax_r.set_yticklabels([0, .25, .50, .75, 1])
     # ax_r.set_yticks(np.linspace(0, .2, 6))
     # rlabels = [f'{item:.4f}' for item in np.linspace(0, .2, 6)]
     # rlabels[-1] += '>'
     # ax_r.set_yticklabels(rlabels)
 
-    ax_m.set_ylabel('Mem (%)')
-    ax_m.set_ylim(0, 1)
-    ax_m.set_yticks([0, .25, .50, .75, 1])
-    ax_m.set_yticklabels([0, .25, .50, .75, 1])
+    ax_m.set_ylabel('Mem\nnormalized')
+    # ax_m.set_ylim(0, 1)
+    # ax_m.set_yticks([0, .25, .50, .75, 1])
+    # ax_m.set_yticklabels([0, .25, .50, .75, 1])
     # ax_m.set_ylabel('memory (MB)\n'+r'${\log_2}$ scale')
     # ax_m.set_yscale('log', base=2)
     # ax_m.set_ylim(256, 8192)
@@ -599,10 +599,10 @@ def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = F
     # ax_m.set_yticklabels([f'{item:.0f}' for item in np.linspace(0, 100, 5)])
     # ax_m.get_yaxis().get_major_formatter().labelOnlyBase = False
 
-    ax_c.set_ylabel('CPU (%)')
-    ax_c.set_ylim(0, 1)
-    ax_c.set_yticks([0, .25, .50, .75, 1])
-    ax_c.set_yticklabels([0, .25, .50, .75, 1])
+    ax_c.set_ylabel('CPU\nnormalized')
+    # ax_c.set_ylim(0, 1)
+    # ax_c.set_yticks([0, .25, .50, .75, 1])
+    # ax_c.set_yticklabels([0, .25, .50, .75, 1])
     # ax_c.set_yticks(np.linspace(0,1,5))
     # ax_c.set_yticklabels([f'{item:.0f}' for item in np.linspace(0, 100, 5)])
     # ax_c.get_yaxis().get_major_formatter().labelOnlyBase = False
@@ -886,10 +886,15 @@ def general():
     name = 'trace-daytrader-2021-09-19T14 43 41'
     # name = 'trace-daytrader-2021-09-20T14 33 12'
     name = 'trace-daytrader-2021-09-22T02 42 28'
+    name = 'trace-daytrader-2021-09-15T23 26 02'
+    name = 'trace-acmeair-2021-09-14T19 46 28'
     # name = 'trace-quarkus-2021-09-21T13 42 44'
     # name = 'trace-quarkus2-2021-09-21T13 43 30'
-    name = 'trace-daytrader-2021-09-28T15 10 58' # daytrader db limited to 50 conn
-    # name = 'trace-daytrader-2021-09-29T14 15 23'
+    # name = 'trace-daytrader-2021-09-28T15 10 58'
+    name = 'trace-daytrader-2021-10-01T21 48 13'
+    name = 'trace-daytrader-2021-10-02T15 48 37'
+    name = 'trace-daytrader-2021-10-03T15 38 21'
+    name = 'trace-daytrader-2021-09-29T14 15 23'
 
 
     title = 'Daytrader'
@@ -908,8 +913,8 @@ def general():
     # plot_importance(data)
 
     # for workload in ['']:
-    for workload in [''] + [f'workload_{i}' for i in ['jsp','jsf']]:
-    # for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
+    # for workload in [''] + [f'workload_{i}' for i in ['jsp','jsf']]:
+    for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
     # for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
         print('workload: ', workload)
         try:
@@ -923,7 +928,7 @@ def general():
                                show_workload_gap=False,
                                to_gib=False)
 
-            df = normalize_01_df(df)
+            # df = normalize_01_df(df)
 
             empty = df[(df['pname'].str.len() > 0)]
             if empty.empty:

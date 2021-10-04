@@ -58,8 +58,8 @@ data:
   MAX_N_ITERATION_NO_IMPROVEMENT: '150'
   TRY_BEST_AT_EVERY: '1'
   RESTART_TRIGGER: '3' # https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule
-  REINFORCEMENT_RATIO: '0.0'
-  PROBATION_RATIO: '0.0'
+  REINFORCEMENT_RATIO: '0'
+  PROBATION_RATIO: '0'
   METRIC_THRESHOLD: '0.0'
   RANDOM_SEED: '31'
   ## the objective is always to minimize
