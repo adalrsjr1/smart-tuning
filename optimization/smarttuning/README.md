@@ -1,3 +1,12 @@
+## Build
+
+It may be necessary to update the repository for the images in `Makefile`. It is
+recommended do not using Docker Hub due to [rate
+limits](https://www.docker.com/increase-rate-limits). Use [quay.io](quay.io/)
+instead.
+
+`make build`
+
 ## Architecture
 
 ![state diagram](../docs/smarttuning-design.png)

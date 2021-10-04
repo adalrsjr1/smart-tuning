@@ -1,3 +1,16 @@
+## Set up environment
+
+`$ ./monitoring-deploy.sh $HOME/.kube/config`
+
+Be careful with `limits` set in deployments, e.g.,  Prometheus. If your
+Kubernetes cluster has limited resources, you can either downsize or delete the
+limits in such deployments.
+
+### MongoDB
+
+The Mongo version in `mongo-deployment.yaml` is a hard requirement. If using a
+newer version, SmartTuning will not save the logs properly.
+
 ## Search Space
 
 `search-space-cdr-2.yaml` is the latest version for the Search Space CDR.
