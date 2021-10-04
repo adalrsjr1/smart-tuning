@@ -683,7 +683,7 @@ class IterationDriver:
                                 f'{self.__last_prod.name}')
             self.production.configuration = self.__last_prod
         else:
-            if self.production.configuration.name != self.training.configuration.name:
+            if self.max_probation_iterations == 0 and self.production.configuration.name != self.training.configuration.name:
                 # TODO: workaround to update production when st does not goes to probation phase
                 self.logger.info('updating production without probation')
                 self.production.configuration = self.training.configuration
