@@ -1,8 +1,7 @@
 #!/bin/bash
 CFG=$HOME/.kube/config
 if [[ "$#" -ne 1 ]]; then
-  echo "deploying at localhost"
-  #echo "args: missing path for --kubeconfig"
+  echo "deploying at default k8s cluster"
   #exit 1
 else
   CFG=$1
@@ -32,9 +31,4 @@ echo -e "\ndeploying mongo\n"
 kubectl apply --kubeconfig=$CFG -f  mongo-deployment.yaml
 sleep 1
 echo -e "\ndeploying netutil pod\n"
-kubectl --kubeconfig=$CFG run netutil --image=amouat/network-utils --image-pull-policy=IfNotPresent --command -- "/bin/sh" "-c" "while true; do sleep 60; done;"
-echo -e "\ndeploying dashboard\n"
-kubectl apply --kubeconfig=$CFG -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
-echo -e "to access dashboard: "
-echo -e "https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md"
-
+kubectl --kubeconfig=$CFG run netutil --image=amouat/network-utils --image-pull-policy=IfNotPresent --command -- "/bin/sh" "-c" "while true; do sleep 3600; done;"
