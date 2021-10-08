@@ -7,6 +7,16 @@
 * [Implementation](optimization/smarttuning/README.md)
 * [Known Issues](KNOWN_ISSUES.md)
 
+## Using Kubernetes
+
+In case your are using Kubernetes through [Kind](https://kind.sigs.k8s.io/) and
+this is installed remotely, you need to follow these steps:
+
+1. create a cluster with kind
+2. let `kubectl proxy` running in your remote node
+3. create a ssh-tunnel to your remote node at port 8001: `ssh -N -L 8001:127.0.0.1:8001`
+4. access any service running in kubernetes using this url template: `http://localhost:8001/api/v1/namespaces/<namespace>/services/<service-name>:8081/proxy/`. For more details refer to <https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/>
+
 ## Build
 
 Run `make build` in [SmartTuning](optimization/) directory.
