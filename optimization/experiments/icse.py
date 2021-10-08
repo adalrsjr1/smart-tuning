@@ -252,7 +252,7 @@ def plot_replicas(df: pd.DataFrame, length=50, title=''):
     axes[0].legend(custom_lines, legend_labels, frameon=False, loc='upper center', fontsize='small', ncol=3,
                    bbox_to_anchor=(0.7, 2), )
 
-    axes[0].set_title(title, loc='left')
+    axes[0].set_title(title, x=0.3)
 
     axes[-1].set_xlabel('iterations')
 

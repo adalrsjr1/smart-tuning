@@ -203,7 +203,6 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
                         'no tuning': objective(index + count, a, b),
                         }
             count += 1
-            # new_data['training'] = float('nan')
             new_data['training'] = df['training'].iloc[-1]
             new_data['payoff'] = payoff(new_data['production'], new_data['no tuning'], new_data['training'])
             df = df.append(new_data, ignore_index=True)
@@ -221,7 +220,6 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
 
         ax: Axes = df[['production', 'training', 'no tuning', 'payoff']].plot(ax=ax, linewidth=1)
 
-        # print(end_of_tuning_index, start_payoff_index, profit_index)
 
         # make extrapolated points dashed
         line: Line2D
@@ -236,58 +234,46 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
             ax.add_line(dashed_line)
 
         ax.set_xlim(0, df.index[-1] + 1)
-        # ax.set_ylim(df.min().min()*4, df.max().max())
 
         yticks = np.linspace(ax.get_ylim()[0], ax.get_ylim()[1], 4)
         yticks = np.append(yticks, 0)
         ax.set_yticks(yticks)
         ax.set_yticklabels([f'{round(tick)}' for tick in yticks], fontsize='small')
 
-        # ax.vlines(x=end_of_tuning_index[0]-.5, ymin=ax.get_ylim()[0], ymax=ax.get_ylim()[1], colors='k', linewidth=0.7)
-        ax.plot(start_payoff_index[0], start_payoff_index[1], 'k*', label='payoff >= 0')
+        ax.plot(start_payoff_index[0], start_payoff_index[1], 'kx', label='payoff >= 0')
         if profit_index:
-            ax.plot(profit_index[0]-1, profit_index[1], 'kx', label='payoff >= training')
+            ax.plot(profit_index[0]-1, profit_index[1], 'k+', label='payoff >= training')
         ax.plot(end_of_tuning_index[0] - 1, end_of_tuning_index[1], 'k.', label='end of tuning')
-
-        # ax.annotate('end of tuning',  # this is the text
-        #             (end_of_tuning_index[0], ax.get_ylim()[1]),  # these are the coordinates to position the label
-        #             # textcoords="offset points",  # how to position the text
-        #             # xytext=(end_of_tuning_index[0], end_of_tuning_index[1]),  # distance from text to points (x,y)
-        #             fontsize='small',
-        #             ha='right')  # horizontal alignment can be left, right or center
 
         xticks = 20
         ax.set_xticks(np.linspace(0, ax.get_xlim()[1], xticks, dtype=int))
-        ax.set_xticklabels([d * duration_iteration//60 for d in np.linspace(0, ax.get_xlim()[1], xticks, dtype=int)], rotation=45, fontsize='small')
-        # ax.set_xticklabels([':'.join(str(timedelta(minutes=int(d))).split(':')[:2]) for d in
-        #                     np.linspace(0, ax.get_xlim()[1] * duration_iteration, xticks, dtype=int)],
-        #                    rotation=45, fontsize='small')
+        ax.set_xticklabels([f'{(d * duration_iteration/60):.1f}' for d in np.linspace(0, ax.get_xlim()[1], xticks, dtype=int)], rotation=45, fontsize='small')
         ax.minorticks_off()
 
         ax.set_ylabel(i)
         ax2: Axes
         ax2 = ax.twinx()  # instantiate a second axes that shares the same x-axis
 
-        # ax2.set_ylabel(ax.get_ylabel())
         ax.yaxis.tick_right()
         ax2.set_yticks([])
         ax2.set_yticklabels([])
-        # ax.set_xlabel('duration (h:m)', fontsize='small')
         ax.set_xlabel('duration (hours)', fontsize='small')
 
-        # ax.set_xticks(np.linspace(0, 40, 6))
-        # # ax.set_xticklabels(np.linspace(0, 50 * it_lenght[app[_i].lower()]/60, 6))
-        # ax.set_xticklabels(np.linspace(0, 50, 6))
         ax.grid(b=True, axis='y', which='major', linestyle='-', alpha=0.5)
-        print(ax.get_ylabel())
-        print(df)
 
-    # axes[0].set_title(title, x=0, pad=-20)
     axes[0].set_title(title, x=0)
     handles, labels = axes[0].get_legend_handles_labels()
     axes[0].legend(handles, labels, frameon=False, loc='upper center', fontsize='small', ncol=4,
-                   bbox_to_anchor=(0.6, 1.5))
-    axes[1].set_ylabel('cumulative cost ($)\n' + axes[1].get_ylabel())
+                   bbox_to_anchor=(0.6, 1.5) if len(axes) == 3 else (0.6, 1.3))
+
+    fig.text(0.05, 0.35, 'cumulative cost ($)', rotation='90', transform=plt.gcf().transFigure)
+    # axes[1].set_ylabel(axes[1].get_ylabel())
+    # if len(axes) > 2:
+    #     axes[1].set_ylabel('cumulative cost ($)\n' + axes[1].get_ylabel())
+    # else:
+
+
+
     axes[1].get_legend().remove()
     if len(axes) > 2:
         axes[2].get_legend().remove()
@@ -312,15 +298,15 @@ if __name__ == '__main__':
     # name_tuned = 'trace-daytrader-2021-09-22T02 42 28' # JSF JSP
     # name_non_tuned = 'trace-daytrader-2021-09-22T02 42 28' #JSF JSP
 
-    name_tuned = 'trace-acmeair-2021-09-14T19 46 28'
-    name_non_tuned = 'trace-acmeair-2021-09-14T19 46 28'
+    # name_tuned = 'trace-acmeair-2021-09-14T19 46 28'
+    # name_non_tuned = 'trace-acmeair-2021-09-14T19 46 28'
 
-    # name_tuned = 'trace-daytrader-2021-09-15T23 26 02'
-    # name_non_tuned = 'trace-daytrader-2021-09-15T23 26 02'
+    name_tuned = 'trace-daytrader-2021-09-15T23 26 02'
+    name_non_tuned = 'trace-daytrader-2021-09-15T23 26 02'
 
     # title, iteration_duration, simulated_non_tuning = 'Daytrader', 20, True
-    title, iteration_duration, simulated_non_tuning = 'AcmeAir', 10, True
-    # title, iteration_duration, simulated_non_tuning = 'QHD', 5, True
+    # title, iteration_duration, simulated_non_tuning = 'AcmeAir', 10, True
+    title, iteration_duration, simulated_non_tuning = 'QHD', 5, True
 
     df_qhd_tuned = load_file_workload(f'resources/{name_tuned}.json', iteration_lenght_minutes=iteration_duration)
     df_qhd_non_tuned = load_file_workload(f'resources/{name_non_tuned}.json',
