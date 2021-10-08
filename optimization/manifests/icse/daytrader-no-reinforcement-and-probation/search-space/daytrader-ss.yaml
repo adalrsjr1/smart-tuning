@@ -22,6 +22,9 @@ data:
           type: "real"
           values:
             - "1"
+            - "2"
+            - "4"
+            - "8"
         - name: "memory"
           type: "integer"
           values:
