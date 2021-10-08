@@ -19,7 +19,7 @@ echo -e "\ndeploying prometheus\n"
 kubectl apply --kubeconfig=$CFG -f  ../prometheus
 sleep 1
 echo -e "\ndeploying grafana\n"
-kubectl apply --kubeconfig=$CFG -f  ../grafana
+kubectl apply --kubeconfig=$CFG -f  ../grafana/grafana-deployment.yml
 sleep 1
 echo -e "\ndeploying searchspace\n"
 kubectl apply --kubeconfig=$CFG -f  search-space/search-space-crd-2.yaml

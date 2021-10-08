@@ -19,7 +19,7 @@ echo -e "\ndeploying prometheus\n"
 kubectl delete --kubeconfig=$CFG -f  ../prometheus
 sleep 1
 echo -e "\ndeploying grafana\n"
-kubectl delete --kubeconfig=$CFG -f  ../grafana
+kubectl delete --kubeconfig=$CFG -f  ../grafana/grafana-deployment.yml
 sleep 1
 echo -e "\ndeploying searchspace\n"
 kubectl delete --kubeconfig=$CFG -f  search-space/search-space-crd-2.yaml
