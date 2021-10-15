@@ -197,6 +197,8 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
         else:
             profit_index = None
         new_data = {'training': df['training'].iloc[-1]}
+
+
         while count < (max_iterations - index) or new_data['payoff'] < 0 or new_data['payoff'] < new_data['training']:
             new_data = {'production': production_objective(index + count, ap, bp),
                         'training': 0,
@@ -219,6 +221,8 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
                 (len(df), df['payoff'].iloc[-1])])[0]
 
         ax: Axes = df[['production', 'training', 'no tuning', 'payoff']].plot(ax=ax, linewidth=1)
+        print('cost reduction', df['production'].iloc[end_of_tuning_index[0]] / df['no tuning'].iloc[end_of_tuning_index[0]])
+        print()
 
 
         # make extrapolated points dashed
@@ -261,12 +265,21 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
 
         ax.grid(b=True, axis='y', which='major', linestyle='-', alpha=0.5)
 
+        print('workload', i)
+        print('payoff', start_payoff_index[0]*duration_iteration/60)
+        print('profit', profit_index[0]*duration_iteration/60)
+        print('end tuning', end_of_tuning_index[0]*duration_iteration/60)
+        print()
+
     axes[0].set_title(title, x=0)
     handles, labels = axes[0].get_legend_handles_labels()
     axes[0].legend(handles, labels, frameon=False, loc='upper center', fontsize='small', ncol=4,
                    bbox_to_anchor=(0.6, 1.5) if len(axes) == 3 else (0.6, 1.3))
 
     fig.text(0.05, 0.35, 'cumulative cost ($)', rotation='90', transform=plt.gcf().transFigure)
+
+
+
     # axes[1].set_ylabel(axes[1].get_ylabel())
     # if len(axes) > 2:
     #     axes[1].set_ylabel('cumulative cost ($)\n' + axes[1].get_ylabel())
@@ -295,18 +308,18 @@ if __name__ == '__main__':
     # name_non_tuned = 'trace-quarkus2-2021-09-23T14 38 39' # Trinity
     # name_non_tuned = 'trace-quarkus-2021-09-23T14 38 45' # Trinity
 
-    # name_tuned = 'trace-daytrader-2021-09-22T02 42 28' # JSF JSP
-    # name_non_tuned = 'trace-daytrader-2021-09-22T02 42 28' #JSF JSP
+    name_tuned = 'trace-daytrader-2021-09-22T02 42 28' # JSF JSP
+    name_non_tuned = 'trace-daytrader-2021-09-22T02 42 28' #JSF JSP
 
     # name_tuned = 'trace-acmeair-2021-09-14T19 46 28'
     # name_non_tuned = 'trace-acmeair-2021-09-14T19 46 28'
 
-    name_tuned = 'trace-daytrader-2021-09-15T23 26 02'
-    name_non_tuned = 'trace-daytrader-2021-09-15T23 26 02'
+    # name_tuned = 'trace-daytrader-2021-09-15T23 26 02'
+    # name_non_tuned = 'trace-daytrader-2021-09-15T23 26 02'
 
-    # title, iteration_duration, simulated_non_tuning = 'Daytrader', 20, True
+    title, iteration_duration, simulated_non_tuning = 'Daytrader', 20, True
     # title, iteration_duration, simulated_non_tuning = 'AcmeAir', 10, True
-    title, iteration_duration, simulated_non_tuning = 'QHD', 5, True
+    # title, iteration_duration, simulated_non_tuning = 'QHD', 5, True
 
     df_qhd_tuned = load_file_workload(f'resources/{name_tuned}.json', iteration_lenght_minutes=iteration_duration)
     df_qhd_non_tuned = load_file_workload(f'resources/{name_non_tuned}.json',

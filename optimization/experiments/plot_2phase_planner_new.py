@@ -257,7 +257,7 @@ def calculate_mad(df: pd.DataFrame):
 
 def plot(df: pd.DataFrame, title: str, objective_label: str = '', save: bool = False, show_table: bool = False,
          simple_visualization=False) -> list[
-    Axes]:
+Axes]:
     if df['pmad'].dropna().empty and df['tmad'].dropna().empty:
         df = calculate_mad(df)
 
@@ -897,8 +897,8 @@ def general():
     # name = 'trace-daytrader-2021-10-03T15 38 21'
     # name = 'trace-daytrader-2021-09-29T14 15 23'
     # name = 'trace-daytrader-2021-10-04T14 52 00'
-    # name = 'trace-daytrader-2021-10-05T14 35 32'
-
+    name = 'trace-daytrader-2021-10-05T14 35 32'
+    name = 'trace-quarkus-2021-10-08T19 28 03'
 
     # title = 'Daytrader'
     # service_name = "daytrader-service"
@@ -917,18 +917,19 @@ def general():
 
     # for workload in ['']:
     # for workload in [''] + [f'workload_{i}' for i in ['jsp','jsf']]:
-    for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
-    # for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
+    # for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
+    for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
         print('workload: ', workload)
         try:
             print(workload)
             # if 'workload_1' != workload:
             #     continue
+
             df = load_raw_data('./resources/' + name + '.json', service_name, workload,
                                skip_reset=True,
                                skip_pruned=True,
                                skip_tuned=True,
-                               show_workload_gap=True,
+                               show_workload_gap=False,
                                to_gib=False)
 
             # df = normalize_01_df(df)

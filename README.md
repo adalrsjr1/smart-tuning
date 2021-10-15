@@ -24,7 +24,7 @@ Run `make build` in [SmartTuning](optimization/) directory.
 ### Applications tested
 
 * [AcmeAir](https://github.com/adalrsjr1/acmeair-monolithic-java)
-* [Daytrader](https://github.com/OpenLiberty/sample.daytrader8)
+* [Daytrader](https://github.com/adalrsjr1/sample.daytrader8)
 * [Quarkus Demo](https://github.com/adalrsjr1/quarkusRestCrudDemo)
 
 ## Release notes

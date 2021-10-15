@@ -189,6 +189,7 @@ def plot_replicas(df: pd.DataFrame, length=50, title=''):
                              # figsize=(6,6),
                              ncols=1,
                              sharex='all')
+    fig.set_constrained_layout(True)
 
     df[[name for name in df.columns if not 'workload' in name]].plot(ax=axes, subplots=True, drawstyle="steps-post",
                                                                      linewidth=1)
@@ -227,9 +228,9 @@ def plot_replicas(df: pd.DataFrame, length=50, title=''):
             except:
                 pass
 
-        ax.set_ylim(1)
-        ax.set_yticks([y for y in range(0, 11, 2)])
-        ax.set_yticklabels([y for y in range(0, 11, 2)])
+        # ax.set_ylim(1)
+        ax.set_yticks(np.linspace(0, ax.get_ylim()[1], 4, dtype=int))
+        ax.set_yticklabels(np.linspace(0, ax.get_ylim()[1], 4, dtype=int))
         ax.set_xlim(0, len(df))
         ax.set_xticks(np.linspace(0, len(df), 11))
         ax.set_xticklabels([int(i) for i in np.linspace(0, 150, 11)])
@@ -250,31 +251,45 @@ def plot_replicas(df: pd.DataFrame, length=50, title=''):
     legend_labels = list([name for name in df.columns if not 'workload' in name]) + ['workload 1 or jsp', 'workload 2',
                                                                                      'workload 3 or jsf']
     axes[0].legend(custom_lines, legend_labels, frameon=False, loc='upper center', fontsize='small', ncol=3,
-                   bbox_to_anchor=(0.7, 2), )
+                   bbox_to_anchor=(0.7, 1.8), )
 
-    axes[0].set_title(title, x=0.3)
+    axes[0].set_title(title, x=0.1)
 
     axes[-1].set_xlabel('iterations')
 
-    fig.tight_layout()
+    # fig.tight_layout()
 
 
 def plot_perf(df0: pd.DataFrame, dfN: pd.DataFrame, title=''):
     tmetrics = [tmetric for tmetric in df0.index if tmetric.startswith('t_')]
     df0 = df0.drop(labels=tmetrics, axis=0)
     dfN = dfN.drop(labels=tmetrics, axis=0)
+
+    print(df0)
+    print(dfN)
+
     dfN = dfN / df0
     df0 = df0 / df0
+
+    dfN.fillna(1, inplace=True)
+    df0.fillna(1, inplace=True)
+    dfN.replace(np.inf, 1, inplace=True)
+    df0.replace(np.inf, 1, inplace=True)
     # df0 = df0.T
     # dfN = dfN.T
 
-    metrics_lst = ['score', 'memory', 'throughput', 'proc. time', 'replicas']
-    metrics_lst = ['score', 'memory', 'throughput', 'replicas']
+    print(df0)
+    print(dfN)
+
+
+    metrics_lst = ['score', 'memory', 'throughput', 'proc. time', 'cpu']
+    # metrics_lst = ['score', 'memory', 'throughput', 'replicas']
     # metrics_lst = ['score']
     fig, axes = plt.subplots(nrows=len(metrics_lst),
                              # figsize=(6,6),
                              ncols=1,
                              sharex='all')
+    # fig.set_constrained_layout(True)
 
     def plotter(ax: Axes, df0, dfN, metric, ylabel='', yunit=''):
         data = pd.DataFrame(df0.loc[metric])
@@ -304,12 +319,13 @@ def plot_perf(df0: pd.DataFrame, dfN: pd.DataFrame, title=''):
         ax.set_ylabel(ylabel)
         ax.get_yaxis().set_major_formatter(FormatStrFormatter(f'%.2f'))
 
+
     # plotter(axes, df0, dfN, 'score', ylabel='score', yunit='')
     plotter(axes[0], df0, dfN, 'score', ylabel='score', yunit='')
-    plotter(axes[1], df0, dfN, 'replicas', ylabel='replicas', yunit='')
+    plotter(axes[1], df0, dfN, 'cpu', ylabel='replicas', yunit='')
     plotter(axes[2], df0, dfN, 'memory', ylabel='memory', yunit='MB')
     plotter(axes[3], df0, dfN, 'throughput', ylabel='throughput', yunit='rps')
-    # plotter(axes[4], df0, dfN, 'process time', ylabel='response\ntime', yunit='ms')
+    plotter(axes[4], df0, dfN, 'process time', ylabel='response\ntime', yunit='ms')
     # plotter(axes[4], df0*1000, dfN*1000, 'process time', ylabel='proc. time', yunit='ms')
 
     custom_lines = []
@@ -323,7 +339,8 @@ def plot_perf(df0: pd.DataFrame, dfN: pd.DataFrame, title=''):
             metric_name = 'process\ntime'
         ax.yaxis.tick_right()
         # ax.set_ylim(0, 12)
-        # ax.set_yticks(range(0,12,2))
+        # ax.set_yticks([0, 1, ax.get_ylim()[1]])
+        # ax.set_yticklabels([0, 1, ax.get_ylim()[1]])
         if i > 0:
             ax.get_legend().remove()
         ax.grid(b=True, axis='y', which='major', linestyle='-', alpha=0.5)
@@ -440,11 +457,26 @@ def replicas(df_acme: pd.DataFrame, df_daytrader: pd.DataFrame, df_qhd: pd.DataF
 def cost(df_acme: pd.DataFrame, df_daytrader: pd.DataFrame, df_qhd: pd.DataFrame, df_frameworks: pd.DataFrame):
     row = -1
 
+    def unique_cfgs(df: pd.DataFrame, app):
+        groups: pd.core.groupby.generic.DataFrameGroupBy = df[['cfg','workload']].groupby('workload')
+        for group in groups:
+            print(app, group[0], len(pd.DataFrame(group[1])['cfg'].unique()))
+
+    # print(df_qhd[['cfg','workload']].groupby('workload').groups.unique())
+    # print(df_daytrader[['cfg','workload']].groupby('workload').unique())
+    # print(df_frameworks[['cfg','workload']].groupby('workload').unique())
+    # print(df_acme[['cfg','workload']].groupby('workload').unique())
+
+    unique_cfgs(df_acme, 'acmeair')
+    unique_cfgs(df_qhd, 'qhd')
+    unique_cfgs(df_daytrader, 'daytrader')
+    unique_cfgs(df_frameworks, 'daytrader fw')
     def filter(df, workload, row, cfg_idx=0):
         df = df.loc[(df['workload'] == workload)]
         df = pd.DataFrame(df)
         cfg = df['cfg'].iloc[cfg_idx]
         # df = df.loc[(df['cfg'] == cfg)].median()
+        df['replicas'] = df.groupby('cfg')['replicas'].transform(lambda s: s.rolling(3, min_periods=1).median())
         df['cpu'] = df.groupby('cfg')['cpu'].transform(lambda s: s.rolling(3, min_periods=1).median())
         df['memory'] = df.groupby('cfg')['memory'].transform(lambda s: s.rolling(3, min_periods=1).median())
         df['memory utilization'] = df.groupby('cfg')['memory utilization'].transform(
@@ -663,20 +695,21 @@ def improvement(df_acme: pd.DataFrame, df_daytrader: pd.DataFrame, df_qhd: pd.Da
     row = -1
 
     def filter(df, workload, row, cfg_idx=0):
+        rolling = 10
+
         df = df.loc[(df['workload'] == workload)]
         df = pd.DataFrame(df)
         cfg = df['cfg'].iloc[cfg_idx]
         # df = df.loc[(df['cfg'] == cfg)].median()
-        df['cpu'] = df.groupby('cfg')['cpu'].transform(lambda s: s.rolling(3, min_periods=1).median())
-        df['memory'] = df.groupby('cfg')['memory'].transform(lambda s: s.rolling(3, min_periods=1).median())
-        df['memory utilization'] = df.groupby('cfg')['memory utilization'].transform(
-            lambda s: s.rolling(3, min_periods=1).median())
-        df['throughput'] = df.groupby('cfg')['throughput'].transform(lambda s: s.rolling(3, min_periods=1).median())
-        df['process time'] = df.groupby('cfg')['process time'].transform(lambda s: s.rolling(3, min_periods=1).median())
-        df['errors'] = df.groupby('cfg')['errors'].transform(lambda s: s.rolling(3, min_periods=1).median())
-        df['score'] = df.groupby('cfg')['score'].transform(lambda s: s.rolling(3, min_periods=1).median())
-        df['cost'] = df.groupby('cfg')['cost'].transform(lambda s: s.rolling(3, min_periods=1).median())
-        df['cost_req'] = df.groupby('cfg')['cost_req'].transform(lambda s: s.rolling(3, min_periods=1).median())
+        df['cpu'] = df.groupby('cfg')['cpu'].transform(lambda s: s.rolling(rolling, min_periods=1).mean())
+        df['memory'] = df.groupby('cfg')['memory'].transform(lambda s: s.rolling(rolling, min_periods=1).mean())
+        df['memory utilization'] = df.groupby('cfg')['memory utilization'].transform(lambda s: s.rolling(rolling, min_periods=1).mean())
+        df['throughput'] = df.groupby('cfg')['throughput'].transform(lambda s: s.rolling(rolling, min_periods=1).mean())
+        df['process time'] = df.groupby('cfg')['process time'].transform(lambda s: s.rolling(rolling, min_periods=1).mean())
+        df['errors'] = df.groupby('cfg')['errors'].transform(lambda s: s.rolling(rolling, min_periods=1).mean())
+        df['score'] = df.groupby('cfg')['score'].transform(lambda s: s.rolling(rolling, min_periods=1).mean())
+        df['cost'] = df.groupby('cfg')['cost'].transform(lambda s: s.rolling(rolling, min_periods=1).mean())
+        df['cost_req'] = df.groupby('cfg')['cost_req'].transform(lambda s: s.rolling(rolling, min_periods=1).mean())
 
         df = df.loc[(df['cfg'] == cfg)].iloc[-1]
         # print(df[['cfg','score','cost']])
@@ -726,7 +759,6 @@ if __name__ == '__main__':
     # name = 'trace-acmeair-2021-08-31T19 27 42'  # ICSE (50, 100, 200)
     name = 'trace-acmeair-2021-09-14T19 46 28'  # more initial memory
     df_acme = load_file_workload(f'resources/{name}.json',iteration_lenght_minutes=10)
-
     # name = 'trace-daytrader-2021-08-28T00 23 06'  # ICSE (5, 10, 50)
     name = 'trace-daytrader-2021-09-15T23 26 02'
     df_daytrader = load_file_workload(f'resources/{name}.json',iteration_lenght_minutes=20)
@@ -742,10 +774,10 @@ if __name__ == '__main__':
     # df_d_jsf = load_file_framework(f'resources/{name}.json', 'jsf',iteration_lenght_minutes=20)
     np.random.seed(0)
 
-    # cost2(df_acme, df_daytrader, df_qhd, df_frameworks, cost_per_replica=True)
-    replicas(df_acme, df_daytrader, df_qhd, df_frameworks, 'replicas', '# replicas over time')
-    # cost(df_acme, df_daytrader, df_qhd, df_frameworks)
-    improvement(df_acme, df_daytrader, df_qhd, df_frameworks)
+    cost2(df_acme, df_daytrader, df_qhd, df_frameworks, cost_per_replica=True)
+    # replicas(df_acme, df_daytrader, df_qhd, df_frameworks, 'replicas', '# replicas over time')
+    cost(df_acme, df_daytrader, df_qhd, df_frameworks)
+    # improvement(df_acme, df_daytrader, df_qhd, df_frameworks)
 
     ### Skip iterations after tuning has ended
 
