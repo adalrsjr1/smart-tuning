@@ -127,8 +127,10 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
                              # figsize=(6,6),
                              ncols=1,
                              sharex='all')
-    fig.set_constrained_layout(True)
-    # fig.tight_layout()
+    #fig.set_constrained_layout(True)
+    fig.tight_layout()
+
+    fontsize = 'large'
 
     for _groups in grouped:
 
@@ -242,26 +244,29 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
         yticks = np.linspace(ax.get_ylim()[0], ax.get_ylim()[1], 4)
         yticks = np.append(yticks, 0)
         ax.set_yticks(yticks)
-        ax.set_yticklabels([f'{round(tick)}' for tick in yticks], fontsize='small')
+        ax.set_yticklabels([f'{round(tick)}' for tick in yticks], fontsize=fontsize)
+        #ax.set_yticklabels([f'{round(tick)}' for tick in yticks], fontsize='small')
 
-        ax.plot(start_payoff_index[0], start_payoff_index[1], 'kx', label='payoff >= 0')
+        ax.plot(start_payoff_index[0], start_payoff_index[1], 'kx', label='payoff >= 0',markersize='10')
         if profit_index:
-            ax.plot(profit_index[0]-1, profit_index[1], 'k+', label='payoff >= training')
-        ax.plot(end_of_tuning_index[0] - 1, end_of_tuning_index[1], 'k.', label='end of tuning')
+            ax.plot(profit_index[0]-1, profit_index[1], 'k*', label='payoff >= training', markersize='10')
+        ax.plot(end_of_tuning_index[0] - 1, end_of_tuning_index[1], 'k.', label='end of tuning', markersize='10')
 
         xticks = 20
         ax.set_xticks(np.linspace(0, ax.get_xlim()[1], xticks, dtype=int))
-        ax.set_xticklabels([f'{(d * duration_iteration/60):.1f}' for d in np.linspace(0, ax.get_xlim()[1], xticks, dtype=int)], rotation=45, fontsize='small')
+        #ax.set_xticklabels([f'{(d * duration_iteration/60):.1f}' for d in np.linspace(0, ax.get_xlim()[1], xticks, dtype=int)], rotation=45, fontsize='small')
+        ax.set_xticklabels([f'{(d * duration_iteration/60):.1f}' for d in np.linspace(0, ax.get_xlim()[1], xticks, dtype=int)], rotation=45, fontsize=fontsize)
         ax.minorticks_off()
 
-        ax.set_ylabel(i)
+        ax.set_ylabel(i, fontsize=fontsize)
         ax2: Axes
         ax2 = ax.twinx()  # instantiate a second axes that shares the same x-axis
 
         ax.yaxis.tick_right()
         ax2.set_yticks([])
         ax2.set_yticklabels([])
-        ax.set_xlabel('duration (hours)', fontsize='small')
+        ax.set_xlabel('duration (hours)', fontsize=fontsize)
+        #ax.set_xlabel('duration (hours)', fontsize='small')
 
         ax.grid(b=True, axis='y', which='major', linestyle='-', alpha=0.5)
 
@@ -271,12 +276,14 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
         print('end tuning', end_of_tuning_index[0]*duration_iteration/60)
         print()
 
-    axes[0].set_title(title, x=0)
+    # remove for usenix paper
+    #axes[0].set_title(title, x=0)
     handles, labels = axes[0].get_legend_handles_labels()
-    axes[0].legend(handles, labels, frameon=False, loc='upper center', fontsize='small', ncol=4,
-                   bbox_to_anchor=(0.6, 1.5) if len(axes) == 3 else (0.6, 1.3))
+    axes[0].legend(handles, labels, frameon=False, loc='upper left', fontsize=fontsize, ncol=8,
+                   #bbox_to_anchor=(0.6, 1.5) if len(axes) == 3 else (0.6, 1.3))
+                   bbox_to_anchor=(0, 1.3))
 
-    fig.text(0.05, 0.35, 'cumulative cost ($)', rotation='90', transform=plt.gcf().transFigure)
+    fig.text(0.01, 0.35, 'cumulative cost ($)', rotation='90', transform=plt.gcf().transFigure,fontsize=fontsize)
 
 
 
@@ -294,6 +301,8 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
     max_x = max([ax.get_xlim()[1] for ax in axes])
     [ax.set_xlim(0, max_x) for ax in axes]
 
+    # remove for usenix paper
+    #axes[0].get_legend().remove()
 
 
 if __name__ == '__main__':
@@ -301,25 +310,26 @@ if __name__ == '__main__':
     pd.options.display.max_rows = None
     pd.options.display.width = 300
 
-    # name_tuned = 'trace-quarkus-2021-09-14T19 46 43'  # Azure
-    # name_non_tuned = 'trace-quarkus-2021-09-14T19 46 43'  # Azure
+    #name_tuned = 'trace-quarkus-2021-09-14T19 46 43'  # Azure
+    #name_non_tuned = 'trace-quarkus-2021-09-14T19 46 43'  # Azure
 
-    # name_tuned = 'trace-quarkus-2021-09-23T14 38 45' # Trinity
-    # name_non_tuned = 'trace-quarkus2-2021-09-23T14 38 39' # Trinity
-    # name_non_tuned = 'trace-quarkus-2021-09-23T14 38 45' # Trinity
+    # not use for the paper
+    #name_tuned = 'trace-quarkus-2021-09-23T14 38 45' # Trinity
+    #name_non_tuned = 'trace-quarkus2-2021-09-23T14 38 39' # Trinity
+    #name_non_tuned = 'trace-quarkus-2021-09-23T14 38 45' # Trinity
 
-    name_tuned = 'trace-daytrader-2021-09-22T02 42 28' # JSF JSP
-    name_non_tuned = 'trace-daytrader-2021-09-22T02 42 28' #JSF JSP
+    #name_tuned = 'trace-daytrader-2021-09-22T02 42 28' # JSF JSP
+    #name_non_tuned = 'trace-daytrader-2021-09-22T02 42 28' #JSF JSP
 
-    # name_tuned = 'trace-acmeair-2021-09-14T19 46 28'
-    # name_non_tuned = 'trace-acmeair-2021-09-14T19 46 28'
+    name_tuned = 'trace-acmeair-2021-09-14T19 46 28'
+    name_non_tuned = 'trace-acmeair-2021-09-14T19 46 28'
 
-    # name_tuned = 'trace-daytrader-2021-09-15T23 26 02'
-    # name_non_tuned = 'trace-daytrader-2021-09-15T23 26 02'
+    #name_tuned = 'trace-daytrader-2021-09-15T23 26 02'
+    #name_non_tuned = 'trace-daytrader-2021-09-15T23 26 02'
 
-    title, iteration_duration, simulated_non_tuning = 'Daytrader', 20, True
-    # title, iteration_duration, simulated_non_tuning = 'AcmeAir', 10, True
-    # title, iteration_duration, simulated_non_tuning = 'QHD', 5, True
+    #title, iteration_duration, simulated_non_tuning = 'Daytrader', 20, True
+    title, iteration_duration, simulated_non_tuning = 'AcmeAir', 10, True
+    #title, iteration_duration, simulated_non_tuning = 'QHD', 5, True
 
     df_qhd_tuned = load_file_workload(f'resources/{name_tuned}.json', iteration_lenght_minutes=iteration_duration)
     df_qhd_non_tuned = load_file_workload(f'resources/{name_non_tuned}.json',
@@ -329,4 +339,6 @@ if __name__ == '__main__':
               duration_iteration=iteration_duration,
               simulated_non_tuning=simulated_non_tuning,
               max_iterations=100)
+    # making room for xlabel
+    plt.gcf().subplots_adjust(bottom=0.15, right=0.93)
     plt.show()
