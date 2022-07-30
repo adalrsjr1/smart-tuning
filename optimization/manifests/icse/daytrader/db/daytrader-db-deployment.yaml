@@ -1,3 +1,26 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: daytrader-db
+  namespace: default
+data:
+  table_constant.sh: |
+    #!/bin/bash
+
+    #su db2inst1
+    #./table_constant.sh 2>&1 &
+
+    db2 connect to tradedb
+
+    MAXSIZE=2500
+
+    while true ; do
+      db2 "DELETE FROM (SELECT * FROM HOLDINGEJB FETCH FIRST $(( $(db2 connect to tradedb 2>&1 > /dev/null ; db2 "select count (*) HOLDINGEJB from HOLDINGEJB" | grep -E "[0-9]+" | tail -n 2 | head -n 1) - $MAXSIZE)) ROWS ONLY) AS A";
+      db2 "DELETE FROM (SELECT * FROM ORDEREJB FETCH FIRST $(( $(db2 connect to tradedb 2>&1 > /dev/null ; db2 "select count (*) ORDEREJB from ORDEREJB" | grep -E "[0-9]+" | tail -n 2 | head -n 1) - $MAXSIZE)) ROWS ONLY) AS A"
+      sleep 1
+    done
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,6 +37,10 @@ spec:
         app: daytrader-db
     spec:
       volumes:
+        - name: db2-script
+          configMap:
+            name: daytrader-db
+            defaultMode: 0777
         - name: db2-volume
           emptyDir: {}
             #          hostPath:
@@ -30,6 +57,8 @@ spec:
           volumeMounts:
             - name: db2-volume
               mountPath: /database
+            - name: db2-script
+              mountPath: /etc/smarttuning
           securityContext:
             privileged: true
           env:
