@@ -30,7 +30,7 @@ metadata:
   labels:
     app: daytrader-db
   name: daytrader-db
-  namespace: daytrader
+#  namespace: daytrader
 spec:
   type: NodePort
   ports:
@@ -38,12 +38,10 @@ spec:
       port: 50000
       protocol: TCP
       targetPort: 50000
-      nodePort: 30050
     - name: "derby"
       port: 1527
       protocol: TCP
       targetPort: 1527
-      nodePort: 30051
   selector:
     app: daytrader-db
 status:

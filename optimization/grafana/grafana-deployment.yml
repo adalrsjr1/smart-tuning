@@ -63,10 +63,7 @@ spec:
               value: "jdbranham-diagram-panel,grafana-simple-json-datasource,natel-discrete-panel,snuids-radar-panel"
           ports:
             - containerPort: 3000
-          resources:
-            limits:
-              memory: 1024Mi
-              cpu: 100m
+          resources: {}
           securityContext:
             privileged: true
           volumeMounts:
