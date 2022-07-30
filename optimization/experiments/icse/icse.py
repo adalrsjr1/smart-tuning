@@ -775,9 +775,9 @@ if __name__ == '__main__':
     np.random.seed(0)
 
     cost2(df_acme, df_daytrader, df_qhd, df_frameworks, cost_per_replica=True)
-    # replicas(df_acme, df_daytrader, df_qhd, df_frameworks, 'replicas', '# replicas over time')
-    cost(df_acme, df_daytrader, df_qhd, df_frameworks)
-    # improvement(df_acme, df_daytrader, df_qhd, df_frameworks)
+    #replicas(df_acme, df_daytrader, df_qhd, df_frameworks, 'replicas', '# replicas over time')
+    #cost(df_acme, df_daytrader, df_qhd, df_frameworks)
+    #improvement(df_acme, df_daytrader, df_qhd, df_frameworks)
 
     ### Skip iterations after tuning has ended
 
