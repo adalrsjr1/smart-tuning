@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: daytrader-db
+  namespace: daytrader-jspjsfd
+  labels:
+    app: daytrader-db
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: daytrader-db
+      labels:
+        app: daytrader-db
+    spec:
+      volumes:
+        - name: db2-volume
+          emptyDir: {}
+            #          hostPath:
+            #path: /smarttuning/db2
+            #type: DirectoryOrCreate
+      containers:
+        # use su - db2inst1 when inspecting the container
+        - name: daytrader-db
+          image: smarttuning/db2
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: "4"
+          volumeMounts:
+            - name: db2-volume
+              mountPath: /database
+          securityContext:
+            privileged: true
+          env:
+            - name: LICENSE
+              value: accept
+            - name: DB2COMM
+              value: tcpip
+            - name: DB2INST1_PASSWORD
+              value: db2pass
+          ports:
+            - containerPort: 50000
+              protocol: TCP
+  selector:
+    matchLabels:
+      app: daytrader-db
+
+#  db2 "select substr(a.tabname,1,30), (a.fpages*PAGESIZE/4096) as TAB_SIZE from syscat.tables a, syscat.tablespaces b where a.TBSPACEID=b.TBSPACEID ORDER BY TAB_SIZE desc"|more
+#
+#  while true ; do db2 "DELETE FROM (SELECT * FROM ORDEREJB FETCH FIRST 100 ROWS ONLY) AS A"; sleep 1; done;
+#
+#  while true; do db2 "select * from
+#  (select count (*) ACCOUNTEJB from ACCOUNTEJB) as ACCOUNTEJB,
+#  (select count (*) ACCOUNTPROFILEEJB from ACCOUNTPROFILEEJB) as ACCOUNTPROFILEEJB,
+#  (select count (*) HOLDINGEJB from HOLDINGEJB) as HOLDINGEJB,
+#  (select count (*) KEYGENEJB from KEYGENEJB) as KEYGENEJB,
+#  (select count (*) ORDEREJB from ORDEREJB) as ORDEREJB,
+#  (select count (*) QUOTEEJB from QUOTEEJB) as QUOTEEJB" ; sleep 1 ; done
+#
+#
+#  "$(( $(db2 connect to tradedb 2>&1 > /dev/null ; db2 "select count (*) HOLDINGEJB from HOLDINGEJB" | grep -E "[0-9]+" | tail -n 2 | head -n 1) - 2000))"
+#
+  ## balance size of HOLDINGEJB and ORDEREJB tables
+#  while true ; do \
+#  db2 "DELETE FROM (SELECT * FROM HOLDINGEJB FETCH FIRST $(( $(db2 connect to tradedb 2>&1 > /dev/null ; db2 "select count (*) HOLDINGEJB from HOLDINGEJB" | grep -E "[0-9]+" | tail -n 2 | head -n 1) - 2596)) ROWS ONLY) AS A"; \
+#  db2 "DELETE FROM (SELECT * FROM ORDEREJB FETCH FIRST $(( $(db2 connect to tradedb 2>&1 > /dev/null ; db2 "select count (*) ORDEREJB from ORDEREJB" | grep -E "[0-9]+" | tail -n 2 | head -n 1) - 2596)) ROWS ONLY) AS A"; \
+#  sleep 1; done;

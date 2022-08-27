@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongoexpress-config
+data:
+  ME_CONFIG_MONGODB_SERVER: "127.0.0.1"
+  ME_CONFIG_MONGODB_PORT: "27017"
+  ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+  VCAP_APP_PORT: "8081"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-config
+data:
+  MONGO_INITDB_DATABASE: "smarttuning"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-workload
+  labels:
+    app: mongo-workload
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: mongo-workload
+      labels:
+        app: mongo-workload
+    spec:
+      containers:
+        - name: mongo-admin-workload
+          image: mongo-express
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: mongoexpress-config
+        - name: mongo-workload
+          image: mongo:4.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 27017
+          envFrom:
+            - configMapRef:
+                name: mongo-config
+          volumeMounts:
+            - mountPath: /home
+              name: mongo-home
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      volumes:
+        - name: mongo-home
+          hostPath:
+            type: DirectoryOrCreate
+            path: /smarttuning/mongo
+  selector:
+    matchLabels:
+      app: mongo-workload
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-workload-service
+spec:
+  selector:
+    app: mongo-workload
+  ports:
+    - port: 27017
+      targetPort: 27017
+      protocol: TCP
+      nodePort: 30027
+      name: mongo
+    - port: 8081
+      targetPort: 8081
+      protocol: TCP
+      nodePort: 30081
+      name: mongo-express
+  type: NodePort

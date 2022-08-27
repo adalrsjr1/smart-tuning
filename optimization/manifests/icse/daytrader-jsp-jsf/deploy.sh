@@ -14,4 +14,4 @@ kubectl --kubeconfig=$HOME/.kube/$1 apply -f ./smarttuning/
 
 sleep 30
 kubectl --kubeconfig=$HOME/.kube/$1 apply -f ./search-space
-kubectl --kubeconfig=$HOME/.kube/$1 delete svc daytrader-smarttuning -n daytrader
+kubectl --kubeconfig=$HOME/.kube/$1 delete svc daytrader-smarttuning -n daytrader-jspjsf

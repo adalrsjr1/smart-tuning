@@ -1,0 +1,52 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smarttuning-sampler-config
+  namespace: daytrader-jspjsfw
+data:
+  # ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2)
+  # "penalization": "(1-errors)*(1/(1+process_time))*(memory_limit/(memory_limit + abs(xmx-memory_limit)))",
+  #"objective": "-(penalization)*(throughput/(((memory_limit * 0.013375) + (cpu_limit * 0.0535) ) / 2))",
+  # "objective": "-(penalization)*(1/(1+process_time))*((throughput)/((memory_limit/(2**10) + cpu_limit)))",
+  # "objective": "-(penalization)*(1/(1+(throughput/(1/process_time))))*(1/((memory_limit/(2**10) + cpu_limit)))",
+  #"objective": "-(penalization)*(1/(1+process_time))*(throughput/((memory_limit/(2**10) + cpu_limit)))",
+
+  sampler.json: |
+    {
+      "objective": "-(penalization)*(throughput/((memory_limit/(2**10) + cpu_limit))) * 1/(1+10000*process_time)",
+      "penalization": "1",
+      "metrics": [
+        {
+          "name": "cpu",
+          "query": "f'sum(rate(container_cpu_usage_seconds_total{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
+        {
+          "name": "cpu_limit",
+          "query": "f'sum(sum_over_time(container_spec_cpu_quota{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s])) / avg(sum_over_time(container_spec_cpu_period{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
+        {
+          "name": "memory",
+          "query": "f'sum(max_over_time(container_memory_working_set_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))/(2^20)'",
+          "datasource": "prom"
+        },
+        {
+          "name": "memory_limit",
+          "query": "f'sum(max_over_time(container_spec_memory_limit_bytes{{id=~\".*kubepods.*\",pod=~\"{podname}-.*\",name!~\".*POD.*\",namespace=\"{namespace}\",container=\"\"}}[{interval}s]))/(2^20)'",
+          "datasource": "prom"
+        },
+        {
+          "name": "throughput",
+          "query": "f'sum(rate(vendor_servlet_request_total{{kubernetes_namespace=\"{namespace}\",pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s]))'",
+          "datasource": "prom"
+        },
+        {
+          "name": "process_time",
+          "query": "f'(avg(sum(rate(vendor_servlet_responseTime_total_seconds{{kubernetes_namespace=\"{namespace}\",pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s])/rate(vendor_servlet_request_total{{kubernetes_namespace=\"{namespace}\",pod=~\"{podname}-.*\",servlet!~\"com_ibm_ws_microprofile.*|.*Trade.*\"}}[{interval}s])) by (pod))) or vector(2^64)'",
+          "datasource": "prom"
+        }
+      ]
+    }
+---

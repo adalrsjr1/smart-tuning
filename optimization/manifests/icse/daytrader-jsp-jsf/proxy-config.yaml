@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: smarttuning-proxy-config
-  namespace: daytrader
+  namespace: daytrader-jspjsf
 data:
   ASYNC: "false"
   PATH_SEPARATOR: "/"

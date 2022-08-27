@@ -3,7 +3,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: jmeter-driver
-  namespace: daytrader
+  namespace: daytrader-jspjsf
 rules:
   - apiGroups: ["*"]
     resources:
@@ -18,7 +18,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: jmeter-driver
-  namespace: daytrader
+  namespace: daytrader-jspjsf
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -26,7 +26,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: default
-    namespace: daytrader
+    namespace: daytrader-jspjsp
 ---
 # driver to try different workloads on Jmeter
 # Jmeter must have support to change the worklaod through env_var
@@ -37,7 +37,7 @@ kind: Job
 metadata:
   creationTimestamp: null
   name: jmeter-driver
-  namespace: daytrader
+  namespace: daytrader-jspjsf
 spec:
   template:
     metadata:
@@ -90,7 +90,7 @@ spec:
         resources: {}
         env:
           - name: NAMESPACE
-            value: "daytrader"
+            value: "daytrader-jspjsf"
           - name: CONFIGMAP_TARGET
             value: "jmeter-config"
           - name: N_ITERATIONS
@@ -108,7 +108,7 @@ spec:
             #value: "131"
             # 23 minutes
             #value: "1860"
-            value: "7200"
+            value: "3600"
           - name: WORKLOADS_LIST
             value: "jsp,jsf"
             #value: "trading-jsp,browsing-jsp"

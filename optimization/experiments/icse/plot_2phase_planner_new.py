@@ -879,11 +879,11 @@ def general():
     # # name = 'trace-acmeair-2021-09-14T21 09 51' # trinity
     # name = 'trace-quarkus-2021-09-14T19 46 43'
     # name = 'trace-daytrader-2021-09-15T23 26 02' # azure
-    # # name = 'trace-daytrader-2021-09-16T17 04 09' # no probation
+    # name = 'trace-daytrader-2021-09-16T17 04 09' # no probation
     # name = 'trace-daytrader-2021-09-17T16 45 24' # no reinforcement
     # name = 'trace-daytrader-2021-09-17T16 45 24'
-    # name = 'trace-daytrader-2021-09-19T14 33 34' # no reinforcement / no probation
-    # # name = 'trace-daytrader-2021-09-18T00 12 14' # azure jsp jsf
+    name = 'trace-daytrader-2021-09-19T14 33 34' # no reinforcement / no probation
+    name = 'trace-daytrader-2021-09-18T00 12 14' # azure jsp jsf
     # name = 'trace-daytrader-2021-09-19T14 43 41'
     # # name = 'trace-daytrader-2021-09-20T14 33 12'
     # name = 'trace-daytrader-2021-09-22T02 42 28'
@@ -897,16 +897,28 @@ def general():
     # name = 'trace-daytrader-2021-10-03T15 38 21'
     # name = 'trace-daytrader-2021-09-29T14 15 23'
     # name = 'trace-daytrader-2021-10-04T14 52 00'
-    name = 'trace-daytrader-2021-10-05T14 35 32'
-    name = 'trace-quarkus-2021-10-08T19 28 03'
+    # name = 'trace-daytrader-2021-10-05T14 35 32'
+    #name = 'trace-quarkus-2021-10-08T19 28 03'
+    #name = 'trace-daytrader-2022-08-09T22_42_02'
+    #name = 'trace-daytrader-2022-08-10T13_30_11'
+    # new icse-seip
+    name = 'trace-daytrader-jspjsfw-2022-08-13T15_52_05' #jsp-jsf weight 10 to resp time
+    #name = 'trace-daytrader-jspjsf-2022-08-13T15_51_49' #jsp-jsf default
+    #name = 'trace-daytrader-jspjsfd-2022-08-14T11_50_52' #jsp-jsf no dependency {"training.metric.throughput": {$lt: 10}}
+    #name = 'trace-daytrader-jspjsfv-2022-08-14T11_51_00' # jsp-jsf no vertical scaling
+    name = 'trace-daytrader-jspjsf-random-2022-08-15T13_43_41' # jsp-jsf random
+    name = 'trace-daytrader-jspjsfw-2022-08-15T13_39_16' # jsp-jsf weight 1000 to resp time
+    name = 'trace-daytrader-jspjsfv-2022-08-17T12_24_16' # jsp-jsf no memory
+    name = 'trace-daytrader-jspjsfv-2022-08-19T00_12_23' # jsp-jsf no memory and no thread
+    name = 'trace-daytrader-jspjsf-2022-08-20T16_05_52'
 
-    # title = 'Daytrader'
-    # service_name = "daytrader-service"
-    # config_name = "daytrader-config-app"
+    title = 'Daytrader'
+    service_name = "daytrader-service"
+    config_name = "daytrader-config-app"
 
-    title= "Quarkus"
-    service_name = "quarkus-service"
-    config_name = "quarkus-cm-app"
+    #title= "Quarkus"
+    #service_name = "quarkus-service"
+    #config_name = "quarkus-cm-app"
 
     # title = "AcmeAir"
     # service_name = "acmeair-service"
@@ -916,9 +928,9 @@ def general():
     # plot_importance(data)
 
     # for workload in ['']:
-    # for workload in [''] + [f'workload_{i}' for i in ['jsp','jsf']]:
-    # for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
-    for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
+    for workload in [''] + [f'workload_{i}' for i in ['jsp','jsf']]:
+    #for workload in [''] + [f'workload_{i}' for i in [5, 10, 50]]:
+    #for workload in [''] + [f'workload_{i}' for i in [50, 100, 200]]:
         print('workload: ', workload)
         try:
             print(workload)

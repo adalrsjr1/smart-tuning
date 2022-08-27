@@ -1,0 +1,27 @@
+---
+kind: HorizontalPodAutoscaler
+apiVersion: autoscaling/v2beta2
+metadata:
+  name: daytrader-service
+  namespace: daytrader-jspjsfw
+spec:
+  scaleTargetRef:
+    # point the HPA at the sample application
+    # you created above
+    apiVersion: apps/v1
+    kind: Deployment
+    name: daytrader-service
+  # autoscale between 1 and 10 replicas
+  # cluster supports at most 24 cores
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  # use a "Pods" metric, which takes the average of the
+  # given metric across all pods controlled by the autoscaling target
+     - type: Resource
+       resource:
+         name: cpu
+         target:
+           type: Utilization
+           averageUtilization: 49
+

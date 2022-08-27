@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smarttuning
+  namespace: daytrader-jspjsfv
+  labels:
+    app: smarttuning
+spec:
+  template:
+    metadata:
+      name: smarttuning
+      labels:
+        app: smarttuning
+    spec:
+      containers:
+        - name: smarttuning
+          image: quay.io/smarttuning/smarttuning:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9090
+          envFrom:
+            - configMapRef:
+                name: smarttuning-config
+            - configMapRef:
+                name: smarttuning-sampling-prom-queries
+          volumeMounts:
+            - mountPath: /etc/sampler-config
+              name: sampler-config
+              readOnly: true
+          securityContext:
+            privileged: true
+      volumes:
+        - name: sampler-config
+          configMap:
+            name: smarttuning-sampler-config
+            items:
+              - key: "sampler.json"
+                path: "sampler.json"
+  selector:
+    matchLabels:
+      app: smarttuning
+

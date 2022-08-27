@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jmeter-config
+  namespace: daytrader-jspjsfd
+data:
+  JVM_ARGS: "-Xms1g -Xmx1g -Xtune:virtualized -XX:+UseContainerSupport -XX:MaxRAMPercentage=90"
+  JTOPUID: "499"
+  JPORT: "9080"
+  JMAXTHINKTIME: "100"
+  JWAIT_RESP: "0"
+  JSTOCKS: "999"
+  JTHREADS: "50"
+  JSTEPTHREADS: "200"
+  JTHROUGHPUT: "100"
+  JRATIO: "1"
+  JRAMP: "60"
+  JDURATION: "57600"
+  JSELLS: "4"
+  JBUYS: "4"
+  JQUOTES: "44"
+  TEST_GROUP: "jsp"
+  #"browsing-jsp,trading-jsp,jsp,jsf,all,jax,replicas,replicas-test-step,replicas-test-linear,replicas-periodic"
+  TEST_PLAN: "dynamic_daytrader8_ignore_response_codes.jmx"
+

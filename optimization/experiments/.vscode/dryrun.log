@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/adalrsjr1/Coding/smart-tuning/optimization/experiments'
+make: Leaving directory '/home/adalrsjr1/Coding/smart-tuning/optimization/experiments'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+

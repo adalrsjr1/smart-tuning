@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: smarttuning
+  name: smarttuning
+  namespace: daytrader-jspjsfw
+spec:
+  ports:
+  - name: smarttuning
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: smarttuning
+---

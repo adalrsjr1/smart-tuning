@@ -1,0 +1,45 @@
+# make it reacheable by prometheus
+apiVersion: v1
+kind: Service
+metadata:
+  name: daytrader
+  namespace: daytrader-jspjsfw
+  annotations:
+    injection.smarttuning.ibm.com: "false"
+  labels:
+    app: daytrader
+    smarttuning: "false"
+spec:
+  ports:
+    - port: 9093
+      targetPort: 493
+      name: https
+    - port: 9080
+      targetPort: 9080
+      name: http
+  selector:
+    app: daytrader
+    smarttuning: "false"
+---
+#### Daytrader Database  #####
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: daytrader-db
+  name: daytrader-db
+  namespace: daytrader-jspjsfw
+spec:
+  ports:
+    - name: "db2"
+      port: 50000
+      protocol: TCP
+      targetPort: 50000
+    - name: "derby"
+      port: 1527
+      protocol: TCP
+      targetPort: 1527
+  selector:
+    app: daytrader-db
+status:
+  loadBalancer: {}

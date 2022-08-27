@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: smarttuning-sampling-prom-queries
-  namespace: daytrader
+  namespace: daytrader-jspjsf
 data:
   Q_CPU: f'sum(rate(container_cpu_usage_seconds_total{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
   Q_CPU_L: f'sum(sum_over_time(container_spec_cpu_quota{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s])) / avg(sum_over_time(container_spec_cpu_period{{id=~".*kubepods.*",pod=~"{self.podname}-.*",name!~".*POD.*",namespace="{self.namespace}",container=""}}[{self.interval}s]))'
@@ -19,7 +19,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: smarttuning-config
-  namespace: daytrader
+  namespace: daytrader-jspjsf
 data:
   NO_PROXY: "True"
   LOGGING_LEVEL: "NOTSET"
@@ -38,13 +38,13 @@ data:
   # mongo config
   MONGO_ADDR: 'mongo-workload-service.default.svc.cluster.local'
   MONGO_PORT: '27017'
-  MONGO_DB: 'daytrader'
+  MONGO_DB: 'daytrader-jspjsf-no-thread'
   # prometheus config
   ST_METRICS_PORT: '9090'
   PROMETHEUS_ADDR: 'prometheus-service.kube-monitoring.svc.cluster.local'
   PROMETHEUS_PORT: '9090'
-  SAMPLING_METRICS_TIMEOUT: '1200'
-  WAITING_TIME: '1200'
+  SAMPLING_METRICS_TIMEOUT: '600'
+  WAITING_TIME: '600'
   SAMPLE_SIZE: '0.3334'
   BAYESIAN: 'True'
   # n_startup_jobs: # of jobs doing random search at begining of optimization
@@ -75,7 +75,7 @@ data:
   AGGREGATION_FUNCTION: 'sum'
   THROUGHPUT_THRESHOLD: '10'
   QUANTILE: '1.0'
-  NAMESPACE: 'daytrader'
+  NAMESPACE: 'daytrader-jspjsf'
   HPA_NAME: 'daytrader-service'
   PROXY_IMAGE: 'smarttuning/proxy'
 ---

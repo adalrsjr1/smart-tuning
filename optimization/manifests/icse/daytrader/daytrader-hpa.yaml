@@ -15,7 +15,7 @@ spec:
   # cluster supports at most 24 cores
   minReplicas: 1
   # maxReplicas: 1
-  maxReplicas: 8 # for ICSE experiments
+  maxReplicas: 12 # for ICSE experiments
   metrics:
   # use a "Pods" metric, which takes the average of the
   # given metric across all pods controlled by the autoscaling target

@@ -3,7 +3,7 @@ kind: HorizontalPodAutoscaler
 apiVersion: autoscaling/v2beta2
 metadata:
   name: daytrader-service
-  namespace: daytrader
+  namespace: daytrader-jspjsf
 spec:
   scaleTargetRef:
     # point the HPA at the sample application

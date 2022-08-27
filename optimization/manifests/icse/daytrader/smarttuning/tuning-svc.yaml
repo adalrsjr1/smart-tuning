@@ -14,5 +14,4 @@ spec:
     targetPort: 9090
   selector:
     app: smarttuning
-  type: NodePort
 ---

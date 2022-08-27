@@ -2,11 +2,11 @@ apiVersion: "smarttuning.ibm.com/v1alpha2"
 kind: SearchSpace
 metadata:
   name: daytrader-ss
-  namespace: daytrader
+  namespace: daytrader-jspjsf
 spec:
   deployment: daytrader-service
   service: daytrader
-  namespace: "daytrader"
+  namespace: "daytrader-jspjsf"
   manifests:
     - name: daytrader-service
       type: "deployment"
@@ -41,11 +41,11 @@ data:
           lower:
             value: 10
           upper:
-            dependsOn: "CONMGR1_MAX_POOL_SIZE"
-            value: 100
+            #dependsOn: "CONMGR1_MAX_POOL_SIZE"
+            value: 10
           step: 1
           real: False
-        # JDBC Conn Pool
+        #JDBC Conn Pool
         - name: "CONMGR1_MAX_POOL_SIZE"
           lower:
             value: 10

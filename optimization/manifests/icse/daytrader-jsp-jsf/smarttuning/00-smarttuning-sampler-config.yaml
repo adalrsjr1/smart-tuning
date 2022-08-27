@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: smarttuning-sampler-config
-  namespace: daytrader
+  namespace: daytrader-jspjsf
 data:
   # ((((memory / (2**20)) * 0.013375) + (cpu * 0.0535) ) / 2)
   # "penalization": "(1-errors)*(1/(1+process_time))*(memory_limit/(memory_limit + abs(xmx-memory_limit)))",

@@ -56,7 +56,7 @@ spec:
               NAME=$1
               curl -sSk \
                 -X PATCH \
-                -d "{\"kind\":\"ConfigMap\",\"apiVersion\":\"v1\",\"data\":{\"JTHREAD\":\"$NAME\"}}" \
+                -d "{\"kind\":\"ConfigMap\",\"apiVersion\":\"v1\",\"data\":{\"JTHREADS\":\"$NAME\"}}" \
                 -H "Authorization: Bearer $KUBE_TOKEN" \
                 -H 'Accept: application/json' \
                 -H 'Content-Type: application/strategic-merge-patch+json' \

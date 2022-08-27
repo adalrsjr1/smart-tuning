@@ -761,12 +761,18 @@ if __name__ == '__main__':
     df_acme = load_file_workload(f'resources/{name}.json',iteration_lenght_minutes=10)
     # name = 'trace-daytrader-2021-08-28T00 23 06'  # ICSE (5, 10, 50)
     name = 'trace-daytrader-2021-09-15T23 26 02'
+    name = 'trace-daytrader-2022-08-10T13_30_11'
     df_daytrader = load_file_workload(f'resources/{name}.json',iteration_lenght_minutes=20)
 
     # name = 'trace-daytrader-2021-09-18T00 12 14' # jsp jsf
     # name = 'trace-daytrader-2021-09-20T14 33 12' # full runing jsp much worse than expected
     # name = 'trace-daytrader-2021-09-19T14 43 41' # no tuning at all
     name = 'trace-daytrader-2021-09-22T02 42 28'
+
+    # seip
+    #name = 'trace-daytrader-2022-08-10T13_30_11'
+
+
     df_frameworks = load_file_workload(f'resources/{name}.json',iteration_lenght_minutes=20)
     # name = 'trace-jsp-2021-03-11T13 41 07'  # ICSE JSP
     # df_d_jsp = load_file_framework(f'resources/{name}.json', 'jsp',iteration_lenght_minutes=20)
@@ -774,10 +780,10 @@ if __name__ == '__main__':
     # df_d_jsf = load_file_framework(f'resources/{name}.json', 'jsf',iteration_lenght_minutes=20)
     np.random.seed(0)
 
-    cost2(df_acme, df_daytrader, df_qhd, df_frameworks, cost_per_replica=True)
+    #cost2(df_acme, df_daytrader, df_qhd, df_frameworks, cost_per_replica=True)
     #replicas(df_acme, df_daytrader, df_qhd, df_frameworks, 'replicas', '# replicas over time')
     #cost(df_acme, df_daytrader, df_qhd, df_frameworks)
-    #improvement(df_acme, df_daytrader, df_qhd, df_frameworks)
+    improvement(df_acme, df_daytrader, df_qhd, df_frameworks)
 
     ### Skip iterations after tuning has ended
 

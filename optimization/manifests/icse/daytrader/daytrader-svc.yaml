@@ -10,12 +10,10 @@ metadata:
     app: daytrader
     smarttuning: "false"
 spec:
-  type: NodePort
   ports:
     - port: 9093
       targetPort: 493
       name: https
-        #   - nodePort: 30088
     - port: 9080
       targetPort: 9080
       name: http
@@ -29,10 +27,10 @@ kind: Service
 metadata:
   labels:
     app: daytrader-db
+  namespace: daytrader
   name: daytrader-db
 #  namespace: daytrader
 spec:
-  type: NodePort
   ports:
     - name: "db2"
       port: 50000

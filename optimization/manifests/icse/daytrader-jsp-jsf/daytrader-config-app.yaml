@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: daytrader-config-app
-  namespace: daytrader
+  namespace: daytrader-jspjsf
 data:
   HTTP_MAX_KEEP_ALIVE_REQUESTS: "100"
   HTTP_PERSIST_TIMEOUT: "30"

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: daytrader-service
-  namespace: daytrader
+  namespace: daytrader-jspjsf
   annotations:
     injection.smarttuning.ibm.com: "true"
 spec:
@@ -46,7 +46,7 @@ spec:
             - containerPort: 9080
           env:
             - name: DB_ADDRESS
-              value: daytrader-db.default.svc.cluster.local
+              value: daytrader-db.daytrader-jspjsf.svc.cluster.local
             - name: DB_PORT
             # value: "1527"
               value: "50000"
