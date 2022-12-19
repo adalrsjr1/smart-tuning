@@ -274,6 +274,8 @@ def real_cost(tuned: pd.DataFrame, non_tuned: pd.DataFrame, title: '', duration_
         print('payoff', start_payoff_index[0]*duration_iteration/60)
         print('profit', profit_index[0]*duration_iteration/60)
         print('end tuning', end_of_tuning_index[0]*duration_iteration/60)
+        print(f'payoff - end tuning == {start_payoff_index[0]*duration_iteration/60 - end_of_tuning_index[0]*duration_iteration/60}')
+        print(f'payoff/end tuning == {(start_payoff_index[0]*duration_iteration/60) / (end_of_tuning_index[0]*duration_iteration/60)}')
         print()
 
     # remove for usenix paper
@@ -321,14 +323,14 @@ if __name__ == '__main__':
     #name_tuned = 'trace-daytrader-2021-09-22T02 42 28' # JSF JSP
     #name_non_tuned = 'trace-daytrader-2021-09-22T02 42 28' #JSF JSP
 
-    name_tuned = 'trace-acmeair-2021-09-14T19 46 28'
-    name_non_tuned = 'trace-acmeair-2021-09-14T19 46 28'
+    #name_tuned = 'trace-acmeair-2021-09-14T19 46 28'
+    #name_non_tuned = 'trace-acmeair-2021-09-14T19 46 28'
 
-    #name_tuned = 'trace-daytrader-2021-09-15T23 26 02'
-    #name_non_tuned = 'trace-daytrader-2021-09-15T23 26 02'
+    name_tuned = 'trace-daytrader-2021-09-15T23 26 02'
+    name_non_tuned = 'trace-daytrader-2021-09-15T23 26 02'
 
-    #title, iteration_duration, simulated_non_tuning = 'Daytrader', 20, True
-    title, iteration_duration, simulated_non_tuning = 'AcmeAir', 10, True
+    title, iteration_duration, simulated_non_tuning = 'Daytrader', 20, True
+    #title, iteration_duration, simulated_non_tuning = 'AcmeAir', 10, True
     #title, iteration_duration, simulated_non_tuning = 'QHD', 5, True
 
     df_qhd_tuned = load_file_workload(f'resources/{name_tuned}.json', iteration_lenght_minutes=iteration_duration)
